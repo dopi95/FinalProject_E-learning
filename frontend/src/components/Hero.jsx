@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Play } from 'lucide-react';
@@ -6,13 +6,68 @@ import { ArrowRight, Play } from 'lucide-react';
 const Hero = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [displayText, setDisplayText] = useState('');
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+
+  const heroImages = [
+    'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&h=1080&fit=crop&crop=center',
+    'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1920&h=1080&fit=crop&crop=center',
+    'https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=1920&h=1080&fit=crop&crop=center'
+  ];
+
+  const words = ['Learn', 'Without', 'Limits', 'at', 'AAU'];
+
+  useEffect(() => {
+    const resetTypewriter = () => {
+      setDisplayText('');
+      setCurrentWordIndex(0);
+    };
+
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+
+    const typewriterReset = setInterval(() => {
+      setTimeout(resetTypewriter, 2000);
+    }, 7000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(typewriterReset);
+    };
+  }, [heroImages.length]);
+
+  useEffect(() => {
+    if (currentWordIndex < words.length) {
+      const currentWord = words[currentWordIndex];
+      let charIndex = 0;
+      
+      const typeInterval = setInterval(() => {
+        if (charIndex <= currentWord.length) {
+          setDisplayText(prev => {
+            const wordsCompleted = words.slice(0, currentWordIndex).join(' ');
+            const currentTyping = currentWord.slice(0, charIndex);
+            return wordsCompleted + (wordsCompleted ? ' ' : '') + currentTyping;
+          });
+          charIndex++;
+        } else {
+          clearInterval(typeInterval);
+          setTimeout(() => {
+            setCurrentWordIndex(prev => prev + 1);
+          }, 300);
+        }
+      }, 150);
+      
+      return () => clearInterval(typeInterval);
+    }
+  }, [currentWordIndex]);
 
   const handleGetStarted = () => {
     navigate('/register');
   };
 
   const handleBrowseCourses = () => {
-    // Scroll to courses section
     const coursesSection = document.getElementById('courses');
     if (coursesSection) {
       coursesSection.scrollIntoView({ behavior: 'smooth' });
@@ -20,50 +75,84 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-indigo-900/20 py-24 overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-      <div className="absolute top-0 left-0 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
-      <div className="absolute top-0 right-0 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
-      <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
-      
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center">
-          <div className="mb-8">
-            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700">
-              {t('hero.welcomeBadge')}
-            </span>
+    <section className="relative h-[calc(100vh-80px)] flex items-center justify-center overflow-hidden">
+      {/* Background Image Slider */}
+      <div className="absolute inset-0">
+        {heroImages.map((image, index) => (
+          <div
+            key={index}
+            className={`absolute inset-0 transition-opacity duration-1000 ${
+              index === currentSlide ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <img
+              src={image}
+              alt={`Hero ${index + 1}`}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/60"></div>
           </div>
+        ))}
+      </div>
+
+
+
+      {/* Content */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="mb-8">
+          <span className="inline-flex items-center px-6 py-3 rounded-full text-sm font-medium bg-white/10 backdrop-blur-md text-white border border-white/20 shadow-lg">
+            {t('hero.welcomeBadge')}
+          </span>
+        </div>
+        
+        <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 md:mb-8 leading-tight min-h-[120px] sm:min-h-[150px] md:min-h-[200px] flex items-center justify-center">
+          <span className="text-white drop-shadow-2xl text-center">
+            {displayText}
+          </span>
+        </h1>
+        
+        <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-8 md:mb-12 max-w-4xl mx-auto leading-relaxed drop-shadow-lg font-medium px-4">
+          {t('hero.subtitle')}
+        </p>
+        
+        <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center items-center px-4">
+          <button 
+            onClick={handleGetStarted}
+            className="w-full sm:w-auto group bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center space-x-3 shadow-2xl hover:shadow-blue-500/25 transform hover:-translate-y-1 font-semibold text-base md:text-lg border border-white/20"
+          >
+            <span>{t('hero.getStarted')}</span>
+            <ArrowRight className="h-4 w-4 md:h-5 md:w-5 group-hover:translate-x-1 transition-transform" />
+          </button>
           
-          <h1 className="text-5xl md:text-7xl font-extrabold text-gray-900 dark:text-white mb-8 leading-tight">
-            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-              {t('hero.title')}
-            </span>
-          </h1>
-          
-          <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-12 max-w-4xl mx-auto leading-relaxed">
-            {t('hero.subtitle')}
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            <button 
-              onClick={handleGetStarted}
-              className="group bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center space-x-3 shadow-lg hover:shadow-xl transform hover:-translate-y-1 font-semibold text-lg"
-            >
-              <span>{t('hero.getStarted')}</span>
-              <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-            
-            <button 
-              onClick={handleBrowseCourses}
-              className="group border-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 px-8 py-4 rounded-xl hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transition-all duration-300 flex items-center justify-center space-x-3 font-semibold text-lg backdrop-blur-sm"
-            >
-              <Play className="h-5 w-5 group-hover:scale-110 transition-transform" />
-              <span>{t('hero.browseCourses')}</span>
-            </button>
-          </div>
+          <button 
+            onClick={handleBrowseCourses}
+            className="w-full sm:w-auto group border-2 border-white/80 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl hover:bg-white/10 backdrop-blur-sm transition-all duration-300 flex items-center justify-center space-x-3 font-semibold text-base md:text-lg shadow-xl"
+          >
+            <Play className="h-4 w-4 md:h-5 md:w-5 group-hover:scale-110 transition-transform" />
+            <span>{t('hero.browseCourses')}</span>
+          </button>
+        </div>
+        
+        {/* Slide Indicators */}
+        <div className="flex justify-center mt-8 space-x-4">
+          {heroImages.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                index === currentSlide
+                  ? 'bg-white scale-125'
+                  : 'bg-white/50 hover:bg-white/75'
+              }`}
+            />
+          ))}
         </div>
       </div>
+
+      {/* Animated Background Elements */}
+      <div className="absolute top-20 left-10 w-20 h-20 bg-white/10 rounded-full animate-float backdrop-blur-sm"></div>
+      <div className="absolute top-40 right-20 w-16 h-16 bg-white/10 rounded-full animate-float animation-delay-2000 backdrop-blur-sm"></div>
+      <div className="absolute bottom-40 left-20 w-24 h-24 bg-white/10 rounded-full animate-float animation-delay-4000 backdrop-blur-sm"></div>
     </section>
   );
 };
