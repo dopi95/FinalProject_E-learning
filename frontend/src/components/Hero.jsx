@@ -68,7 +68,7 @@ const Hero = () => {
   };
 
   const handleBrowseCourses = () => {
-    const coursesSection = document.getElementById('courses');
+    const coursesSection = document.getElementById('courses-section');
     if (coursesSection) {
       coursesSection.scrollIntoView({ behavior: 'smooth' });
     }

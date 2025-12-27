@@ -64,8 +64,7 @@ const About = () => {
                       />
                     </div>
                     <div className="text-center mt-4">
-                      <h3 className="text-lg md:text-xl font-bold mb-2 text-gray-900 dark:text-white">AAU Campus</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">Excellence in Education</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{t('about.excellenceText')}</p>
                     </div>
                   </div>
                 </div>
@@ -107,7 +106,7 @@ const About = () => {
           {/* Statistics */}
           <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 md:p-12 shadow-xl border border-gray-100 dark:border-gray-700">
             <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-900 dark:text-white mb-8 md:mb-12">
-              AAU E-Learning Impact
+              {t('about.impactTitle')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 md:gap-12">
               {stats.map((stat, index) => (

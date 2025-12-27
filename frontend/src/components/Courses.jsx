@@ -1,20 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Search, Star, Users, ArrowRight, User } from 'lucide-react';
+import { Star, Users, User } from 'lucide-react';
 
 const Courses = () => {
   const { t } = useTranslation();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-
-  const categories = [
-    { id: 'all', name: t('courses.allCategories') },
-    { id: 'programming', name: t('courses.programming') },
-    { id: 'design', name: t('courses.design') },
-    { id: 'business', name: t('courses.business') },
-    { id: 'marketing', name: t('courses.marketing') }
-  ];
 
   const courses = [
     {
@@ -52,12 +42,6 @@ const Courses = () => {
     }
   ];
 
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
   return (
     <section id="courses-section" className="py-20 bg-white dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -67,48 +51,8 @@ const Courses = () => {
           </h2>
         </div>
 
-        <div className="mb-12">
-          <div className="flex flex-col lg:flex-row gap-6 items-center justify-between">
-            {/* Search Bar */}
-            <div className="relative flex-1 max-w-2xl">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-              </div>
-              <input
-                type="text"
-                placeholder={t('courses.searchPlaceholder')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 dark:border-gray-600 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 shadow-lg hover:shadow-xl"
-              />
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/5 to-indigo-500/5 pointer-events-none opacity-0 hover:opacity-100 transition-opacity"></div>
-            </div>
-
-            {/* Category Filter */}
-            <div className="relative">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="appearance-none bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white px-6 py-4 pr-12 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer text-lg font-medium min-w-[200px]"
-              >
-                {categories.map(category => (
-                  <option key={category.id} value={category.id} className="py-2">
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-indigo-500/5 to-purple-500/5 pointer-events-none opacity-0 hover:opacity-100 transition-opacity"></div>
-            </div>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredCourses.map(course => (
+          {courses.map(course => (
             <div key={course.id} className="group bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 border border-gray-100 dark:border-gray-700 flex flex-col h-full">
               <div className="relative overflow-hidden cursor-pointer" onClick={() => window.location.href = `/course/${course.id}`}>
                 <img src={course.image} alt={course.title} className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500" />

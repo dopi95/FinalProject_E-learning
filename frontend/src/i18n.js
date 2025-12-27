@@ -90,7 +90,9 @@ const resources = {
         instructors: 'Instructors',
         statsTitle: 'Our Impact in Numbers',
         contactTitle: 'Get in Touch with AAU E-Learning',
-        addressText: 'Addis Ababa University\nMain Campus, Sidist Kilo\nAddis Ababa, Ethiopia'
+        addressText: 'Addis Ababa University\nMain Campus, Sidist Kilo\nAddis Ababa, Ethiopia',
+        excellenceText: 'Excellence in Education',
+        impactTitle: 'AAU E-Learning Impact'
       },
       contact: {
         title: 'Contact Us',
@@ -99,9 +101,13 @@ const resources = {
         email: 'Email',
         message: 'Message',
         send: 'Send Message',
+        sending: 'Sending...',
         contactInfo: 'Contact Information',
         phone: 'Phone',
-        address: 'Address'
+        address: 'Address',
+        addressText: 'Addis Ababa University\nAddis Ababa, Ethiopia',
+        successTitle: 'Message Sent Successfully!',
+        successMessage: 'Thank you for contacting us. We will get back to you soon.'
       },
       chatbot: {
         title: 'AAU Assistant',
@@ -202,7 +208,9 @@ const resources = {
         instructors: 'አስተማሪዎች',
         statsTitle: 'በቁጥር የእኛ ተጽእኖ',
         contactTitle: 'ከAAU ኢ-ትምህርት ጋር ይገናኙ',
-        addressText: 'አዲስ አበባ ዩኒቨርሲቲ\nዋና ካምፓስ፣ ስድስት ኪሎ\nአዲስ አበባ፣ ኢትዮጵያ'
+        addressText: 'አዲስ አበባ ዩኒቨርሲቲ\nዋና ካምፓስ፣ ስድስት ኪሎ\nአዲስ አበባ፣ ኢትዮጵያ',
+        excellenceText: 'በትምህርት ብቃት',
+        impactTitle: 'የAAU ኢ-ትምህርት ተጽእኖ'
       },
       contact: {
         title: 'ያግኙን',
@@ -211,9 +219,13 @@ const resources = {
         email: 'ኢሜይል',
         message: 'መልእክት',
         send: 'መልእክት ላክ',
+        sending: 'እየላከ ነው...',
         contactInfo: 'የመገናኛ መረጃ',
         phone: 'ስልክ',
-        address: 'አድራሻ'
+        address: 'አድራሻ',
+        addressText: 'አዲስ አበባ ዩኒቨርሲቲ\nአዲስ አበባ፣ ኢትዮጵያ',
+        successTitle: 'መልእክት በተሳካ ሁኔታ ተልኳል!',
+        successMessage: 'ስለገናኙን እናመሰግናለን። በቅርቡ እንመልስልዎታለን።'
       },
       chatbot: {
         title: 'የAAU ረዳት',
