@@ -137,7 +137,46 @@ const resources = {
         verificationNeeded: 'Please verify your email first'
       },
       common: {
-        backToHome: 'Back to Home'
+        backToHome: 'Back to Home',
+        back: 'Back',
+        backToLogin: 'Back to Login'
+      },
+      forgotPassword: {
+        title: 'Forgot Password?',
+        description: 'Enter your email address and we\'ll send you a code to reset your password',
+        emailAddress: 'Email Address',
+        enterEmail: 'Enter your email address',
+        sendCode: 'Send Reset Code',
+        sending: 'Sending Code...',
+        codeSent: 'Reset code sent to your email',
+        sendFailed: 'Failed to send reset code',
+        rememberPassword: 'Remember your password?',
+        signInHere: 'Sign in here',
+        verifyCode: 'Verify Code',
+        codeSentTo: 'Enter the 6-digit code sent to',
+        verificationCode: 'Verification Code',
+        resendIn: 'Resend code in',
+        resendCode: 'Resend Code',
+        resending: 'Resending...',
+        verifying: 'Verifying...',
+        otpVerified: 'Code verified successfully',
+        invalidOtp: 'Invalid or expired code',
+        otpResent: 'New code sent to your email',
+        resendFailed: 'Failed to resend code',
+        resetPassword: 'Reset Password',
+        enterNewPassword: 'Enter your new password',
+        newPassword: 'New Password',
+        confirmPassword: 'Confirm Password',
+        confirmNewPassword: 'Confirm new password',
+        passwordRequirements: 'Password must be at least 6 characters long',
+        resetting: 'Resetting Password...',
+        passwordTooShort: 'Password must be at least 6 characters',
+        passwordMismatch: 'Passwords do not match',
+        passwordResetSuccess: 'Password reset successfully',
+        resetFailed: 'Password reset failed',
+        successTitle: 'Password Reset Successful!',
+        successMessage: 'Your password has been successfully reset. You can now login with your new password.',
+        goToLogin: 'Go to Login'
       }
     }
   },
@@ -277,7 +316,46 @@ const resources = {
         verificationNeeded: 'እባክዎ መጀመሪያ ኢሜይልዎን ያረጋግጡ'
       },
       common: {
-        backToHome: 'ወደ መነሻ ተመለስ'
+        backToHome: 'ወደ መነሻ ተመለስ',
+        back: 'ተመለስ',
+        backToLogin: 'ወደ መግቢያ ተመለስ'
+      },
+      forgotPassword: {
+        title: 'የይለፍ ቃል ረሳሁ?',
+        description: 'የኢሜይል አድራሻዎን ያስገቡ እና የይለፍ ቃልዎን ለመቀየር ኮድ እንልክልዎታለን',
+        emailAddress: 'የኢሜይል አድራሻ',
+        enterEmail: 'የኢሜይል አድራሻዎን ያስገቡ',
+        sendCode: 'የመቀየሪያ ኮድ ላክ',
+        sending: 'ኮድ እየላከ ነው...',
+        codeSent: 'የመቀየሪያ ኮድ ወደ ኢሜይልዎ ተልኳል',
+        sendFailed: 'የመቀየሪያ ኮድ መላክ አልተሳካም',
+        rememberPassword: 'የይለፍ ቃልዎን አስታውሰዋል?',
+        signInHere: 'እዚህ ይግቡ',
+        verifyCode: 'ኮድ አረጋግጥ',
+        codeSentTo: 'የተላከውን 6 አሃዝ ኮድ ያስገቡ ወደ',
+        verificationCode: 'የማረጋገጫ ኮድ',
+        resendIn: 'ኮድ እንደገና መላክ በ',
+        resendCode: 'ኮድ እንደገና ላክ',
+        resending: 'እንደገና እየላከ ነው...',
+        verifying: 'እያረጋገጠ ነው...',
+        otpVerified: 'ኮድ በተሳካ ሁኔታ ተረጋግጧል',
+        invalidOtp: 'ልክ ያልሆነ ወይም ጊዜው ያለፈ ኮድ',
+        otpResent: 'አዲስ ኮድ ወደ ኢሜይልዎ ተልኳል',
+        resendFailed: 'ኮድ እንደገና መላክ አልተሳካም',
+        resetPassword: 'የይለፍ ቃል ቀይር',
+        enterNewPassword: 'አዲስ የይለፍ ቃልዎን ያስገቡ',
+        newPassword: 'አዲስ የይለፍ ቃል',
+        confirmPassword: 'የይለፍ ቃል አረጋግጥ',
+        confirmNewPassword: 'አዲስ የይለፍ ቃል አረጋግጥ',
+        passwordRequirements: 'የይለፍ ቃል ቢያንስ 6 ቁምፊዎች ሊኖሩት ይገባል',
+        resetting: 'የይለፍ ቃል እየቀየረ ነው...',
+        passwordTooShort: 'የይለፍ ቃል ቢያንስ 6 ቁምፊዎች ሊኖሩት ይገባል',
+        passwordMismatch: 'የይለፍ ቃሎች አይመሳሰሉም',
+        passwordResetSuccess: 'የይለፍ ቃል በተሳካ ሁኔታ ተቀይሯል',
+        resetFailed: 'የይለፍ ቃል መቀየር አልተሳካም',
+        successTitle: 'የይለፍ ቃል መቀየር ተሳክቷል!',
+        successMessage: 'የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል። አሁን በአዲሱ የይለፍ ቃልዎ መግባት ይችላሉ።',
+        goToLogin: 'ወደ መግቢያ ሂድ'
       }
     }
   }

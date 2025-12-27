@@ -271,6 +271,69 @@ router.post('/reset-password', [
   }
 });
 
+// Verify OTP for password reset
+router.post('/verify-otp', [
+  body('userId').notEmpty().withMessage('User ID is required'),
+  body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { userId, otp } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.resetPasswordToken !== otp || user.resetPasswordExpires < new Date()) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    res.json({ message: 'OTP verified successfully' });
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Resend OTP for password reset
+router.post('/resend-password-otp', [
+  body('email').isEmail().withMessage('Please provide a valid email')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const otp = generateOTP();
+    const resetPasswordExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    user.resetPasswordToken = otp;
+    user.resetPasswordExpires = resetPasswordExpires;
+    await user.save();
+
+    await emailService.sendPasswordResetEmail(email, otp, user.name);
+    console.log(`\n🔐 Password Reset OTP resent to ${email}: ${otp}\n`);
+
+    res.json({ message: 'OTP sent successfully' });
+  } catch (error) {
+    console.error('Resend password OTP error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get current user
 router.get('/me', auth, async (req, res) => {
   res.json({
