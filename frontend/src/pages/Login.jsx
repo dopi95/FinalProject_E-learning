@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Eye, EyeOff, GraduationCap, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, GraduationCap, ArrowLeft, Loader } from 'lucide-react';
+import axios from 'axios';
 
 const Login = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
-    userType: 'student'
+    password: ''
   });
 
   const handleChange = (e) => {
@@ -19,9 +21,43 @@ const Login = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Login submitted:', formData);
+    setLoading(true);
+
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
+        email: formData.email,
+        password: formData.password
+      });
+
+      // Store token
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+
+      // Redirect based on role
+      const userRole = response.data.user.role;
+      if (userRole === 'admin') {
+        navigate('/admin-dashboard');
+      } else if (userRole === 'instructor') {
+        navigate('/instructor-dashboard');
+      } else {
+        navigate('/student-dashboard');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
+      
+      // Handle email verification needed
+      if (error.response?.data?.needsVerification) {
+        const userId = error.response.data.userId;
+        navigate(`/verify-email?userId=${userId}`);
+        return;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -42,36 +78,6 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Account Type
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setFormData({...formData, userType: 'student'})}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    formData.userType === 'student'
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                      : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300'
-                  }`}
-                >
-                  Student
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({...formData, userType: 'instructor'})}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    formData.userType === 'instructor'
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                      : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300'
-                  }`}
-                >
-                  Instructor
-                </button>
-              </div>
-            </div>
-
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Email Address
@@ -125,9 +131,17 @@ const Login = () => {
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200 font-medium"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
-              Sign In
+              {loading ? (
+                <>
+                  <Loader className="animate-spin h-5 w-5 mr-2" />
+                  Signing In...
+                </>
+              ) : (
+                'Sign In'
+              )}
             </button>
           </form>
 

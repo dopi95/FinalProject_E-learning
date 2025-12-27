@@ -20,6 +20,9 @@ app.get('/', (req, res) => {
   res.json({ message: 'AAU E-learning API is running!' });
 });
 
+// Auth routes
+app.use('/api/auth', require('./routes/auth'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
