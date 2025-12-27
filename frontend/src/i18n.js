@@ -116,6 +116,28 @@ const resources = {
         welcome: 'Hello! I\'m your AAU E-Learning assistant. How can I help you today?',
         typing: 'Assistant is typing...',
         close: 'Close chat'
+      },
+      login: {
+        welcomeBack: 'Welcome Back',
+        signInMessage: 'Sign in to your AAU E-Learning account',
+        emailAddress: 'Email Address',
+        enterEmail: 'Enter your email',
+        password: 'Password',
+        enterPassword: 'Enter your password',
+        rememberMe: 'Remember me',
+        forgotPassword: 'Forgot password?',
+        signIn: 'Sign In',
+        signingIn: 'Signing In...',
+        noAccount: "Don't have an account?",
+        signUpHere: 'Sign up here',
+        loginSuccess: 'Login Successful!',
+        invalidCredentials: 'Invalid email or password',
+        accountBlocked: 'Too many attempts. Try again later',
+        pleaseWait: 'Account temporarily blocked',
+        verificationNeeded: 'Please verify your email first'
+      },
+      common: {
+        backToHome: 'Back to Home'
       }
     }
   },
@@ -234,6 +256,28 @@ const resources = {
         welcome: 'ሰላም! እኔ የAAU ኢ-ትምህርት ረዳትዎ ነኝ። ዛሬ እንዴት ልረዳዎት እችላለሁ?',
         typing: 'ረዳቱ እየጻፈ ነው...',
         close: 'ውይይት ዝጋ'
+      },
+      login: {
+        welcomeBack: 'እንኳን ደህና መጡ',
+        signInMessage: 'ወደ AAU ኢ-ትምህርት መለያዎ ይግቡ',
+        emailAddress: 'ኢሜይል አድራሻ',
+        enterEmail: 'ኢሜይልዎን ያስገቡ',
+        password: 'የይለፍ ቃል',
+        enterPassword: 'የይለፍ ቃልዎን ያስገቡ',
+        rememberMe: 'አስታውሰኝ',
+        forgotPassword: 'የይለፍ ቃል ረሳሁ?',
+        signIn: 'ግባ',
+        signingIn: 'እየገባ ነው...',
+        noAccount: 'መለያ የለዎትም?',
+        signUpHere: 'እዚህ ይመዝገቡ',
+        loginSuccess: 'በተሳካ ሁኔታ ገብተዋል!',
+        invalidCredentials: 'የተሳሳተ ኢሜይል ወይም የይለፍ ቃል',
+        accountBlocked: 'ብዙ ሙከራዎች። በኋላ ይሞክሩ',
+        pleaseWait: 'መለያ ለጊዜው ታግዷል',
+        verificationNeeded: 'እባክዎ መጀመሪያ ኢሜይልዎን ያረጋግጡ'
+      },
+      common: {
+        backToHome: 'ወደ መነሻ ተመለስ'
       }
     }
   }

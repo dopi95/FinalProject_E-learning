@@ -8,7 +8,26 @@ const Chatbot = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    const checkMobileMenu = () => {
+      const mobileMenuOverlay = document.querySelector('[class*="fixed inset-0 z-40 lg:hidden"]');
+      if (mobileMenuOverlay) {
+        const isVisible = !mobileMenuOverlay.classList.contains('pointer-events-none');
+        setIsMobileMenuOpen(isVisible);
+      }
+    };
+
+    const observer = new MutationObserver(checkMobileMenu);
+    const targetNode = document.body;
+    observer.observe(targetNode, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    
+    checkMobileMenu();
+    
+    return () => observer.disconnect();
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -94,21 +113,24 @@ const Chatbot = () => {
   return (
     <>
       {/* Floating Chat Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 ${
-          isOpen ? 'rotate-180' : ''
-        }`}
-      >
-        {isOpen ? (
-          <X className="h-5 w-5 sm:h-6 sm:w-6 mx-auto" />
-        ) : (
-          <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6 mx-auto" />
-        )}
-      </button>
+      {!isMobileMenuOpen && (
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+        >
+          {isOpen ? (
+            <X className="h-5 w-5 sm:h-6 sm:w-6 mx-auto" />
+          ) : (
+            <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6 mx-auto" />
+          )}
+        </button>
+      )}
 
       {/* Chat Popup */}
-      <div className={`fixed bottom-20 right-4 sm:bottom-24 sm:right-6 z-40 w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} style={{ maxHeight: 'calc(100vh - 12rem)' }}>
+      {!isMobileMenuOpen && (
+        <div className={`fixed bottom-20 right-4 sm:bottom-24 sm:right-6 z-40 w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} style={{ maxHeight: 'calc(100vh - 12rem)' }}>
         {/* Chat Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-3 sm:p-4 rounded-t-2xl flex-shrink-0 relative z-10">
           <div className="flex items-center justify-between">
@@ -183,7 +205,8 @@ const Chatbot = () => {
             </button>
           </div>
         </div>
-      </div>
+        </div>
+      )}
     </>
   );
 };
