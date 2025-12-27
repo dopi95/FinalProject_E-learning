@@ -31,7 +31,27 @@ const resources = {
         marketingCourse: 'Digital Marketing Strategy',
         drSarah: 'Dr. Sarah Johnson',
         profMichael: 'Prof. Michael Chen',
-        drEmily: 'Dr. Emily Rodriguez'
+        drEmily: 'Dr. Emily Rodriguez',
+        viewDetails: 'View Details',
+        backToCourses: 'Back to Courses',
+        instructor: 'Instructor',
+        students: 'students',
+        aboutCourse: 'About This Course',
+        courseIncludes: 'This course includes:',
+        lifetimeAccess: 'Lifetime access to course materials',
+        certificate: 'Certificate of completion',
+        instructorSupport: 'Direct instructor support',
+        mobileAccess: 'Mobile and desktop access',
+        moneyBack: '30-day money-back guarantee',
+        oneTimePayment: 'One-time payment',
+        birr: 'Birr',
+        reactDescription: 'Master React development from basics to advanced concepts. Build real-world projects and learn industry best practices.',
+        reactLongDescription: 'This comprehensive React course will take you from beginner to advanced level. You\'ll learn modern React concepts including hooks, context, state management, and more. Build multiple projects including a complete e-commerce application with payment integration and user authentication.',
+        uiuxDescription: 'Learn the fundamentals of user interface and user experience design.',
+        uiuxLongDescription: 'Dive deep into UI/UX design principles and create stunning user interfaces. Learn design thinking, wireframing, prototyping, and user research. Master tools like Figma and Adobe XD to create professional designs that users love.',
+        marketingDescription: 'Master digital marketing strategies and grow your business online.',
+        marketingLongDescription: 'Learn comprehensive digital marketing strategies including SEO, social media marketing, content marketing, email campaigns, and paid advertising. Understand analytics, conversion optimization, and how to build a complete digital marketing funnel that drives results.',
+        certificateText: 'Certificate'
       },
       testimonials: {
         title: 'What Our Community Says',
@@ -107,7 +127,28 @@ const resources = {
         marketingCourse: 'የዲጂታል ማርኬቲንግ ስትራቴጂ',
         drSarah: 'ዶ/ር ሳራ ጆንሰን',
         profMichael: 'ፕሮፌሰር ሚካኤል ቸን',
-        drEmily: 'ዶ/ር ኤሚሊ ሮድሪጌዝ'
+        drEmily: 'ዶ/ር ኤሚሊ ሮድሪጌዝ',
+        viewDetails: 'ዝርዝር ይመልከቱ',
+        backToCourses: 'ወደ ኮርሶች ተመለስ',
+        instructor: 'አስተማሪ',
+        students: 'ተማሪዎች',
+        aboutCourse: 'ስለዚህ ኮርስ',
+        courseIncludes: 'ዚህ ኮርስ የሚከተለውን:',
+        lifetimeAccess: 'የትምህርት መሳሪያዎች የሁልንም መብታት',
+        certificate: 'የመጠናነት ሰንድ',
+        instructorSupport: 'ከአስተማሪ ቀስለ ድግፍ',
+        mobileAccess: 'በሞባይል እና ዴስክቶፕ መብታት',
+        moneyBack: 'በተመን 30 ቀን ነጥብ ውጤት ዋንትይ',
+        oneTimePayment: 'አንድ ጊዜ ይፈይያ',
+        online: 'ኦንላይን',
+        birr: 'ብር',
+        reactDescription: 'ከመሰረታዊ እስከ ከፍተኛ ደረጃ የሪአክት ልማትን ይማሩ። የእውነተኛ ዓለም ፕሮጀክቶችን ይገንቡ እና የኢንዱስትሪ ምርጥ ልምዶችን ይማሩ።',
+        reactLongDescription: 'ይህ አጠቃላይ የሪአክት ኮርስ ከጀማሪ እስከ ከፍተኛ ደረጃ ይወስድዎታል። hooks፣ context፣ state management እና ሌሎችን ጨምሮ ዘመናዊ የሪአክት ጽንሰ-ሀሳቦችን ይማራሉ። የክፍያ ውህደት እና የተጠቃሚ ማረጋገጫን ጨምሮ ሙሉ የኢ-ኮሜርስ መተግበሪያን ጨምሮ በርካታ ፕሮጀክቶችን ይገንቡ።',
+        uiuxDescription: 'የተጠቃሚ በይነገጽ እና የተጠቃሚ ተሞክሮ ዲዛይን መሰረታዊ ነገሮችን ይማሩ።',
+        uiuxLongDescription: 'በUI/UX ዲዛይን መርሆች ውስጥ በጥልቀት ይግቡ እና አስደናቂ የተጠቃሚ በይነገጾችን ይፍጠሩ። የዲዛይን አስተሳሰብ፣ wireframing፣ prototyping እና የተጠቃሚ ምርምርን ይማሩ። ተጠቃሚዎች የሚወዷቸውን ሙያዊ ዲዛይኖች ለመፍጠር እንደ Figma እና Adobe XD ያሉ መሳሪያዎችን ይቆጣጠሩ።',
+        marketingDescription: 'የዲጂታል ማርኬቲንግ ስትራቴጂዎችን ይቆጣጠሩ እና የንግድ ስራዎን በመስመር ላይ ያሳድጉ።',
+        marketingLongDescription: 'SEO፣ ማህበራዊ ሚዲያ ማርኬቲንግ፣ የይዘት ማርኬቲንግ፣ የኢሜይል ዘመቻዎች እና የተከፈለ ማስታወቂያን ጨምሮ አጠቃላይ የዲጂታል ማርኬቲንግ ስትራቴጂዎችን ይማሩ። ትንታኔዎችን፣ የልወጣ ማሻሻያን እና ውጤቶችን የሚያመጣ ሙሉ የዲጂታል ማርኬቲንግ ፈነልን እንዴት መገንባት እንደሚቻል ይረዱ።',
+        certificateText: 'ሰርተፊኬት'
       },
       testimonials: {
         title: 'የእኛ ማህበረሰብ ምን ይላል',
@@ -160,11 +201,16 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'en',
+    lng: localStorage.getItem('language') || 'en',
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false
     }
   });
+
+// Save language changes to localStorage
+i18n.on('languageChanged', (lng) => {
+  localStorage.setItem('language', lng);
+});
 
 export default i18n;

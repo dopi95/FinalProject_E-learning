@@ -147,19 +147,18 @@ const Header = () => {
             {/* Mobile Navigation */}
             <nav className="flex-1 px-6 py-8 space-y-2">
               {[
-                { to: '/', label: t('nav.home'), icon: '🏠' },
-                { to: '/about', label: t('nav.about'), icon: '📖' },
-                { to: '/contact', label: t('nav.contact'), icon: '📞' },
-                { to: '/login', label: t('nav.login'), icon: '🔑' }
+                { to: '/', label: t('nav.home') },
+                { to: '/about', label: t('nav.about') },
+                { to: '/contact', label: t('nav.contact') },
+                { to: '/login', label: t('nav.login') }
               ].map((item, index) => (
                 <Link
                   key={item.to}
                   to={item.to}
                   onClick={closeMobileMenu}
-                  className={`flex items-center space-x-4 p-4 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 transform hover:scale-105 animate-slideIn`}
+                  className={`flex items-center p-4 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 transform hover:scale-105 animate-slideIn`}
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <span className="text-2xl">{item.icon}</span>
                   <span className="text-lg font-medium">{item.label}</span>
                 </Link>
               ))}
