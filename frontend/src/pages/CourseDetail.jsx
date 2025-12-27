@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -8,6 +8,17 @@ import { ArrowLeft, Star, Users, Clock, PlayCircle, CheckCircle, Globe, Award, U
 const CourseDetail = () => {
   const { id } = useParams();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const handleBackToCourses = () => {
+    navigate('/');
+    setTimeout(() => {
+      const coursesSection = document.getElementById('courses-section');
+      if (coursesSection) {
+        coursesSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 300);
+  };
 
   // Mock course data - in real app, fetch by ID
   const courses = {
@@ -61,21 +72,13 @@ const CourseDetail = () => {
       <main className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Back Button */}
-          <Link 
-            to="/#courses"
-            onClick={() => {
-              setTimeout(() => {
-                const coursesSection = document.getElementById('courses');
-                if (coursesSection) {
-                  coursesSection.scrollIntoView({ behavior: 'smooth' });
-                }
-              }, 100);
-            }}
-            className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mb-8 transition-colors"
+          <button 
+            onClick={handleBackToCourses}
+            className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mb-8 transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
             {t('courses.backToCourses')}
-          </Link>
+          </button>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             {/* Main Content */}

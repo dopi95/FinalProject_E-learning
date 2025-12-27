@@ -77,13 +77,20 @@ const resources = {
       about: {
         title: 'About AAU E-Learning',
         mission: 'Our Mission',
-        missionText: 'To provide accessible, high-quality education through innovative technology and expert instruction.',
+        missionText: 'To provide accessible, high-quality education through innovative technology and expert instruction, empowering students to achieve their academic and professional goals.',
         vision: 'Our Vision',
-        visionText: 'To become the leading e-learning platform that empowers learners worldwide to achieve their goals.',
-        description: 'Transforming education through innovative technology and world-class instruction.',
+        visionText: 'To become the leading e-learning platform in Ethiopia and beyond, fostering a culture of lifelong learning and academic excellence.',
+        description: 'Transforming education through innovative technology and world-class instruction at Addis Ababa University.',
+        historyTitle: 'AAU Legacy & Innovation',
+        historyText1: 'Addis Ababa University, established in 1950, is Ethiopia\'s oldest and most prestigious institution of higher learning. With over 70 years of academic excellence, AAU has been at the forefront of education, research, and innovation in Africa.',
+        historyText2: 'Our e-learning platform represents the next chapter in AAU\'s commitment to accessible, quality education. By combining our rich academic heritage with cutting-edge technology, we\'re making world-class education available to students everywhere.',
+        established: 'Est. 1950',
+        location: 'Addis Ababa, Ethiopia',
         students: 'Students',
         instructors: 'Instructors',
-        successRate: 'Success Rate'
+        statsTitle: 'Our Impact in Numbers',
+        contactTitle: 'Get in Touch with AAU E-Learning',
+        addressText: 'Addis Ababa University\nMain Campus, Sidist Kilo\nAddis Ababa, Ethiopia'
       },
       contact: {
         title: 'Contact Us',
@@ -182,13 +189,20 @@ const resources = {
       about: {
         title: 'ስለ AAU ኢ-ትምህርት',
         mission: 'የእኛ ተልእኮ',
-        missionText: 'በአዳዲስ ቴክኖሎጂዎች እና የባለሙያ ትምህርት በኩል ተደራሽ እና ከፍተኛ ጥራት ያለው ትምህርት መስጠት።',
+        missionText: 'በአዳዲስ ቴክኖሎጂዎች እና የባለሙያ ትምህርት በኩል ተደራሽ እና ከፍተኛ ጥራት ያለው ትምህርት መስጠት፣ ተማሪዎች የአካዳሚክ እና የሙያ ግባቸውን እንዲያሳኩ ማብቃት።',
         vision: 'የእኛ እይታ',
-        visionText: 'በዓለም ዙሪያ ያሉ ተማሪዎች ግባቸውን እንዲያሳኩ የሚያበረታታ ዋና የኢ-ትምህርት መድረክ መሆን።',
-        description: 'በአዳዲስ ቴክኖሎጂዎች እና የዓለም ደረጃ ትምህርት ትምህርትን መለወጥ።',
+        visionText: 'በኢትዮጵያ እና ከዚያም በላይ ዋና የኢ-ትምህርት መድረክ መሆን፣ የዕድሜ ልክ ትምህርት እና የአካዳሚክ ብቃት ባህልን ማሳደግ።',
+        description: 'በአዲስ አበባ ዩኒቨርሲቲ በአዳዲስ ቴክኖሎጂዎች እና የዓለም ደረጃ ትምህርት ትምህርትን መለወጥ።',
+        historyTitle: 'የAAU ውርስ እና ፈጠራ',
+        historyText1: 'በ1950 የተመሰረተው አዲስ አበባ ዩኒቨርሲቲ የኢትዮጵያ ቀዳሚ እና በጣም ታዋቂ የከፍተኛ ትምህርት ተቋም ነው። ከ70 ዓመታት በላይ የአካዳሚክ ብቃት ያለው AAU በአፍሪካ በትምህርት፣ በምርምር እና በፈጠራ ግንባር ቀደም ሆኖ ቆይቷል።',
+        historyText2: 'የእኛ የኢ-ትምህርት መድረክ በAAU ተደራሽ እና ጥራት ያለው ትምህርት ቁርጠኝነት ውስጥ የሚቀጥለው ምዕራፍ ነው። የበለጸገ የአካዳሚክ ውርሳችንን ከዘመናዊ ቴክኖሎጂ ጋር በማጣመር፣ የዓለም ደረጃ ትምህርትን በሁሉም ቦታ ላሉ ተማሪዎች ተደራሽ እያደረግን ነው።',
+        established: 'የተመሰረተበት 1950',
+        location: 'አዲስ አበባ፣ ኢትዮጵያ',
         students: 'ተማሪዎች',
         instructors: 'አስተማሪዎች',
-        successRate: 'የስኬት መጠን'
+        statsTitle: 'በቁጥር የእኛ ተጽእኖ',
+        contactTitle: 'ከAAU ኢ-ትምህርት ጋር ይገናኙ',
+        addressText: 'አዲስ አበባ ዩኒቨርሲቲ\nዋና ካምፓስ፣ ስድስት ኪሎ\nአዲስ አበባ፣ ኢትዮጵያ'
       },
       contact: {
         title: 'ያግኙን',

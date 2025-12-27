@@ -27,7 +27,11 @@ const Header = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-3 group">
+            <Link 
+              to="/" 
+              className="flex items-center space-x-3 group"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
               <div className="relative">
                 <img 
                   src="/assets/images/logo.png" 
@@ -49,13 +53,14 @@ const Header = () => {
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-1">
               {[
-                { to: '/', label: t('nav.home') },
+                { to: '/', label: t('nav.home'), onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
                 { to: '/about', label: t('nav.about') },
                 { to: '/contact', label: t('nav.contact') }
               ].map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
+                  onClick={item.onClick}
                   className="relative px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 group"
                 >
                   <span className="relative z-10">{item.label}</span>
@@ -147,7 +152,7 @@ const Header = () => {
             {/* Mobile Navigation */}
             <nav className="flex-1 px-6 py-8 space-y-2">
               {[
-                { to: '/', label: t('nav.home') },
+                { to: '/', label: t('nav.home'), onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
                 { to: '/about', label: t('nav.about') },
                 { to: '/contact', label: t('nav.contact') },
                 { to: '/login', label: t('nav.login') }
@@ -155,7 +160,10 @@ const Header = () => {
                 <Link
                   key={item.to}
                   to={item.to}
-                  onClick={closeMobileMenu}
+                  onClick={() => {
+                    closeMobileMenu();
+                    if (item.onClick) item.onClick();
+                  }}
                   className={`flex items-center p-4 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 transform hover:scale-105 animate-slideIn`}
                   style={{ animationDelay: `${index * 100}ms` }}
                 >

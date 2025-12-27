@@ -59,7 +59,7 @@ const Courses = () => {
   });
 
   return (
-    <section id="courses" className="py-20 bg-white dark:bg-gray-900">
+    <section id="courses-section" className="py-20 bg-white dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">

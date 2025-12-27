@@ -1,10 +1,35 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Facebook, Instagram, Linkedin, Youtube, Send } from 'lucide-react';
 
 const Footer = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const scrollToCourses = () => {
+    // If we're on home page, scroll to courses section
+    if (window.location.pathname === '/') {
+      const coursesSection = document.getElementById('courses-section');
+      if (coursesSection) {
+        coursesSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      // Navigate to home page first
+      navigate('/');
+      // Wait for navigation to complete, then scroll
+      setTimeout(() => {
+        const coursesSection = document.getElementById('courses-section');
+        if (coursesSection) {
+          coursesSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 300);
+    }
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <footer className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/30 text-gray-800 dark:text-white">
@@ -16,11 +41,12 @@ const Footer = () => {
                 <img 
                   src="/assets/images/logo.png" 
                   alt="AAU E-Learning" 
-                  className="h-12 w-16 object-contain"
+                  className="h-12 w-16 object-contain cursor-pointer hover:scale-110 transition-transform"
+                  onClick={scrollToTop}
                 />
               </div>
-              <div>
-                <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              <div className="cursor-pointer" onClick={scrollToTop}>
+                <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent hover:scale-105 transition-transform inline-block">
                   AAU E-Learning
                 </span>
                 <div className="text-xs text-blue-600 dark:text-blue-400 font-medium tracking-wide">
@@ -54,7 +80,11 @@ const Footer = () => {
             <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">{t('footer.quickLinks')}</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <Link 
+                  to="/" 
+                  className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  onClick={scrollToTop}
+                >
                   {t('nav.home')}
                 </Link>
               </li>
@@ -69,9 +99,12 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/courses" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <button 
+                  onClick={scrollToCourses}
+                  className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-left"
+                >
                   {t('footer.courses')}
-                </Link>
+                </button>
               </li>
             </ul>
           </div>
