@@ -1,16 +1,16 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Star, Quote } from 'lucide-react';
+import { Star, Quote, User } from 'lucide-react';
 
 const Testimonials = () => {
   const { t } = useTranslation();
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   const testimonials = [
     {
       id: 1,
       name: t('testimonials.abebe'),
       role: t('testimonials.csStudent'),
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
       rating: 5,
       text: t('testimonials.student1Text')
     },
@@ -18,7 +18,6 @@ const Testimonials = () => {
       id: 2,
       name: t('testimonials.meron'),
       role: t('testimonials.seInstructor'),
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150',
       rating: 5,
       text: t('testimonials.instructor1Text')
     },
@@ -26,14 +25,48 @@ const Testimonials = () => {
       id: 3,
       name: t('testimonials.hanan'),
       role: t('testimonials.baStudent'),
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
+      rating: 5,
+      text: t('testimonials.student2Text')
+    },
+    {
+      id: 4,
+      name: t('testimonials.abebe'),
+      role: t('testimonials.csStudent'),
+      rating: 5,
+      text: t('testimonials.student1Text')
+    },
+    {
+      id: 5,
+      name: t('testimonials.meron'),
+      role: t('testimonials.seInstructor'),
+      rating: 5,
+      text: t('testimonials.instructor1Text')
+    },
+    {
+      id: 6,
+      name: t('testimonials.hanan'),
+      role: t('testimonials.baStudent'),
       rating: 5,
       text: t('testimonials.student2Text')
     }
   ];
 
+  const mobileSlides = testimonials.length; // Mobile: 1 per slide
+
+  // Auto-slide functionality
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % testimonials.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [testimonials.length]);
+
+  const goToSlide = (index) => {
+    setCurrentSlide(index);
+  };
+
   return (
-    <section className="py-20 bg-gray-50 dark:bg-gray-800">
+    <section className="py-20 bg-gray-50 dark:bg-gray-800 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -44,43 +77,101 @@ const Testimonials = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {testimonials.map(testimonial => (
-            <div key={testimonial.id} className="group bg-white dark:bg-gray-900 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center mb-6">
-                <Quote className="h-8 w-8 text-blue-600 mr-3 group-hover:scale-110 transition-transform" />
-                <div className="flex">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
-                  ))}
+        {/* Desktop Slider (horizontal) */}
+        <div className="hidden lg:block relative">
+          <div className="overflow-hidden">
+            <div 
+              className="flex transition-transform duration-500 ease-in-out gap-8"
+              style={{ transform: `translateX(-${currentSlide * 33.333}%)` }}
+            >
+              {testimonials.map((testimonial) => (
+                <div key={testimonial.id} className="w-1/3 flex-shrink-0">
+                  <TestimonialCard testimonial={testimonial} />
                 </div>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 mb-8 italic leading-relaxed text-lg">
-                "{testimonial.text}"
-              </p>
-              <div className="flex items-center">
-                <div className="relative">
-                  <img 
-                    src={testimonial.avatar} 
-                    alt={testimonial.name}
-                    className="w-14 h-14 rounded-full mr-4 border-3 border-blue-100 dark:border-blue-900 group-hover:border-blue-300 dark:group-hover:border-blue-700 transition-colors"
-                  />
-                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white dark:border-gray-900"></div>
-                </div>
-                <div>
-                  <h4 className="font-bold text-gray-900 dark:text-white text-lg">
-                    {testimonial.name}
-                  </h4>
-                  <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-                    {testimonial.role}
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
-          ))}}
+          </div>
+          
+          {/* Desktop Dots */}
+          <div className="flex justify-center mt-8 space-x-2">
+            {testimonials.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  currentSlide === index 
+                    ? 'bg-blue-600 w-8' 
+                    : 'bg-gray-300 dark:bg-gray-600 hover:bg-blue-400'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Mobile Slider (1 card) */}
+        <div className="lg:hidden relative">
+          <div className="overflow-hidden">
+            <div 
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{ transform: `translateX(-${currentSlide * (100 / mobileSlides) * mobileSlides}%)` }}
+            >
+              {testimonials.map((testimonial, index) => (
+                <div key={testimonial.id} className="w-full flex-shrink-0 px-2">
+                  <TestimonialCard testimonial={testimonial} />
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Mobile Dots */}
+          <div className="flex justify-center mt-8 space-x-2 flex-wrap">
+            {testimonials.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+                className={`w-2 h-2 rounded-full transition-all duration-300 mb-2 ${
+                  currentSlide === index 
+                    ? 'bg-blue-600 w-6' 
+                    : 'bg-gray-300 dark:bg-gray-600 hover:bg-blue-400'
+                }`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>
+  );
+};
+
+// Testimonial Card Component
+const TestimonialCard = ({ testimonial }) => {
+  return (
+    <div className="group bg-white dark:bg-gray-900 rounded-3xl p-8 transition-all duration-500 transform hover:-translate-y-3 border border-gray-100 dark:border-gray-700 h-full">
+      <div className="flex items-center mb-6">
+        <Quote className="h-8 w-8 text-blue-600 mr-3 group-hover:scale-110 transition-transform" />
+        <div className="flex">
+          {[...Array(testimonial.rating)].map((_, i) => (
+            <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+          ))}
+        </div>
+      </div>
+      <p className="text-gray-600 dark:text-gray-300 mb-8 italic leading-relaxed text-lg min-h-[120px] flex items-start">
+        "{testimonial.text}"
+      </p>
+      <div className="flex items-center mt-auto">
+        <div className="w-14 h-14 rounded-full mr-4 bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+          <User className="h-7 w-7 text-white" />
+        </div>
+        <div>
+          <h4 className="font-bold text-gray-900 dark:text-white text-lg">
+            {testimonial.name}
+          </h4>
+          <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+            {testimonial.role}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 };
 
