@@ -56,7 +56,7 @@ const Testimonials = () => {
   // Auto-slide functionality
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % testimonials.length);
+      setCurrentSlide((prev) => (prev + 1) % (testimonials.length - 2));
     }, 5000);
     return () => clearInterval(interval);
   }, [testimonials.length]);
@@ -82,7 +82,7 @@ const Testimonials = () => {
           <div className="overflow-hidden">
             <div 
               className="flex transition-transform duration-500 ease-in-out gap-8"
-              style={{ transform: `translateX(-${currentSlide * 33.333}%)` }}
+              style={{ transform: `translateX(-${currentSlide * (100/3)}%)` }}
             >
               {testimonials.map((testimonial) => (
                 <div key={testimonial.id} className="w-1/3 flex-shrink-0">
@@ -94,7 +94,7 @@ const Testimonials = () => {
           
           {/* Desktop Dots */}
           <div className="flex justify-center mt-8 space-x-2">
-            {testimonials.map((_, index) => (
+            {Array.from({ length: testimonials.length - 2 }).map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
