@@ -95,6 +95,14 @@ const resources = {
         contactInfo: 'Contact Information',
         phone: 'Phone',
         address: 'Address'
+      },
+      chatbot: {
+        title: 'AAU Assistant',
+        placeholder: 'Type your message...',
+        send: 'Send',
+        welcome: 'Hello! I\'m your AAU E-Learning assistant. How can I help you today?',
+        typing: 'Assistant is typing...',
+        close: 'Close chat'
       }
     }
   },
@@ -192,6 +200,14 @@ const resources = {
         contactInfo: 'የመገናኛ መረጃ',
         phone: 'ስልክ',
         address: 'አድራሻ'
+      },
+      chatbot: {
+        title: 'የAAU ረዳት',
+        placeholder: 'መልእክትዎን ይጻፉ...',
+        send: 'ላክ',
+        welcome: 'ሰላም! እኔ የAAU ኢ-ትምህርት ረዳትዎ ነኝ። ዛሬ እንዴት ልረዳዎት እችላለሁ?',
+        typing: 'ረዳቱ እየጻፈ ነው...',
+        close: 'ውይይት ዝጋ'
       }
     }
   }

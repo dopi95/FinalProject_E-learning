@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ScrollToTop from './components/ScrollToTop';
+import Chatbot from './components/Chatbot';
 import Home from './components/Home.jsx';
 import About from './pages/About.jsx';
 import Contact from './pages/Contact.jsx';
@@ -24,6 +25,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/course/:id" element={<CourseDetail />} />
           </Routes>
+          <Chatbot />
         </div>
       </Router>
     </ThemeProvider>
