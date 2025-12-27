@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Eye, EyeOff, ArrowLeft, Loader } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Loader, Mail } from 'lucide-react';
 import axios from 'axios';
 import Notification from '../components/Notification';
 
@@ -27,6 +27,9 @@ const Login = () => {
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockTimeLeft, setBlockTimeLeft] = useState(0);
+  const [showVerifyEmail, setShowVerifyEmail] = useState(false);
+  const [unverifiedUser, setUnverifiedUser] = useState(null);
+  const [sendingOtp, setSendingOtp] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -102,6 +105,26 @@ const Login = () => {
     }
   };
 
+  const handleVerifyEmailClick = async () => {
+    setSendingOtp(true);
+    
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/resend-otp`, {
+        userId: unverifiedUser.userId
+      });
+      
+      showNotification('success', '', t('login.otpSent'));
+      setTimeout(() => {
+        navigate(`/verify-email?userId=${unverifiedUser.userId}&fromLogin=true`);
+      }, 1500);
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || t('login.otpSendFailed');
+      showNotification('error', '', errorMessage);
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -147,10 +170,8 @@ const Login = () => {
       
       if (error.response?.data?.needsVerification) {
         const userId = error.response.data.userId;
-        showNotification('warning', '', t('login.verificationNeeded'));
-        setTimeout(() => {
-          navigate(`/verify-email?userId=${userId}`);
-        }, 2000);
+        setUnverifiedUser({ userId, email: formData.email });
+        setShowVerifyEmail(true);
         return;
       }
       
@@ -165,6 +186,59 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  if (showVerifyEmail) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-100 dark:border-gray-700 text-center">
+            <button onClick={() => setShowVerifyEmail(false)} className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 mb-6 transition-colors">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              {t('common.back')}
+            </button>
+
+            <div className="flex justify-center mb-6">
+              <div className="bg-yellow-100 dark:bg-yellow-900/20 p-4 rounded-full">
+                <Mail className="h-12 w-12 text-yellow-600 dark:text-yellow-400" />
+              </div>
+            </div>
+            
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              {t('login.verifyEmailTitle')}
+            </h1>
+            
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {t('login.verifyEmailMessage', { email: unverifiedUser?.email })}
+            </p>
+            
+            <button
+              onClick={handleVerifyEmailClick}
+              disabled={sendingOtp}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              {sendingOtp ? (
+                <>
+                  <Loader className="animate-spin h-5 w-5 mr-2" />
+                  {t('login.sendingOtp')}
+                </>
+              ) : (
+                t('login.verifyEmailNow')
+              )}
+            </button>
+          </div>
+        </div>
+        
+        <Notification
+          type={notification.type}
+          title={notification.title}
+          message={notification.message}
+          isVisible={notification.isVisible}
+          onClose={hideNotification}
+          autoClose={true}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 overflow-hidden">
@@ -293,6 +367,7 @@ const Login = () => {
         message={notification.message}
         isVisible={notification.isVisible}
         onClose={hideNotification}
+        autoClose={true}
       />
     </div>
   );

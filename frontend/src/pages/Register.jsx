@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Eye, EyeOff, GraduationCap, ArrowLeft, Check, Mail, Loader } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Check, Mail, Loader, User, BookOpen } from 'lucide-react';
 import axios from 'axios';
+import Notification from '../components/Notification';
 
 const Register = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState('register'); // 'register' or 'success'
+  const [step, setStep] = useState('register'); // 'register', 'success'
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -19,6 +21,21 @@ const Register = () => {
     agreeToTerms: false
   });
   const [registrationData, setRegistrationData] = useState(null);
+  const [notification, setNotification] = useState({
+    isVisible: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
+  const [otpLoading, setOtpLoading] = useState(false);
+
+  const showNotification = (type, title, message) => {
+    setNotification({ isVisible: true, type, title, message });
+  };
+
+  const hideNotification = () => {
+    setNotification(prev => ({ ...prev, isVisible: false }));
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -32,12 +49,12 @@ const Register = () => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+      showNotification('error', '', t('register.passwordMismatch'));
       return;
     }
 
     if (formData.password.length < 6) {
-      alert('Password must be at least 6 characters long');
+      showNotification('error', '', t('register.passwordTooShort'));
       return;
     }
 
@@ -51,22 +68,49 @@ const Register = () => {
         role: formData.role
       });
 
+      showNotification('success', '', t('register.registrationSuccess'));
+      
       setRegistrationData({
         message: response.data.message,
         userId: response.data.userId,
         email: formData.email,
         name: formData.name
       });
-      setStep('success');
+      
+      setTimeout(() => {
+        setStep('success');
+      }, 1500);
     } catch (error) {
       const errorMessage = error.response?.data?.message || 
                           error.response?.data?.errors?.[0]?.msg || 
-                          'Registration failed. Please try again.';
-      alert(errorMessage);
+                          t('register.registrationFailed');
+      showNotification('error', '', errorMessage);
     } finally {
       setLoading(false);
     }
   };
+
+  const handleVerifyEmailClick = async () => {
+    setOtpLoading(true);
+    
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/resend-otp`, {
+        userId: registrationData.userId
+      });
+      
+      showNotification('success', '', t('register.otpSent'));
+      setTimeout(() => {
+        navigate(`/verify-email?userId=${registrationData.userId}&fromRegister=true`);
+      }, 1500);
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || t('register.otpSendFailed');
+      showNotification('error', '', errorMessage);
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+
 
   const passwordStrength = (password) => {
     let strength = 0;
@@ -91,63 +135,65 @@ const Register = () => {
   const getStrengthText = (strength) => {
     switch (strength) {
       case 0:
-      case 1: return 'Weak';
-      case 2: return 'Fair';
-      case 3: return 'Good';
-      case 4: return 'Strong';
+      case 1: return t('register.weak');
+      case 2: return t('register.fair');
+      case 3: return t('register.good');
+      case 4: return t('register.strong');
       default: return '';
     }
   };
+
+
 
   if (step === 'success') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-100 dark:border-gray-700 text-center">
+            <button onClick={() => setStep('register')} className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 mb-6 transition-colors">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              {t('common.back')}
+            </button>
+
             <div className="flex justify-center mb-6">
-              <div className="bg-green-100 dark:bg-green-900/20 p-4 rounded-full">
-                <Mail className="h-12 w-12 text-green-600 dark:text-green-400" />
+              <div className="bg-yellow-100 dark:bg-yellow-900/20 p-4 rounded-full">
+                <Mail className="h-12 w-12 text-yellow-600 dark:text-yellow-400" />
               </div>
             </div>
             
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              Registration Successful!
+              {t('login.verifyEmailTitle')}
             </h1>
             
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Welcome {registrationData?.name}! We've sent a 6-digit verification code to{' '}
-              <span className="font-semibold text-blue-600 dark:text-blue-400">
-                {registrationData?.email}
-              </span>
+              {t('login.verifyEmailMessage', { email: registrationData?.email })}
             </p>
             
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-6">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                📧 Please check your email and verify your account to complete the registration process.
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <Link 
-                to={`/verify-email?userId=${registrationData?.userId}`}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200 font-medium inline-block"
-              >
-                Verify Email Now
-              </Link>
-              
-              <Link 
-                to="/login"
-                className="w-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 font-medium inline-block"
-              >
-                Go to Login
-              </Link>
-            </div>
-            
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-6">
-              Didn't receive the email? Check your spam folder or try registering again.
-            </p>
+            <button
+              onClick={handleVerifyEmailClick}
+              disabled={otpLoading}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              {otpLoading ? (
+                <>
+                  <Loader className="animate-spin h-5 w-5 mr-2" />
+                  {t('login.sendingOtp')}
+                </>
+              ) : (
+                t('login.verifyEmailNow')
+              )}
+            </button>
           </div>
         </div>
+        
+        <Notification
+          type={notification.type}
+          title={notification.title}
+          message={notification.message}
+          isVisible={notification.isVisible}
+          onClose={hideNotification}
+          autoClose={true}
+        />
       </div>
     );
   }
@@ -158,51 +204,61 @@ const Register = () => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-100 dark:border-gray-700">
           <Link to="/" className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 mb-6 transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
+            {t('common.backToHome')}
           </Link>
 
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <GraduationCap className="h-12 w-12 text-blue-600" />
+              <img 
+                src="/assets/images/logo.png" 
+                alt="AAU Logo" 
+                className="h-16 w-16 object-contain"
+              />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Join AAU E-Learning</h1>
-            <p className="text-gray-600 dark:text-gray-400">Create your account to start learning</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              {t('register.title')}
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              {t('register.subtitle')}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Account Type
+                {t('register.accountType')}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setFormData({...formData, role: 'student'})}
-                  className={`p-3 rounded-lg border-2 transition-all ${
+                  className={`p-3 rounded-lg border-2 transition-all duration-200 flex items-center space-x-3 ${
                     formData.role === 'student'
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                      : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md'
+                      : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
-                  Student
+                  <User className="h-5 w-5 flex-shrink-0" />
+                  <span className="font-medium">{t('register.student')}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({...formData, role: 'instructor'})}
-                  className={`p-3 rounded-lg border-2 transition-all ${
+                  className={`p-3 rounded-lg border-2 transition-all duration-200 flex items-center space-x-3 ${
                     formData.role === 'instructor'
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                      : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md'
+                      : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
-                  Instructor
+                  <BookOpen className="h-5 w-5 flex-shrink-0" />
+                  <span className="font-medium">{t('register.instructor')}</span>
                 </button>
               </div>
             </div>
 
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Full Name
+                {t('register.fullName')}
               </label>
               <input
                 type="text"
@@ -212,13 +268,13 @@ const Register = () => {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
-                placeholder="Enter your full name"
+                placeholder={t('register.enterFullName')}
               />
             </div>
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Email Address
+                {t('register.emailAddress')}
               </label>
               <input
                 type="email"
@@ -228,13 +284,13 @@ const Register = () => {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
-                placeholder="Enter your email"
+                placeholder={t('register.enterEmail')}
               />
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Password
+                {t('register.password')}
               </label>
               <div className="relative">
                 <input
@@ -245,7 +301,7 @@ const Register = () => {
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
-                  placeholder="Create a password"
+                  placeholder={t('register.createPassword')}
                 />
                 <button
                   type="button"
@@ -274,7 +330,7 @@ const Register = () => {
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Confirm Password
+                {t('register.confirmPassword')}
               </label>
               <div className="relative">
                 <input
@@ -285,7 +341,7 @@ const Register = () => {
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
-                  placeholder="Confirm your password"
+                  placeholder={t('register.confirmYourPassword')}
                 />
                 <button
                   type="button"
@@ -298,7 +354,7 @@ const Register = () => {
               {formData.confirmPassword && formData.password === formData.confirmPassword && (
                 <div className="mt-2 flex items-center text-green-600 dark:text-green-400">
                   <Check className="h-4 w-4 mr-1" />
-                  <span className="text-sm">Passwords match</span>
+                  <span className="text-sm">{t('register.passwordsMatch')}</span>
                 </div>
               )}
             </div>
@@ -314,13 +370,13 @@ const Register = () => {
                 className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <label htmlFor="agreeToTerms" className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                I agree to the{' '}
+                {t('register.agreeToTerms')}{' '}
                 <Link to="/terms" className="text-blue-600 hover:text-blue-500 dark:text-blue-400">
-                  Terms of Service
+                  {t('register.termsOfService')}
                 </Link>{' '}
-                and{' '}
+                {t('register.and')}{' '}
                 <Link to="/privacy" className="text-blue-600 hover:text-blue-500 dark:text-blue-400">
-                  Privacy Policy
+                  {t('register.privacyPolicy')}
                 </Link>
               </label>
             </div>
@@ -333,24 +389,33 @@ const Register = () => {
               {loading ? (
                 <>
                   <Loader className="animate-spin h-5 w-5 mr-2" />
-                  Creating Account...
+                  {t('register.creatingAccount')}
                 </>
               ) : (
-                'Create Account'
+                t('register.createAccount')
               )}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-gray-600 dark:text-gray-400">
-              Already have an account?{' '}
+              {t('register.alreadyHaveAccount')}{' '}
               <Link to="/login" className="text-blue-600 hover:text-blue-500 dark:text-blue-400 font-medium">
-                Sign in here
+                {t('register.signInHere')}
               </Link>
             </p>
           </div>
         </div>
       </div>
+      
+      <Notification
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+        isVisible={notification.isVisible}
+        onClose={hideNotification}
+        autoClose={true}
+      />
     </div>
   );
 };

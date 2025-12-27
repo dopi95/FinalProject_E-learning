@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Mail, ArrowLeft, Loader, CheckCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { ArrowLeft, Loader, CheckCircle, RefreshCw } from 'lucide-react';
 import axios from 'axios';
+import Notification from '../components/Notification';
 
 const VerifyEmail = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [otp, setOtp] = useState('');
@@ -11,21 +14,101 @@ const VerifyEmail = () => {
   const [resendLoading, setResendLoading] = useState(false);
   const [verified, setVerified] = useState(false);
   const [initialOtpSent, setInitialOtpSent] = useState(false);
+  const timerRef = useRef(null);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+  const [notification, setNotification] = useState({
+    isVisible: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
   const userId = searchParams.get('userId');
 
-  // Auto-send OTP when component mounts
+  const showNotification = (type, title, message) => {
+    setNotification({ isVisible: true, type, title, message });
+  };
+
+  const hideNotification = () => {
+    setNotification(prev => ({ ...prev, isVisible: false }));
+  };
+
+  const startTimer = () => {
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    
+    setTimeLeft(60);
+    setCanResend(false);
+    
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          setCanResend(true);
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // Cleanup timer on unmount
   useEffect(() => {
-    if (userId && !initialOtpSent) {
-      handleResendOTP();
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Auto-send OTP when component mounts (only if not coming from register or login flow)
+  useEffect(() => {
+    const fromRegister = searchParams.get('fromRegister');
+    const fromLogin = searchParams.get('fromLogin');
+    
+    if (userId && !initialOtpSent && !fromRegister && !fromLogin) {
+      sendInitialOTP();
+      setInitialOtpSent(true);
+    } else if (fromRegister) {
+      // If coming from register, start timer since OTP was sent from register page
+      startTimer();
+      setInitialOtpSent(true);
+    } else if (fromLogin) {
+      // If coming from login, start timer since OTP was sent from login page
+      startTimer();
       setInitialOtpSent(true);
     }
-  }, [userId, initialOtpSent]);
+  }, [userId, initialOtpSent, searchParams]);
+
+  const sendInitialOTP = async () => {
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/resend-otp`, {
+        userId
+      });
+      showNotification('success', '', t('verifyEmail.otpSent'));
+      startTimer();
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || t('verifyEmail.resendFailed');
+      showNotification('error', '', errorMessage);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (otp.length !== 6) {
-      alert('Please enter a 6-digit OTP');
+      showNotification('error', '', t('verifyEmail.enterSixDigits'));
       return;
     }
 
@@ -37,6 +120,7 @@ const VerifyEmail = () => {
         otp
       });
 
+      showNotification('success', '', t('verifyEmail.emailVerified'));
       setVerified(true);
       
       // Store token and redirect to login after 3 seconds
@@ -45,8 +129,8 @@ const VerifyEmail = () => {
         navigate('/login');
       }, 3000);
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Verification failed. Please try again.';
-      alert(errorMessage);
+      const errorMessage = error.response?.data?.message || t('verifyEmail.verificationFailed');
+      showNotification('error', '', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -59,10 +143,11 @@ const VerifyEmail = () => {
       await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/resend-otp`, {
         userId
       });
-      alert('OTP sent successfully! Please check your email.');
+      showNotification('success', '', t('verifyEmail.otpSent'));
+      startTimer();
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to resend OTP. Please try again.';
-      alert(errorMessage);
+      const errorMessage = error.response?.data?.message || t('verifyEmail.resendFailed');
+      showNotification('error', '', errorMessage);
     } finally {
       setResendLoading(false);
     }
@@ -80,18 +165,18 @@ const VerifyEmail = () => {
             </div>
             
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              Email Verified!
+              {t('verifyEmail.emailVerified')}
             </h1>
             
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Your email has been successfully verified. You will be redirected to the login page in a few seconds.
+              {t('verifyEmail.verificationSuccess')}
             </p>
             
             <Link 
               to="/login"
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200 font-medium inline-block"
             >
-              Go to Login
+              {t('verifyEmail.goToLogin')}
             </Link>
           </div>
         </div>
@@ -105,23 +190,32 @@ const VerifyEmail = () => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-100 dark:border-gray-700">
           <Link to="/register" className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 mb-6 transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Register
+            {t('common.back')}
           </Link>
 
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <Mail className="h-12 w-12 text-blue-600" />
+              <img 
+                src="/assets/images/logo.png" 
+                alt="AAU Logo" 
+                className="h-16 w-16 object-contain"
+              />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Verify Your Email</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              {t('verifyEmail.title')}
+            </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Enter the 6-digit code sent to your email address
+              {searchParams.get('fromLogin') 
+                ? t('verifyEmail.descriptionFromLogin')
+                : t('verifyEmail.description')
+              }
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="otp" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Verification Code
+                {t('verifyEmail.verificationCode')}
               </label>
               <input
                 type="text"
@@ -135,6 +229,33 @@ const VerifyEmail = () => {
               />
             </div>
 
+            <div className="text-center mb-4">
+              {!canResend ? (
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {t('verifyEmail.resendIn')} {formatTime(timeLeft)}
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
+                  disabled={resendLoading}
+                  className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 font-medium flex items-center justify-center mx-auto disabled:opacity-50"
+                >
+                  {resendLoading ? (
+                    <>
+                      <Loader className="animate-spin h-4 w-4 mr-2" />
+                      {t('verifyEmail.resending')}
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      {t('verifyEmail.resendCode')}
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
             <button
               type="submit"
               disabled={otp.length !== 6 || loading}
@@ -143,35 +264,24 @@ const VerifyEmail = () => {
               {loading ? (
                 <>
                   <Loader className="animate-spin h-5 w-5 mr-2" />
-                  Verifying...
+                  {t('verifyEmail.verifying')}
                 </>
               ) : (
-                'Verify Email'
+                t('verifyEmail.verifyEmail')
               )}
             </button>
           </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Didn't receive the code?
-            </p>
-            <button
-              onClick={handleResendOTP}
-              disabled={resendLoading}
-              className="text-blue-600 hover:text-blue-500 dark:text-blue-400 font-medium disabled:opacity-50 flex items-center justify-center mx-auto"
-            >
-              {resendLoading ? (
-                <>
-                  <Loader className="animate-spin h-4 w-4 mr-2" />
-                  Sending...
-                </>
-              ) : (
-                'Resend Code'
-              )}
-            </button>
-          </div>
         </div>
       </div>
+      
+      <Notification
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+        isVisible={notification.isVisible}
+        onClose={hideNotification}
+        autoClose={true}
+      />
     </div>
   );
 };

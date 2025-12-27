@@ -44,12 +44,11 @@ router.post('/register', [
 
     await user.save();
 
-    // Send OTP email
-    await emailService.sendOTPEmail(email, otp, name);
-    console.log(`\n🔐 OTP sent to ${email}: ${otp}\n`);
+    // Don't send OTP automatically - user will request it manually
+    console.log(`\n📧 User registered: ${email}. OTP will be sent when requested.\n`);
 
     res.status(201).json({
-      message: 'User registered successfully. Please check your email for verification code.',
+      message: 'User registered successfully. Please verify your email.',
       userId: user._id
     });
   } catch (error) {
