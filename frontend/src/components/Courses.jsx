@@ -1,10 +1,42 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Star, Users, User } from 'lucide-react';
+import LoginRequiredModal from './LoginRequiredModal';
 
 const Courses = () => {
   const { t } = useTranslation();
+  const [starredCourses, setStarredCourses] = useState(new Set());
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+
+  // Check if user is logged in (you can replace this with actual auth check)
+  const isLoggedIn = false; // Replace with actual auth state
+
+  const handleStarLike = (courseId) => {
+    if (!isLoggedIn) {
+      setModalMessage('Please login to star courses');
+      setShowLoginModal(true);
+      return;
+    }
+    
+    const newStarredCourses = new Set(starredCourses);
+    if (starredCourses.has(courseId)) {
+      newStarredCourses.delete(courseId);
+    } else {
+      newStarredCourses.add(courseId);
+    }
+    setStarredCourses(newStarredCourses);
+  };
+
+  const handleEnroll = () => {
+    if (!isLoggedIn) {
+      setModalMessage('Please login to enroll in courses');
+      setShowLoginModal(true);
+      return;
+    }
+    // Handle enrollment logic here
+  };
 
   const courses = [
     {
@@ -14,6 +46,7 @@ const Courses = () => {
       avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150',
       rating: 4.8,
       students: 1234,
+      starCount: 892,
       price: `2,500 ${t('courses.birr')}`,
       category: 'programming',
       image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400'
@@ -25,6 +58,7 @@ const Courses = () => {
       avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
       rating: 4.9,
       students: 856,
+      starCount: 634,
       price: `1,800 ${t('courses.birr')}`,
       category: 'design',
       image: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400'
@@ -36,6 +70,7 @@ const Courses = () => {
       avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
       rating: 4.7,
       students: 2103,
+      starCount: 1456,
       price: `3,200 ${t('courses.birr')}`,
       category: 'marketing',
       image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400'
@@ -77,17 +112,31 @@ const Courses = () => {
                   </div>
                 </div>
                 <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center bg-yellow-50 dark:bg-yellow-900/20 px-3 py-2 rounded-xl">
-                    <Star className="h-5 w-5 text-yellow-400 mr-2 fill-current" />
-                    <span className="font-bold text-gray-900 dark:text-white">{course.rating}</span>
-                  </div>
+                  <button 
+                    onClick={() => handleStarLike(course.id)}
+                    className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200"
+                  >
+                    <Star 
+                      className={`h-5 w-5 transition-colors ${
+                        starredCourses.has(course.id) 
+                          ? 'text-yellow-500 fill-current' 
+                          : 'text-gray-600 dark:text-gray-400'
+                      }`} 
+                    />
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {course.starCount + (starredCourses.has(course.id) ? 1 : 0)}
+                    </span>
+                  </button>
                   <div className="flex items-center text-gray-600 dark:text-gray-400">
                     <Users className="h-5 w-5 mr-2" />
                     <span className="font-medium">{course.students} {t('courses.students')}</span>
                   </div>
                 </div>
                 <div className="flex gap-3 mt-auto">
-                  <button className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                  <button 
+                    onClick={handleEnroll}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                  >
                     {t('courses.enrollNow')}
                   </button>
                   <Link
@@ -102,6 +151,13 @@ const Courses = () => {
           ))}
         </div>
       </div>
+
+      {/* Login Required Modal */}
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        message={modalMessage}
+      />
     </section>
   );
 };

@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, ArrowLeft, Check, Mail, Loader, User, BookOpen } from 'lucide-react';
 import axios from 'axios';
 import Notification from '../components/Notification';
+import logo from '../../public/assets/images/aaulogo.png';
+
 
 const Register = () => {
   const { t } = useTranslation();
@@ -208,11 +210,11 @@ const Register = () => {
           </Link>
 
           <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-6">
               <img 
-                src="/assets/images/logo.png" 
+                src={logo}
                 alt="AAU Logo" 
-                className="h-16 w-16 object-contain"
+                className="h-24 w-24 object-contain"
               />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -232,26 +234,38 @@ const Register = () => {
                 <button
                   type="button"
                   onClick={() => setFormData({...formData, role: 'student'})}
-                  className={`p-3 rounded-lg border-2 transition-all duration-200 flex items-center space-x-3 ${
+                  className={`p-3 rounded-lg border-2 transition-all duration-300 flex items-center space-x-2 group ${
                     formData.role === 'student'
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md'
-                      : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      ? 'border-blue-600 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-700 dark:text-blue-300 shadow-md'
+                      : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20'
                   }`}
                 >
-                  <User className="h-5 w-5 flex-shrink-0" />
-                  <span className="font-medium">{t('register.student')}</span>
+                  <div className={`p-2 rounded-full transition-all duration-300 ${
+                    formData.role === 'student'
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 group-hover:bg-blue-100 group-hover:text-blue-600'
+                  }`}>
+                    <User className="h-4 w-4" />
+                  </div>
+                  <span className="font-medium text-sm">{t('register.student')}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({...formData, role: 'instructor'})}
-                  className={`p-3 rounded-lg border-2 transition-all duration-200 flex items-center space-x-3 ${
+                  className={`p-3 rounded-lg border-2 transition-all duration-300 flex items-center space-x-2 group ${
                     formData.role === 'instructor'
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md'
-                      : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      ? 'border-blue-600 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-700 dark:text-blue-300 shadow-md'
+                      : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20'
                   }`}
                 >
-                  <BookOpen className="h-5 w-5 flex-shrink-0" />
-                  <span className="font-medium">{t('register.instructor')}</span>
+                  <div className={`p-2 rounded-full transition-all duration-300 ${
+                    formData.role === 'instructor'
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 group-hover:bg-blue-100 group-hover:text-blue-600'
+                  }`}>
+                    <BookOpen className="h-4 w-4" />
+                  </div>
+                  <span className="font-medium text-sm">{t('register.instructor')}</span>
                 </button>
               </div>
             </div>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { Sun, Moon, Menu, X } from 'lucide-react';
+import logo from '../../public/assets/images/aaulogo.png';
 
 const Header = () => {
   const { t, i18n } = useTranslation();
@@ -34,11 +35,10 @@ const Header = () => {
             >
               <div className="relative">
                 <img 
-                  src="/assets/images/logo.png" 
+                  src={logo}
                   alt="AAU E-Learning" 
-                  className="h-12 w-16 object-contain transition-transform group-hover:scale-110"
+                  className="h-12 w-16 object-contain"
                 />
-                <div className="absolute -inset-2 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity blur-sm"></div>
               </div>
               <div className="">
                 <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
@@ -88,7 +88,7 @@ const Header = () => {
               {/* Language Toggle - Desktop Only */}
               <button
                 onClick={toggleLanguage}
-                className="hidden lg:block relative flex items-center space-x-2 p-3 rounded-xl text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 group"
+                className="hidden lg:block relative items-center space-x-2 p-3 rounded-xl text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 group"
               >
                 <div className="relative z-10 flex items-center space-x-2">
                   <img 
@@ -138,7 +138,7 @@ const Header = () => {
             {/* Mobile Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-3">
-                <img src="/assets/images/logo.png" alt="AAU" className="h-8 w-auto" />
+                <img src="/assets/images/aaulogo.png" alt="AAU" className="h-8 w-auto" />
                 <span className="text-lg font-bold text-gray-900 dark:text-white">Menu</span>
               </div>
               <button

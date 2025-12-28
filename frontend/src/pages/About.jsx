@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Target, Eye, Users, Award, BookOpen, Calendar, MapPin } from 'lucide-react';
+import img from "../../public/assets/images/hero1.jpeg"
 
 const About = () => {
   const { t } = useTranslation();
@@ -58,7 +59,7 @@ const About = () => {
                   <div className="bg-gray-50 dark:bg-gray-700 rounded-2xl p-4 md:p-8 border border-gray-200 dark:border-gray-600">
                     <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden">
                       <img 
-                        src="/assets/images/hero1.jpeg" 
+                        src={img}
                         alt="AAU Campus" 
                         className="w-full h-full object-cover"
                       />

@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, ArrowLeft, Loader, Mail } from 'lucide-react';
 import axios from 'axios';
 import Notification from '../components/Notification';
+import logo from '../../public/assets/images/aaulogo.png';
+
 
 const Login = () => {
   const { t } = useTranslation();
@@ -253,7 +255,7 @@ const Login = () => {
             <div className="flex justify-center mb-4">
               <div className={`transform transition-all duration-1000 ${mounted ? 'scale-100 rotate-0' : 'scale-0 rotate-180'}`}>
                 <img 
-                  src="/assets/images/logo.png" 
+                  src={logo}
                   alt="AAU Logo" 
                   className="h-24 w-24 object-contain"
                 />

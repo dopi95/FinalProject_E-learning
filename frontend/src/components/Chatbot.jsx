@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MessageCircle, X, Send, Bot } from 'lucide-react';
+import { X, Send, Bot, MessageSquare } from 'lucide-react';
 
 const Chatbot = () => {
   const { t } = useTranslation();
@@ -123,7 +123,7 @@ const Chatbot = () => {
           {isOpen ? (
             <X className="h-5 w-5 sm:h-6 sm:w-6 mx-auto" />
           ) : (
-            <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6 mx-auto" />
+            <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 mx-auto" />
           )}
         </button>
       )}
@@ -132,22 +132,25 @@ const Chatbot = () => {
       {!isMobileMenuOpen && (
         <div className={`fixed bottom-20 right-4 sm:bottom-24 sm:right-6 z-40 w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} style={{ maxHeight: 'calc(100vh - 12rem)' }}>
         {/* Chat Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-3 sm:p-4 rounded-t-2xl flex-shrink-0 relative z-10">
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-t-2xl flex-shrink-0 relative z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                <Bot className="h-5 w-5" />
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <Bot className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-semibold text-sm sm:text-base">{t('chatbot.title')}</h3>
-                <p className="text-xs opacity-90">Online</p>
+                <h3 className="font-bold text-lg">{t('chatbot.title')}</h3>
+                <div className="text-sm opacity-90 flex items-center">
+                  <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                  Online
+                </div>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1 hover:bg-white/20 rounded-full transition-colors relative z-20"
+              className="p-2 hover:bg-white/20 rounded-full transition-colors relative z-20"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
           </div>
         </div>
@@ -160,10 +163,10 @@ const Chatbot = () => {
               className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[85%] sm:max-w-xs px-3 py-2 rounded-2xl text-sm ${
+                className={`max-w-[85%] sm:max-w-xs px-4 py-3 rounded-2xl text-sm shadow-sm ${
                   message.sender === 'user'
-                    ? 'bg-blue-600 text-white ml-auto'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white ml-auto'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600'
                 }`}
               >
                 <p className="text-sm">{message.text}</p>
@@ -199,7 +202,7 @@ const Chatbot = () => {
             <button
               onClick={handleSendMessage}
               disabled={!inputMessage.trim()}
-              className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0 relative z-20"
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0 relative z-20 shadow-sm"
             >
               <Send className="h-4 w-4" />
             </button>

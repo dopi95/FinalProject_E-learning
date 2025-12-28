@@ -1,14 +1,46 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import LoginRequiredModal from '../components/LoginRequiredModal';
 import { ArrowLeft, Star, Users, Clock, PlayCircle, CheckCircle, Globe, Award, User } from 'lucide-react';
 
 const CourseDetail = () => {
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [starredCourses, setStarredCourses] = useState(new Set());
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+
+  // Check if user is logged in (you can replace this with actual auth check)
+  const isLoggedIn = false; // Replace with actual auth state
+
+  const handleStarLike = (courseId) => {
+    if (!isLoggedIn) {
+      setModalMessage('Please login to star courses');
+      setShowLoginModal(true);
+      return;
+    }
+    
+    const newStarredCourses = new Set(starredCourses);
+    if (starredCourses.has(courseId)) {
+      newStarredCourses.delete(courseId);
+    } else {
+      newStarredCourses.add(courseId);
+    }
+    setStarredCourses(newStarredCourses);
+  };
+
+  const handleEnroll = () => {
+    if (!isLoggedIn) {
+      setModalMessage('Please login to enroll in courses');
+      setShowLoginModal(true);
+      return;
+    }
+    // Handle enrollment logic here
+  };
 
   const handleBackToCourses = () => {
     navigate('/');
@@ -29,6 +61,7 @@ const CourseDetail = () => {
       avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150',
       rating: 4.8,
       students: 1234,
+      starCount: 892,
       price: '2,500 Birr',
       category: 'programming',
       image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800',
@@ -42,6 +75,7 @@ const CourseDetail = () => {
       avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
       rating: 4.9,
       students: 856,
+      starCount: 634,
       price: '1,800 Birr',
       category: 'design',
       image: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800',
@@ -55,6 +89,7 @@ const CourseDetail = () => {
       avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
       rating: 4.7,
       students: 2103,
+      starCount: 1456,
       price: '3,200 Birr',
       category: 'marketing',
       image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800',
@@ -108,10 +143,21 @@ const CourseDetail = () => {
                     </div>
                   </div>
                   <div className="flex items-center justify-between sm:justify-start sm:space-x-6">
-                    <div className="flex items-center bg-yellow-50 dark:bg-yellow-900/20 px-3 sm:px-4 py-2 rounded-xl">
-                      <Star className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400 mr-2 fill-current" />
-                      <span className="font-bold text-gray-900 dark:text-white text-sm sm:text-base">{course.rating}</span>
-                    </div>
+                    <button 
+                      onClick={() => handleStarLike(course.id)}
+                      className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200"
+                    >
+                      <Star 
+                        className={`h-5 w-5 transition-colors ${
+                          starredCourses.has(parseInt(course.id)) 
+                            ? 'text-yellow-500 fill-current' 
+                            : 'text-gray-600 dark:text-gray-400'
+                        }`} 
+                      />
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {course.starCount + (starredCourses.has(parseInt(course.id)) ? 1 : 0)}
+                      </span>
+                    </button>
                     <div className="flex items-center text-gray-600 dark:text-gray-400">
                       <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                       <span className="text-sm sm:text-base">{course.students} {t('courses.students')}</span>
@@ -139,7 +185,10 @@ const CourseDetail = () => {
                   <p className="text-gray-500 dark:text-gray-400">{t('courses.oneTimePayment')}</p>
                 </div>
 
-                <button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-6 rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 mb-6">
+                <button 
+                  onClick={handleEnroll}
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-6 rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 mb-6"
+                >
                   {t('courses.enrollNow')}
                 </button>
 
@@ -170,7 +219,7 @@ const CourseDetail = () => {
                 <div className="flex items-center justify-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                   <div className="flex items-center">
                     <Globe className="h-4 w-4 mr-1" />
-                    <span>{t('courses.online')}</span>
+                    <span>Online</span>
                   </div>
                   <div className="flex items-center">
                     <Award className="h-4 w-4 mr-1" />
@@ -182,6 +231,13 @@ const CourseDetail = () => {
           </div>
         </div>
       </main>
+
+      {/* Login Required Modal */}
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        message={modalMessage}
+      />
 
       <Footer />
     </div>

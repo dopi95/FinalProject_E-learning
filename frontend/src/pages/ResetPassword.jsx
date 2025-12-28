@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Loader, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 import Notification from '../components/Notification';
+import logo from '../../public/assets/images/aaulogo.png';
+
 
 const ResetPassword = () => {
   const { t } = useTranslation();
@@ -122,7 +124,7 @@ const ResetPassword = () => {
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <img 
-                src="/assets/images/logo.png" 
+                src={logo}
                 alt="AAU Logo" 
                 className="h-16 w-16 object-contain"
               />

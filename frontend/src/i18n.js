@@ -62,9 +62,9 @@ const resources = {
         abebe: 'Abebe Kebede',
         meron: 'Dr. Meron Tadesse',
         hanan: 'Hanan Mohammed',
-        csStudent: 'Computer Science Student',
-        seInstructor: 'Software Engineering Instructor',
-        baStudent: 'Business Administration Student'
+        csStudent: 'Student',
+        seInstructor: 'Instructor',
+        baStudent: 'Student'
       },
       footer: {
         copyright: '© 2026 AAU E-Learning. All rights reserved.',
@@ -318,9 +318,9 @@ const resources = {
         abebe: 'አበበ ከበደ',
         meron: 'ዶ/ር መሮን ታደሰ',
         hanan: 'ሀናን መሀመድ',
-        csStudent: 'የኮምፒውተር ሳይንስ ተማሪ',
-        seInstructor: 'የሶፍትዌር ኢንጂነሪንግ አስተማሪ',
-        baStudent: 'የንግድ አስተዳደር ተማሪ'
+        csStudent: 'ተማሪ',
+        seInstructor: 'አስተማሪ',
+        baStudent: 'ተማሪ'
       },
       footer: {
         copyright: '© 2026 AAU ኢ-ትምህርት። ሁሉም መብቶች የተጠበቁ ናቸው።',

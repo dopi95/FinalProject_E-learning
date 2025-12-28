@@ -2,6 +2,8 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Facebook, Instagram, Linkedin, Youtube, Send } from 'lucide-react';
+import logo from '../../public/assets/images/aaulogo.png';
+
 
 const Footer = () => {
   const { t } = useTranslation();
@@ -39,7 +41,7 @@ const Footer = () => {
             <div className="flex items-center space-x-3 mb-4">
               <div className="relative">
                 <img 
-                  src="/assets/images/logo.png" 
+                  src={logo}
                   alt="AAU E-Learning" 
                   className="h-12 w-16 object-contain cursor-pointer hover:scale-110 transition-transform"
                   onClick={scrollToTop}
