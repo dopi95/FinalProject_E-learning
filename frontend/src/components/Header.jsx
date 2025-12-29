@@ -22,6 +22,7 @@ const Header = () => {
   const getDashboardRoute = () => {
     if (!user) return '/login';
     switch (user.role) {
+      case 'superadmin': return '/super-admin-dashboard';
       case 'admin': return '/admin-dashboard';
       case 'instructor': return '/instructor-dashboard';
       case 'student': return '/student-dashboard';

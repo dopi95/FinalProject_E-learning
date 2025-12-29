@@ -12,7 +12,7 @@ router.post('/register', [
   body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
   body('email').isEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('role').isIn(['student', 'instructor', 'admin']).withMessage('Invalid role')
+  body('role').isIn(['student', 'instructor', 'admin', 'superadmin']).withMessage('Invalid role')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

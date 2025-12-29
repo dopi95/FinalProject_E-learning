@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Loader, CheckCircle, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import Notification from '../components/Notification';
-import logo from '../../public/assets/images/aaulogo.png';
+import logo from '/assets/images/aaulogo.png';
 
 
 const VerifyEmail = () => {

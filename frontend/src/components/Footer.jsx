@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Facebook, Instagram, Linkedin, Youtube, Send } from 'lucide-react';
-import logo from '../../public/assets/images/aaulogo.png';
+import logo from '/assets/images/aaulogo.png';
 
 
 const Footer = () => {

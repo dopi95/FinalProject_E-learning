@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Target, Eye, Users, Award, BookOpen, Calendar, MapPin } from 'lucide-react';
-import img from "../../public/assets/images/hero1.jpeg"
+import img from "/assets/images/hero1.jpeg"
 
 const About = () => {
   const { t } = useTranslation();

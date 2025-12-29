@@ -511,7 +511,7 @@ const AdminDashboard = () => {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <Shield className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Super Admin Dashboard</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
             </div>
             <button
               onClick={handleLogout}

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, ArrowLeft, Loader, Mail } from 'lucide-react';
 import axios from 'axios';
 import Notification from '../components/Notification';
-import logo from '../../public/assets/images/aaulogo.png';
+import logo from '/assets/images/aaulogo.png';
 
 
 const Login = () => {
@@ -159,7 +159,9 @@ const Login = () => {
 
       setTimeout(() => {
         const userRole = response.data.user.role;
-        if (userRole === 'admin') {
+        if (userRole === 'superadmin') {
+          navigate('/super-admin-dashboard');
+        } else if (userRole === 'admin') {
           navigate('/admin-dashboard');
         } else if (userRole === 'instructor') {
           navigate('/instructor-dashboard');
