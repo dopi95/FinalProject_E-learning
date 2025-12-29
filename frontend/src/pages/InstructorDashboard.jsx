@@ -1,10 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, Home } from 'lucide-react';
+import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, Home, User, Camera, X } from 'lucide-react';
 
 const InstructorDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
+  const [showImageOptions, setShowImageOptions] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+
+  const handleImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => setProfileImage(e.target.result);
+      reader.readAsDataURL(file);
+      setShowImageOptions(false);
+    }
+  };
+
+  const removeImage = () => {
+    setProfileImage(null);
+    setShowImageOptions(false);
+  };
 
   useEffect(() => {
     // Get user data from localStorage or sessionStorage
@@ -40,7 +60,8 @@ const InstructorDashboard = () => {
     { id: 'quizzes', name: 'Quizzes', icon: CheckCircle },
     { id: 'schedule', name: 'Schedule', icon: Calendar },
     { id: 'students', name: 'Students', icon: Users },
-    { id: 'analytics', name: 'Analytics', icon: BarChart3 }
+    { id: 'analytics', name: 'Analytics', icon: BarChart3 },
+    { id: 'profile', name: 'My Profile', icon: User }
   ];
 
   const renderOverview = () => (
@@ -447,6 +468,231 @@ const InstructorDashboard = () => {
     </div>
   );
 
+  const renderProfile = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">My Profile</h2>
+        <div className="flex gap-2">
+          {isEditing ? (
+            <>
+              <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium">
+                Save
+              </button>
+              <button 
+                onClick={() => setIsEditing(false)}
+                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button 
+              onClick={() => setIsEditing(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Edit Profile
+            </button>
+          )}
+        </div>
+      </div>
+      
+      {/* Profile Header */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+          {/* Profile Image */}
+          <div className="flex flex-col items-center">
+            <div className="relative">
+              <div className="w-32 h-32 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-4xl font-bold overflow-hidden">
+                {profileImage ? (
+                  <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  user ? getInitials(user.name) : 'IN'
+                )}
+              </div>
+              {isEditing && (
+                <>
+                  <button 
+                    onClick={() => setShowImageOptions(!showImageOptions)}
+                    className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors"
+                  >
+                    <Camera className="h-4 w-4" />
+                  </button>
+                  {showImageOptions && (
+                    <div className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 z-10">
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleImageUpload}
+                        className="hidden" 
+                        id="imageUpload"
+                      />
+                      <label 
+                        htmlFor="imageUpload"
+                        className="block px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                      >
+                        Upload Photo
+                      </label>
+                      {profileImage && (
+                        <button 
+                          onClick={removeImage}
+                          className="block w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                        >
+                          Remove Photo
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+          
+          {/* Basic Info */}
+          <div className="flex-1">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{user?.name || 'Instructor Name'}</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-1">{user?.email || 'email@example.com'}</p>
+            <p className="text-blue-600 dark:text-blue-400 font-medium capitalize">{user?.role || 'Instructor'}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="px-3 py-1 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300 text-sm rounded-full">Verified Account</span>
+              <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 text-sm rounded-full">Active</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Profile Form */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Personal Information */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Personal Information</h4>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
+              <input type="text" defaultValue={user?.name} disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
+              <input type="email" defaultValue={user?.email} disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone</label>
+              <input type="tel" placeholder="+251 xxx xxx xxxx" disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date of Birth</label>
+              <input type="date" disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Address</label>
+              <input type="text" placeholder="Street Address" disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">City</label>
+              <input type="text" placeholder="Addis Ababa" disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+            </div>
+          </div>
+        </div>
+
+        {/* Professional Information */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Professional Information</h4>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Department</label>
+              <input type="text" placeholder="e.g., Computer Science" disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Qualification</label>
+              <select disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`}>
+                <option>Bachelor's Degree</option>
+                <option>Master's Degree</option>
+                <option>PhD</option>
+                <option>Diploma</option>
+                <option>Certificate</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Field of Study</label>
+              <input type="text" placeholder="e.g., Computer Science, Mathematics" disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Experience</label>
+              <select disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`}>
+                <option>0-2 years</option>
+                <option>3-5 years</option>
+                <option>6-10 years</option>
+                <option>10+ years</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Institution</label>
+              <input type="text" placeholder="e.g., Addis Ababa University" disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bio</label>
+              <textarea rows="3" placeholder="Tell us about yourself..." disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white resize-none ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`}></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Security Settings */}
+      {showPasswordForm && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Change Password</h4>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Password</label>
+                <input type="password" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Password</label>
+                <input type="password" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirm New Password</label>
+                <input type="password" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white" />
+              </div>
+              <div className="flex gap-3">
+                <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium">
+                  Update Password
+                </button>
+                <button 
+                  onClick={() => setShowPasswordForm(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-4">
+                  <CheckCircle className="h-10 w-10 text-green-600" />
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Account Security</p>
+                <p className="text-lg font-semibold text-green-600">Strong</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Button */}
+      {!showPasswordForm && (
+        <div className="flex justify-center">
+          <button 
+            onClick={() => setShowPasswordForm(true)}
+            className="bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-medium"
+          >
+            Change Password
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   const renderAnalytics = () => (
     <div className="space-y-6">
       <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Analytics & Reports</h2>
@@ -488,6 +734,7 @@ const InstructorDashboard = () => {
       case 'schedule': return renderSchedule();
       case 'students': return renderStudents();
       case 'analytics': return renderAnalytics();
+      case 'profile': return renderProfile();
       default: return renderOverview();
     }
   };
@@ -505,9 +752,16 @@ const InstructorDashboard = () => {
       <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-800 shadow-2xl border-r border-gray-200 dark:border-gray-700 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 ease-in-out lg:translate-x-0 lg:fixed lg:inset-y-0 flex flex-col overflow-hidden`}>
         {/* Logo/Title */}
         <div className="flex items-center justify-between h-20 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex-shrink-0">
-          <div className="flex items-center">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-3">
-              <span className="text-white font-bold text-lg">{user ? getInitials(user.name) : 'IN'}</span>
+          <button 
+            onClick={() => setActiveTab('profile')}
+            className="flex items-center hover:bg-white/10 rounded-lg p-2 transition-colors cursor-pointer"
+          >
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-3 overflow-hidden">
+              {profileImage ? (
+                <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-white font-bold text-lg">{user ? getInitials(user.name) : 'IN'}</span>
+              )}
             </div>
             <div>
               <h1 className="text-lg font-bold">{user ? user.name : 'Instructor'}</h1>
@@ -516,7 +770,7 @@ const InstructorDashboard = () => {
                 {user ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Instructor'}
               </p>
             </div>
-          </div>
+          </button>
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden text-white/80 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors"

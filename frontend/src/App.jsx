@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ScrollToTop from './components/ScrollToTop';
 import Chatbot from './components/Chatbot';
@@ -19,6 +19,33 @@ import StudentDashboard from './pages/StudentDashboard.jsx';
 import CourseDetail from './pages/CourseDetail.jsx';
 import './i18n';
 
+const AppContent = () => {
+  const location = useLocation();
+  const isDashboardPage = location.pathname.includes('-dashboard');
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verify-otp" element={<VerifyOTP />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route path="/super-admin-dashboard" element={<SuperAdminDashboard />} />
+        <Route path="/instructor-dashboard" element={<InstructorDashboard />} />
+        <Route path="/student-dashboard" element={<StudentDashboard />} />
+        <Route path="/course/:id" element={<CourseDetail />} />
+      </Routes>
+      {!isDashboardPage && <Chatbot />}
+    </div>
+  );
+};
+
 function App() {
   return (
     <ThemeProvider>
@@ -29,25 +56,7 @@ function App() {
         }}
       >
         <ScrollToTop />
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/verify-otp" element={<VerifyOTP />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/super-admin-dashboard" element={<SuperAdminDashboard />} />
-            <Route path="/instructor-dashboard" element={<InstructorDashboard />} />
-            <Route path="/student-dashboard" element={<StudentDashboard />} />
-            <Route path="/course/:id" element={<CourseDetail />} />
-          </Routes>
-          <Chatbot />
-        </div>
+        <AppContent />
       </Router>
     </ThemeProvider>
   );
