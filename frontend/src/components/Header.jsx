@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { Sun, Moon, Menu, X } from 'lucide-react';
-import logo from '../../public/assets/images/aaulogo.png';
+
 
 const Header = () => {
   const { t, i18n } = useTranslation();
@@ -35,7 +35,7 @@ const Header = () => {
             >
               <div className="relative">
                 <img 
-                  src={logo}
+                  src="/assets/images/aaulogo.png"
                   alt="AAU E-Learning" 
                   className="h-12 w-16 object-contain"
                 />
