@@ -334,14 +334,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              onClick={!isFormValid ? handleInvalidSubmit : undefined}
-              className={`w-full py-3 px-4 rounded-lg font-medium flex items-center justify-center transition-all duration-300 transform ${
-                isFormValid
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:scale-105 focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 shadow-lg hover:shadow-xl'
-                  : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-              } ${
-                shake ? 'animate-shake' : ''
-              } disabled:opacity-50`}
+              className="w-full py-3 px-4 rounded-lg font-medium flex items-center justify-center transition-all duration-300 transform bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:scale-105 focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 shadow-lg hover:shadow-xl disabled:opacity-50"
             >
               {loading ? (
                 <>

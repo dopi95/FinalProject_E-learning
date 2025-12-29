@@ -72,6 +72,27 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  // Additional profile fields
+  department: {
+    type: String,
+    trim: true
+  },
+  specialization: {
+    type: String,
+    trim: true
+  },
+  experience: {
+    type: String,
+    trim: true
+  },
+  adminId: {
+    type: String,
+    trim: true
+  },
+  accessLevel: {
+    type: String,
+    trim: true
+  },
   // Auth fields
   otp: {
     type: String

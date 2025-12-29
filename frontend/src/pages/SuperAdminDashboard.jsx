@@ -1,38 +1,164 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle } from 'lucide-react';
+import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { profileAPI } from '../services/api';
+import PopupNotification from '../components/PopupNotification';
+import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 
 const SuperAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
   const [showImageOptions, setShowImageOptions] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleImageUpload = (event) => {
+  // Form states
+  const [profileForm, setProfileForm] = useState({});
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  // Notification state
+  const [notification, setNotification] = useState({
+    isVisible: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
+
+  const showNotification = (type, title, message) => {
+    setNotification({
+      isVisible: true,
+      type,
+      title,
+      message
+    });
+  };
+
+  const hideNotification = () => {
+    setNotification(prev => ({ ...prev, isVisible: false }));
+  };
+
+  const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => setProfileImage(e.target.result);
-      reader.readAsDataURL(file);
-      setShowImageOptions(false);
+      try {
+        setLoading(true);
+        const response = await profileAPI.uploadImage(file);
+        const updatedUser = response.data.user;
+        
+        setProfileImage(response.data.profileImage);
+        setUser(updatedUser);
+        setProfileForm(updatedUser);
+        setShowImageOptions(false);
+        
+        updateUserData(updatedUser);
+        showNotification('success', 'Success!', 'Profile image updated successfully');
+      } catch (error) {
+        console.error('Image upload error:', error);
+        showNotification('error', 'Upload Failed', error.response?.data?.message || 'Failed to upload image');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const removeImage = () => {
-    setProfileImage(null);
-    setShowImageOptions(false);
+  const removeImage = async () => {
+    try {
+      setLoading(true);
+      const response = await profileAPI.removeImage();
+      const updatedUser = response.data.user;
+      
+      setProfileImage(null);
+      setUser(updatedUser);
+      setProfileForm(updatedUser);
+      setShowImageOptions(false);
+      
+      updateUserData(updatedUser);
+      showNotification('success', 'Success!', 'Profile image removed successfully');
+    } catch (error) {
+      console.error('Remove image error:', error);
+      showNotification('error', 'Remove Failed', error.response?.data?.message || 'Failed to remove image');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    // Get user data from localStorage or sessionStorage
-    const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
+    const userData = getUserData();
     if (userData) {
-      setUser(JSON.parse(userData));
+      setUser(userData);
+      setProfileForm(userData);
+      if (userData.profileImage) {
+        setProfileImage(userData.profileImage);
+      }
     }
+    fetchUserProfile();
   }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      const response = await profileAPI.getProfile();
+      const userData = response.data.user;
+      setUser(userData);
+      setProfileForm(userData);
+      if (userData.profileImage) {
+        setProfileImage(userData.profileImage);
+      }
+      updateUserData(userData);
+    } catch (error) {
+      console.error('Fetch profile error:', error);
+    }
+  };
+
+  const handleProfileSave = async () => {
+    try {
+      setLoading(true);
+      const response = await profileAPI.updateProfile(profileForm);
+      const updatedUser = response.data.user;
+      setUser(updatedUser);
+      setIsEditing(false);
+      
+      updateUserData(updatedUser);
+      showNotification('success', 'Profile Updated!', 'Your profile has been updated successfully');
+    } catch (error) {
+      console.error('Profile update error:', error);
+      showNotification('error', 'Update Failed', error.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    try {
+      setLoading(true);
+      await profileAPI.changePassword(passwordForm);
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setShowPasswordForm(false);
+      showNotification('success', 'Password Changed!', 'Your password has been updated successfully');
+    } catch (error) {
+      console.error('Password change error:', error);
+      showNotification('error', 'Password Change Failed', error.response?.data?.message || 'Failed to change password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFormChange = (field, value) => {
+    setProfileForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePasswordFormChange = (field, value) => {
+    setPasswordForm(prev => ({ ...prev, [field]: value }));
+  };
 
   // Generate initials from user name
   const getInitials = (name) => {
@@ -45,10 +171,7 @@ const SuperAdminDashboard = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    sessionStorage.removeItem('token');
-    sessionStorage.removeItem('user');
+    clearUserData();
     window.location.href = '/login';
   };
 
@@ -564,12 +687,20 @@ const SuperAdminDashboard = () => {
         <div className="flex gap-2">
           {isEditing ? (
             <>
-              <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium">
-                Save
+              <button 
+                onClick={handleProfileSave}
+                disabled={loading}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
+              >
+                {loading ? 'Saving...' : 'Save'}
               </button>
               <button 
-                onClick={() => setIsEditing(false)}
-                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                onClick={() => {
+                  setIsEditing(false);
+                  setProfileForm(user);
+                }}
+                disabled={loading}
+                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-medium disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -577,7 +708,7 @@ const SuperAdminDashboard = () => {
           ) : (
             <button 
               onClick={() => setIsEditing(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium"
             >
               Edit Profile
             </button>
@@ -602,7 +733,8 @@ const SuperAdminDashboard = () => {
                 <>
                   <button 
                     onClick={() => setShowImageOptions(!showImageOptions)}
-                    className="absolute bottom-0 right-0 bg-purple-600 text-white p-2 rounded-full hover:bg-purple-700 transition-colors"
+                    disabled={loading}
+                    className="absolute bottom-0 right-0 bg-purple-600 text-white p-2 rounded-full hover:bg-purple-700 transition-colors disabled:opacity-50"
                   >
                     <Camera className="h-4 w-4" />
                   </button>
@@ -614,19 +746,21 @@ const SuperAdminDashboard = () => {
                         onChange={handleImageUpload}
                         className="hidden" 
                         id="imageUpload"
+                        disabled={loading}
                       />
                       <label 
                         htmlFor="imageUpload"
-                        className="block px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                        className={`block px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
-                        Upload Photo
+                        {loading ? 'Uploading...' : 'Upload Photo'}
                       </label>
                       {profileImage && (
                         <button 
                           onClick={removeImage}
-                          className="block w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                          disabled={loading}
+                          className="block w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-50"
                         >
-                          Remove Photo
+                          {loading ? 'Removing...' : 'Remove Photo'}
                         </button>
                       )}
                     </div>
@@ -657,27 +791,66 @@ const SuperAdminDashboard = () => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
-              <input type="text" defaultValue={user?.name} disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+              <input 
+                type="text" 
+                value={profileForm.name || ''} 
+                onChange={(e) => handleFormChange('name', e.target.value)}
+                disabled={!isEditing} 
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} 
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
-              <input type="email" defaultValue={user?.email} disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+              <input 
+                type="email" 
+                value={profileForm.email || ''} 
+                onChange={(e) => handleFormChange('email', e.target.value)}
+                disabled={!isEditing} 
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} 
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone</label>
-              <input type="tel" placeholder="+251 xxx xxx xxxx" disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+              <input 
+                type="tel" 
+                value={profileForm.phone || ''} 
+                onChange={(e) => handleFormChange('phone', e.target.value)}
+                placeholder="+251 xxx xxx xxxx" 
+                disabled={!isEditing} 
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} 
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date of Birth</label>
-              <input type="date" disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+              <input 
+                type="date" 
+                value={profileForm.dateOfBirth ? new Date(profileForm.dateOfBirth).toISOString().split('T')[0] : ''} 
+                onChange={(e) => handleFormChange('dateOfBirth', e.target.value)}
+                disabled={!isEditing} 
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} 
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Address</label>
-              <input type="text" placeholder="Street Address" disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+              <input 
+                type="text" 
+                value={profileForm.address || ''} 
+                onChange={(e) => handleFormChange('address', e.target.value)}
+                placeholder="Street Address" 
+                disabled={!isEditing} 
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} 
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">City</label>
-              <input type="text" placeholder="Addis Ababa" disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+              <input 
+                type="text" 
+                value={profileForm.city || ''} 
+                onChange={(e) => handleFormChange('city', e.target.value)}
+                placeholder="Addis Ababa" 
+                disabled={!isEditing} 
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} 
+              />
             </div>
           </div>
         </div>
@@ -688,31 +861,76 @@ const SuperAdminDashboard = () => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Admin ID</label>
-              <input type="text" placeholder="SA001" disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+              <input 
+                type="text" 
+                value={profileForm.adminId || ''} 
+                onChange={(e) => handleFormChange('adminId', e.target.value)}
+                placeholder="SA001" 
+                disabled={!isEditing} 
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} 
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Access Level</label>
-              <select disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`}>
-                <option>Super Administrator</option>
-                <option>System Administrator</option>
-                <option>Platform Administrator</option>
+              <select 
+                value={profileForm.accessLevel || ''} 
+                onChange={(e) => handleFormChange('accessLevel', e.target.value)}
+                disabled={!isEditing} 
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`}
+              >
+                <option value="">Select Access Level</option>
+                <option value="Super Administrator">Super Administrator</option>
+                <option value="System Administrator">System Administrator</option>
+                <option value="Platform Administrator">Platform Administrator</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Department</label>
-              <input type="text" placeholder="IT Administration" disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+              <input 
+                type="text" 
+                value={profileForm.department || ''} 
+                onChange={(e) => handleFormChange('department', e.target.value)}
+                placeholder="IT Administration" 
+                disabled={!isEditing} 
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} 
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Institution</label>
-              <input type="text" placeholder="Addis Ababa University" disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} />
+              <input 
+                type="text" 
+                value={profileForm.institution || ''} 
+                onChange={(e) => handleFormChange('institution', e.target.value)}
+                placeholder="Addis Ababa University" 
+                disabled={!isEditing} 
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} 
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Last Login</label>
-              <input type="text" value="Today, 10:30 AM" disabled className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 cursor-not-allowed dark:text-white" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Experience</label>
+              <select 
+                value={profileForm.experience || ''} 
+                onChange={(e) => handleFormChange('experience', e.target.value)}
+                disabled={!isEditing} 
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`}
+              >
+                <option value="">Select Experience</option>
+                <option value="0-2 years">0-2 years</option>
+                <option value="3-5 years">3-5 years</option>
+                <option value="6-10 years">6-10 years</option>
+                <option value="10+ years">10+ years</option>
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bio</label>
-              <textarea rows="3" placeholder="System administrator with full platform access..." disabled={!isEditing} className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white resize-none ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`}></textarea>
+              <textarea 
+                rows="3" 
+                value={profileForm.bio || ''} 
+                onChange={(e) => handleFormChange('bio', e.target.value)}
+                placeholder="System administrator with full platform access..." 
+                disabled={!isEditing} 
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white resize-none ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`}
+              ></textarea>
             </div>
           </div>
         </div>
@@ -726,23 +944,73 @@ const SuperAdminDashboard = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Password</label>
-                <input type="password" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white" />
+                <div className="relative">
+                  <input 
+                    type={showCurrentPassword ? 'text' : 'password'} 
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => handlePasswordFormChange('currentPassword', e.target.value)}
+                    className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white" 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  >
+                    {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Password</label>
-                <input type="password" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white" />
+                <div className="relative">
+                  <input 
+                    type={showNewPassword ? 'text' : 'password'} 
+                    value={passwordForm.newPassword}
+                    onChange={(e) => handlePasswordFormChange('newPassword', e.target.value)}
+                    className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white" 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirm New Password</label>
-                <input type="password" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white" />
+                <div className="relative">
+                  <input 
+                    type={showConfirmPassword ? 'text' : 'password'} 
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => handlePasswordFormChange('confirmPassword', e.target.value)}
+                    className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white" 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
               <div className="flex gap-3">
-                <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium">
-                  Update Password
+                <button 
+                  onClick={handlePasswordChange}
+                  disabled={loading || !passwordForm.currentPassword || !passwordForm.newPassword || passwordForm.newPassword !== passwordForm.confirmPassword}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Updating...' : 'Update Password'}
                 </button>
                 <button 
-                  onClick={() => setShowPasswordForm(false)}
-                  className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                  onClick={() => {
+                    setShowPasswordForm(false);
+                    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                  }}
+                  disabled={loading}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-medium disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -791,6 +1059,15 @@ const SuperAdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
+      {/* Popup Notification */}
+      <PopupNotification
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+        isVisible={notification.isVisible}
+        onClose={hideNotification}
+      />
+
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
@@ -801,10 +1078,10 @@ const SuperAdminDashboard = () => {
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 w-64 lg:w-72 bg-white dark:bg-gray-800 shadow-2xl border-r border-gray-200 dark:border-gray-700 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 ease-in-out lg:translate-x-0 lg:fixed lg:inset-y-0 flex flex-col overflow-hidden`}>
         {/* Logo/Title */}
-        <div className="flex items-center justify-between h-16 lg:h-20 px-4 lg:px-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white flex-shrink-0">
+        <div className="flex items-center justify-between h-16 lg:h-20 px-4 lg:px-6 bg-gradient-to-r from-purple-600 to-indigo-600 border-b border-purple-500 flex-shrink-0">
           <button 
             onClick={() => setActiveTab('profile')}
-            className="flex items-center hover:bg-white/10 rounded-lg p-2 transition-colors cursor-pointer"
+            className="flex items-center hover:bg-white/10 rounded-lg p-2 transition-colors cursor-pointer w-full"
           >
             <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white/20 rounded-full flex items-center justify-center mr-2 lg:mr-3 overflow-hidden">
               {profileImage ? (
@@ -813,12 +1090,17 @@ const SuperAdminDashboard = () => {
                 <span className="text-white font-bold text-sm lg:text-lg">{user ? getInitials(user.name) : 'SA'}</span>
               )}
             </div>
-            <div className="min-w-0">
-              <h1 className="text-sm lg:text-lg font-bold truncate">{user ? user.name : 'Super Admin'}</h1>
-              <p className="text-purple-100 text-xs lg:text-sm flex items-center">
+            <div className="min-w-0 flex-1 text-center">
+              <h1 className="text-sm lg:text-lg font-bold truncate text-white">{user ? user.name : 'Super Admin'}</h1>
+              <p className="text-purple-50 text-xs lg:text-sm flex items-center justify-center">
                 <Crown className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
                 <span className="truncate">{user ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Super Admin'}</span>
               </p>
+              {user?.bio && (
+                <p className="text-purple-50/90 text-xs mt-1 truncate italic">
+                  "{user.bio}"
+                </p>
+              )}
             </div>
           </button>
           <button

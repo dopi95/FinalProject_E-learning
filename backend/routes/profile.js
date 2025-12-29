@@ -44,7 +44,12 @@ router.put('/update', auth, [
   body('fieldOfStudy').optional().trim(),
   body('yearOfStudy').optional().trim(),
   body('institution').optional().trim(),
-  body('bio').optional().trim()
+  body('bio').optional().trim(),
+  body('department').optional().trim(),
+  body('specialization').optional().trim(),
+  body('experience').optional().trim(),
+  body('adminId').optional().trim(),
+  body('accessLevel').optional().trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

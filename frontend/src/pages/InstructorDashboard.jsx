@@ -774,8 +774,8 @@ const InstructorDashboard = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Department</label>
               <input 
                 type="text" 
-                value={profileForm.fieldOfStudy || ''} 
-                onChange={(e) => handleFormChange('fieldOfStudy', e.target.value)}
+                value={profileForm.department || ''} 
+                onChange={(e) => handleFormChange('department', e.target.value)}
                 placeholder="e.g., Computer Science" 
                 disabled={!isEditing} 
                 className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} 
@@ -801,8 +801,8 @@ const InstructorDashboard = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Specialization</label>
               <input 
                 type="text" 
-                value={profileForm.studentId || ''} 
-                onChange={(e) => handleFormChange('studentId', e.target.value)}
+                value={profileForm.specialization || ''} 
+                onChange={(e) => handleFormChange('specialization', e.target.value)}
                 placeholder="e.g., Machine Learning, Mathematics" 
                 disabled={!isEditing} 
                 className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} 
@@ -811,8 +811,8 @@ const InstructorDashboard = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Experience</label>
               <select 
-                value={profileForm.yearOfStudy || ''} 
-                onChange={(e) => handleFormChange('yearOfStudy', e.target.value)}
+                value={profileForm.experience || ''} 
+                onChange={(e) => handleFormChange('experience', e.target.value)}
                 disabled={!isEditing} 
                 className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`}
               >
