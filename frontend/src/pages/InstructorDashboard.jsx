@@ -1,18 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, Home } from 'lucide-react';
 
 const InstructorDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [user, setUser] = useState(null);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
+  useEffect(() => {
+    // Get user data from localStorage or sessionStorage
+    const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
+
+  // Generate initials from user name
+  const getInitials = (name) => {
+    if (!name) return 'IN';
+    return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
   };
 
   const handleBackToWebsite = () => {
     window.location.href = '/';
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+    window.location.href = '/login';
   };
 
   const tabs = [
@@ -35,7 +52,7 @@ const InstructorDashboard = () => {
         </div>
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Instructor Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400">Welcome back, manage your courses and students</p>
+          <p className="text-gray-600 dark:text-gray-400">Welcome back{user ? `, ${user.name.split(' ')[0]}` : ''}, manage your courses and students</p>
         </div>
       </div>
       
@@ -490,13 +507,13 @@ const InstructorDashboard = () => {
         <div className="flex items-center justify-between h-20 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex-shrink-0">
           <div className="flex items-center">
             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-3">
-              <span className="text-white font-bold text-lg">JD</span>
+              <span className="text-white font-bold text-lg">{user ? getInitials(user.name) : 'IN'}</span>
             </div>
             <div>
-              <h1 className="text-lg font-bold">John Doe</h1>
+              <h1 className="text-lg font-bold">{user ? user.name : 'Instructor'}</h1>
               <p className="text-blue-100 text-sm flex items-center">
                 <GraduationCap className="h-4 w-4 mr-1" />
-                Instructor
+                {user ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Instructor'}
               </p>
             </div>
           </div>

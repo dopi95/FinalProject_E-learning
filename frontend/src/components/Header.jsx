@@ -1,14 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
-import { Sun, Moon, Menu, X } from 'lucide-react';
+import { Sun, Moon, Menu, X, User } from 'lucide-react';
 
 
 const Header = () => {
   const { t, i18n } = useTranslation();
   const { isDark, toggleTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
+
+  const getDashboardRoute = () => {
+    if (!user) return '/login';
+    switch (user.role) {
+      case 'admin': return '/admin-dashboard';
+      case 'instructor': return '/instructor-dashboard';
+      case 'student': return '/student-dashboard';
+      default: return '/login';
+    }
+  };
 
   const toggleLanguage = () => {
     i18n.changeLanguage(i18n.language === 'en' ? 'am' : 'en');
@@ -102,13 +121,14 @@ const Header = () => {
                 </div>
               </button>
 
-              {/* Login Button - Desktop Only */}
+              {/* My Account/Login Button - Desktop Only */}
               <Link
-                to="/login"
-                className="hidden lg:block px-6 py-3 text-blue-600 dark:text-blue-400 font-medium rounded-xl hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-300 group"
+                to={getDashboardRoute()}
+                className="hidden lg:flex items-center space-x-2 px-6 py-3 text-blue-600 dark:text-blue-400 font-medium rounded-xl hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-300 group"
               >
+                {user && <User className="h-4 w-4" />}
                 <span className="group-hover:scale-105 transition-transform inline-block">
-                  {t('nav.login')}
+                  {user ? 'My Account' : t('nav.login')}
                 </span>
               </Link>
 
@@ -155,7 +175,7 @@ const Header = () => {
                 { to: '/', label: t('nav.home'), onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
                 { to: '/about', label: t('nav.about') },
                 { to: '/contact', label: t('nav.contact') },
-                { to: '/login', label: t('nav.login') }
+                { to: getDashboardRoute(), label: user ? 'My Account' : t('nav.login') }
               ].map((item, index) => (
                 <Link
                   key={item.to}
