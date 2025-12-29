@@ -28,6 +28,51 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // Profile fields
+  profileImage: {
+    type: String,
+    default: null
+  },
+  phone: {
+    type: String,
+    trim: true
+  },
+  dateOfBirth: {
+    type: Date
+  },
+  address: {
+    type: String,
+    trim: true
+  },
+  city: {
+    type: String,
+    trim: true
+  },
+  studentId: {
+    type: String,
+    trim: true
+  },
+  program: {
+    type: String,
+    trim: true
+  },
+  fieldOfStudy: {
+    type: String,
+    trim: true
+  },
+  yearOfStudy: {
+    type: String,
+    trim: true
+  },
+  institution: {
+    type: String,
+    trim: true
+  },
+  bio: {
+    type: String,
+    trim: true
+  },
+  // Auth fields
   otp: {
     type: String
   },
@@ -52,6 +97,16 @@ userSchema.pre('save', async function(next) {
 
 userSchema.methods.comparePassword = async function(password) {
   return await bcrypt.compare(password, this.password);
+};
+
+userSchema.methods.toJSON = function() {
+  const user = this.toObject();
+  delete user.password;
+  delete user.otp;
+  delete user.otpExpires;
+  delete user.resetPasswordToken;
+  delete user.resetPasswordExpires;
+  return user;
 };
 
 module.exports = mongoose.model('User', userSchema);

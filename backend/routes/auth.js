@@ -98,7 +98,18 @@ router.post('/verify-email', [
         name: user.name,
         email: user.email,
         role: user.role,
-        isVerified: user.isVerified
+        isVerified: user.isVerified,
+        profileImage: user.profileImage,
+        phone: user.phone,
+        dateOfBirth: user.dateOfBirth,
+        address: user.address,
+        city: user.city,
+        studentId: user.studentId,
+        program: user.program,
+        fieldOfStudy: user.fieldOfStudy,
+        yearOfStudy: user.yearOfStudy,
+        institution: user.institution,
+        bio: user.bio
       }
     });
   } catch (error) {
@@ -189,7 +200,18 @@ router.post('/login', [
         name: user.name,
         email: user.email,
         role: user.role,
-        isVerified: user.isVerified
+        isVerified: user.isVerified,
+        profileImage: user.profileImage,
+        phone: user.phone,
+        dateOfBirth: user.dateOfBirth,
+        address: user.address,
+        city: user.city,
+        studentId: user.studentId,
+        program: user.program,
+        fieldOfStudy: user.fieldOfStudy,
+        yearOfStudy: user.yearOfStudy,
+        institution: user.institution,
+        bio: user.bio
       }
     });
   } catch (error) {
@@ -335,15 +357,7 @@ router.post('/resend-password-otp', [
 
 // Get current user
 router.get('/me', auth, async (req, res) => {
-  res.json({
-    user: {
-      id: req.user._id,
-      name: req.user.name,
-      email: req.user.email,
-      role: req.user.role,
-      isVerified: req.user.isVerified
-    }
-  });
+  res.json({ user: req.user });
 });
 
 module.exports = router;
