@@ -502,7 +502,7 @@ const InstructorDashboard = () => {
           {/* Profile Image */}
           <div className="flex flex-col items-center">
             <div className="relative">
-              <div className="w-32 h-32 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-4xl font-bold overflow-hidden">
+              <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-2xl lg:text-4xl font-bold overflow-hidden">
                 {profileImage ? (
                   <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
@@ -749,25 +749,25 @@ const InstructorDashboard = () => {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-800 shadow-2xl border-r border-gray-200 dark:border-gray-700 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 ease-in-out lg:translate-x-0 lg:fixed lg:inset-y-0 flex flex-col overflow-hidden`}>
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 lg:w-72 bg-white dark:bg-gray-800 shadow-2xl border-r border-gray-200 dark:border-gray-700 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 ease-in-out lg:translate-x-0 lg:fixed lg:inset-y-0 flex flex-col overflow-hidden`}>
         {/* Logo/Title */}
-        <div className="flex items-center justify-between h-20 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex-shrink-0">
+        <div className="flex items-center justify-between h-16 lg:h-20 px-4 lg:px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex-shrink-0">
           <button 
             onClick={() => setActiveTab('profile')}
             className="flex items-center hover:bg-white/10 rounded-lg p-2 transition-colors cursor-pointer"
           >
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-3 overflow-hidden">
+            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white/20 rounded-full flex items-center justify-center mr-2 lg:mr-3 overflow-hidden">
               {profileImage ? (
                 <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-white font-bold text-lg">{user ? getInitials(user.name) : 'IN'}</span>
+                <span className="text-white font-bold text-sm lg:text-lg">{user ? getInitials(user.name) : 'IN'}</span>
               )}
             </div>
-            <div>
-              <h1 className="text-lg font-bold">{user ? user.name : 'Instructor'}</h1>
-              <p className="text-blue-100 text-sm flex items-center">
-                <GraduationCap className="h-4 w-4 mr-1" />
-                {user ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Instructor'}
+            <div className="min-w-0">
+              <h1 className="text-sm lg:text-lg font-bold truncate">{user ? user.name : 'Instructor'}</h1>
+              <p className="text-blue-100 text-xs lg:text-sm flex items-center">
+                <GraduationCap className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
+                <span className="truncate">{user ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Instructor'}</span>
               </p>
             </div>
           </button>
@@ -782,7 +782,7 @@ const InstructorDashboard = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-4 py-4 overflow-y-auto">
+        <nav className="flex-1 px-3 lg:px-4 py-3 lg:py-4 overflow-y-auto">
           <div className="space-y-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -793,18 +793,18 @@ const InstructorDashboard = () => {
                     setActiveTab(tab.id);
                     setSidebarOpen(false);
                   }}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 group ${
+                  className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 group ${
                     activeTab === tab.id
                       ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
-                  <Icon className={`h-4 w-4 mr-3 ${
+                  <Icon className={`h-4 w-4 mr-2 lg:mr-3 flex-shrink-0 ${
                     activeTab === tab.id ? 'text-white' : 'text-gray-500 dark:text-gray-400'
                   }`} />
-                  <span className="font-medium">{tab.name}</span>
+                  <span className="font-medium truncate">{tab.name}</span>
                   {activeTab === tab.id && (
-                    <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
                   )}
                 </button>
               );
@@ -814,20 +814,20 @@ const InstructorDashboard = () => {
             <div className="border-t border-gray-200 dark:border-gray-700 my-2 mt-100"></div>
             
             {/* Additional Navigation Items */}
-            <div className="mt-100 pt-4">
+            <div className="mt-6 lg:mt-100 pt-3 lg:pt-4">
               <button
                 onClick={handleBackToWebsite}
-                className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all duration-200"
+                className="w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all duration-200"
               >
-                <Home className="h-4 w-4 mr-3 text-gray-500 dark:text-gray-400" />
-                <span className="font-medium">Back to Website</span>
+                <Home className="h-4 w-4 mr-2 lg:mr-3 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                <span className="font-medium truncate">Back to Website</span>
               </button>
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300 rounded-lg transition-all duration-200 mt-1"
+                className="w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300 rounded-lg transition-all duration-200 mt-1"
               >
-                <LogOut className="h-4 w-4 mr-3" />
-                <span className="font-medium">Logout</span>
+                <LogOut className="h-4 w-4 mr-2 lg:mr-3 flex-shrink-0" />
+                <span className="font-medium truncate">Logout</span>
               </button>
             </div>
           </div>
@@ -839,15 +839,15 @@ const InstructorDashboard = () => {
         {/* Mobile hamburger button - Fixed */}
         <button
           onClick={() => setSidebarOpen(true)}
-          className="lg:hidden fixed top-4 left-4 z-40 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 shadow-lg transition-colors"
+          className="lg:hidden fixed top-3 left-3 z-40 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 shadow-lg transition-colors"
         >
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
 
         {/* Content */}
-        <div className="p-4 lg:p-8 pt-16 lg:pt-8 max-w-7xl mx-auto">
+        <div className="p-3 lg:p-8 pt-14 lg:pt-8 max-w-7xl mx-auto">
           {renderContent()}
         </div>
       </div>
