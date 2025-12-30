@@ -1,17 +1,39 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Target, Eye, Users, Award, BookOpen, Calendar, MapPin } from 'lucide-react';
+import { statsAPI } from '../services/api';
 import img from "/assets/images/hero1.jpeg"
 
 const About = () => {
   const { t } = useTranslation();
+  const [stats, setStats] = useState({
+    students: 0,
+    courses: 0,
+    instructors: 0
+  });
+  const [loading, setLoading] = useState(true);
 
-  const stats = [
-    { icon: Users, label: t('about.students'), value: '10,000+' },
-    { icon: BookOpen, label: t('footer.courses'), value: '500+' },
-    { icon: Users, label: t('about.instructors'), value: '200+' }
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const response = await statsAPI.getStats();
+      setStats(response.data);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statsDisplay = [
+    { icon: Users, label: t('about.students'), value: loading ? '...' : `${stats.students.toLocaleString()}+` },
+    { icon: BookOpen, label: t('footer.courses'), value: loading ? '...' : `${stats.courses.toLocaleString()}+` },
+    { icon: Users, label: t('about.instructors'), value: loading ? '...' : `${stats.instructors.toLocaleString()}+` }
   ];
 
   return (
@@ -110,7 +132,7 @@ const About = () => {
               {t('about.impactTitle')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 md:gap-12">
-              {stats.map((stat, index) => (
+              {statsDisplay.map((stat, index) => (
                 <div key={index} className="text-center group">
                   <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-3xl p-4 md:p-6 w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 md:mb-6 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
                     <stat.icon className="h-8 w-8 md:h-12 md:w-12 text-white" />

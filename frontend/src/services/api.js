@@ -111,4 +111,10 @@ export const categoryAPI = {
   deleteCategory: (id) => api.delete(`/categories/${id}`),
 };
 
+// Stats API functions
+export const statsAPI = {
+  // Get platform statistics
+  getStats: () => api.get('/stats'),
+};
+
 export default api;
