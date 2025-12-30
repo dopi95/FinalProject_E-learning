@@ -3,12 +3,14 @@ import { useTranslation } from 'react-i18next';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Mail, Phone, MapPin, Send, CheckCircle, X } from 'lucide-react';
+import { contactAPI } from '../services/api';
 
 const Contact = () => {
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    subject: '',
     message: ''
   });
   const [showSuccess, setShowSuccess] = useState(false);
@@ -25,17 +27,21 @@ const Contact = () => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setShowSuccess(true);
-    setIsSubmitting(false);
-    setFormData({ name: '', email: '', message: '' });
-    
-    // Hide success message after 5 seconds
-    setTimeout(() => {
-      setShowSuccess(false);
-    }, 5000);
+    try {
+      await contactAPI.submitContact(formData);
+      setShowSuccess(true);
+      setFormData({ name: '', email: '', subject: '', message: '' });
+      
+      // Hide success message after 5 seconds
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 5000);
+    } catch (error) {
+      console.error('Error submitting contact form:', error);
+      // Handle error (could add error state here)
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -144,6 +150,22 @@ const Contact = () => {
                     id="email"
                     name="email"
                     value={formData.email}
+                    onChange={handleChange}
+                    required
+                    disabled={isSubmitting}
+                    className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="subject" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    id="subject"
+                    name="subject"
+                    value={formData.subject}
                     onChange={handleChange}
                     required
                     disabled={isSubmitting}

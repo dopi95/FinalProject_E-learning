@@ -35,6 +35,9 @@ app.use('/api/categories', require('./routes/categories'));
 // Stats routes
 app.use('/api/stats', require('./routes/stats'));
 
+// Contact routes
+app.use('/api/contact', require('./routes/contact'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

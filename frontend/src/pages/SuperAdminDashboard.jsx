@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star } from 'lucide-react';
-import { profileAPI, courseAPI, categoryAPI } from '../services/api';
+import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply } from 'lucide-react';
+import { profileAPI, courseAPI, categoryAPI, contactAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 
@@ -35,6 +35,12 @@ const SuperAdminDashboard = () => {
   const [categoryForm, setCategoryForm] = useState({
     name: ''
   });
+
+  const [contacts, setContacts] = useState([]);
+  const [showContactDetail, setShowContactDetail] = useState(false);
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [showReplyModal, setShowReplyModal] = useState(false);
+  const [replyMessage, setReplyMessage] = useState('');
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -131,6 +137,7 @@ const SuperAdminDashboard = () => {
     fetchInstructors();
     fetchCourses();
     fetchCategories();
+    fetchContacts();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -251,6 +258,15 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const fetchContacts = async () => {
+    try {
+      const response = await contactAPI.getContacts();
+      setContacts(response.data.contacts);
+    } catch (error) {
+      console.error('Error fetching contacts:', error);
+    }
+  };
+
   const handleCategoryFormChange = (field, value) => {
     setCategoryForm(prev => ({ ...prev, [field]: value }));
   };
@@ -305,6 +321,29 @@ const SuperAdminDashboard = () => {
       showNotification('success', 'Category Deleted!', 'Category has been removed successfully');
     } catch (error) {
       showNotification('error', 'Error', error.response?.data?.message || 'Failed to delete category');
+    }
+  };
+
+  const handleReplyContact = async () => {
+    try {
+      setLoading(true);
+      const response = await contactAPI.replyContact(selectedContact._id, { replyMessage });
+      
+      // Update the contact with the new reply
+      setContacts(prev => prev.map(contact => 
+        contact._id === selectedContact._id 
+          ? response.data.contact
+          : contact
+      ));
+      
+      setShowReplyModal(false);
+      setReplyMessage('');
+      setSelectedContact(null);
+      showNotification('success', 'Reply Sent!', 'Your reply has been sent successfully');
+    } catch (error) {
+      showNotification('error', 'Error', error.response?.data?.message || 'Failed to send reply');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -371,6 +410,7 @@ const SuperAdminDashboard = () => {
   const tabs = [
     { id: 'overview', name: 'System Overview', icon: Crown },
     { id: 'courses', name: 'Course Management', icon: BookOpen },
+    { id: 'contacts', name: 'Contact Messages', icon: MessageSquare },
     { id: 'admins', name: 'Admin Management', icon: Shield },
     { id: 'users', name: 'All Users', icon: Users },
     { id: 'system', name: 'System Control', icon: Server },
@@ -1736,11 +1776,226 @@ const SuperAdminDashboard = () => {
     </div>
   );
 
+  const renderContacts = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Contact Messages</h2>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            {contacts.filter(c => c.status === 'pending').length} pending messages
+          </span>
+        </div>
+      </div>
+      
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Contact</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Subject</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {contacts.map((contact) => (
+                <tr key={contact._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">{contact.name}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{contact.email}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900 dark:text-white max-w-xs truncate">{contact.subject}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      contact.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                      contact.status === 'replied' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                      'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
+                    }`}>
+                      {contact.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {new Date(contact.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => {
+                          setSelectedContact(contact);
+                          setShowContactDetail(true);
+                        }}
+                        className="text-blue-600 hover:text-blue-800 p-1 rounded"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      {contact.status === 'pending' && (
+                        <button 
+                          onClick={() => {
+                            setSelectedContact(contact);
+                            setShowReplyModal(true);
+                          }}
+                          className="text-green-600 hover:text-green-800 p-1 rounded"
+                        >
+                          <Reply className="h-4 w-4" />
+                        </button>
+                      )}
+                      {contact.status === 'replied' && (
+                        <button 
+                          onClick={() => {
+                            setSelectedContact(contact);
+                            setShowReplyModal(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 p-1 rounded"
+                          title="Reply again"
+                        >
+                          <Reply className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Contact Detail Modal */}
+      {showContactDetail && selectedContact && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Contact Message Details</h3>
+                <button
+                  onClick={() => setShowContactDetail(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
+                    <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{selectedContact.name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
+                    <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{selectedContact.email}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Subject</label>
+                  <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{selectedContact.subject}</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Message</label>
+                  <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg whitespace-pre-wrap">{selectedContact.message}</p>
+                </div>
+                
+                {selectedContact.replies && selectedContact.replies.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Replies ({selectedContact.replies.length})</label>
+                    <div className="space-y-3">
+                      {selectedContact.replies.map((reply, index) => (
+                        <div key={index} className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                          <p className="text-gray-900 dark:text-white whitespace-pre-wrap">{reply.message}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            Reply #{index + 1} • {new Date(reply.repliedAt).toLocaleString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reply Modal */}
+      {showReplyModal && selectedContact && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Reply to {selectedContact.name}</h3>
+                <button
+                  onClick={() => {
+                    setShowReplyModal(false);
+                    setReplyMessage('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Original Message</label>
+                  <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-sm">{selectedContact.message}</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Your Reply</label>
+                  <textarea
+                    rows="6"
+                    value={replyMessage}
+                    onChange={(e) => setReplyMessage(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Type your reply here..."
+                  />
+                </div>
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={handleReplyContact}
+                  disabled={loading || !replyMessage.trim()}
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <Reply className="h-4 w-4" />
+                  )}
+                  {loading ? 'Sending...' : 'Send Reply'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowReplyModal(false);
+                    setReplyMessage('');
+                  }}
+                  className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   const renderContent = () => {
     switch (activeTab) {
       case 'overview': return renderOverview();
       case 'courses': return renderCourses();
       case 'categories': return renderCategories();
+      case 'contacts': return renderContacts();
       case 'admins': return renderAdmins();
       case 'users': return renderUsers();
       case 'system': return renderSystem();

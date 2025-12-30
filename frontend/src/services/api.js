@@ -117,4 +117,16 @@ export const statsAPI = {
   getStats: () => api.get('/stats'),
 };
 
+// Contact API functions
+export const contactAPI = {
+  // Submit contact form
+  submitContact: (contactData) => api.post('/contact', contactData),
+  
+  // Get all contacts (SuperAdmin)
+  getContacts: () => api.get('/contact'),
+  
+  // Reply to contact
+  replyContact: (id, replyData) => api.post(`/contact/${id}/reply`, replyData),
+};
+
 export default api;
