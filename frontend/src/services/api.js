@@ -45,4 +45,64 @@ export const profileAPI = {
   changePassword: (passwordData) => api.put('/profile/change-password', passwordData),
 };
 
+// Course API functions
+export const courseAPI = {
+  // Get all courses
+  getCourses: (params = {}) => api.get('/courses', { params }),
+  
+  // Get instructors
+  getInstructors: () => api.get('/courses/instructors'),
+  
+  // Create course
+  createCourse: (courseData) => {
+    const formData = new FormData();
+    Object.keys(courseData).forEach(key => {
+      if (courseData[key] !== null && courseData[key] !== undefined) {
+        formData.append(key, courseData[key]);
+      }
+    });
+    return api.post('/courses', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  // Get single course
+  getCourse: (id) => api.get(`/courses/${id}`),
+  
+  // Update course
+  updateCourse: (id, courseData) => {
+    const formData = new FormData();
+    Object.keys(courseData).forEach(key => {
+      if (courseData[key] !== null && courseData[key] !== undefined) {
+        formData.append(key, courseData[key]);
+      }
+    });
+    return api.put(`/courses/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  // Delete course
+  deleteCourse: (id) => api.delete(`/courses/${id}`),
+};
+
+// Category API functions
+export const categoryAPI = {
+  // Get all categories
+  getCategories: () => api.get('/categories'),
+  
+  // Create category
+  createCategory: (categoryData) => api.post('/categories', categoryData),
+  
+  // Update category
+  updateCategory: (id, categoryData) => api.put(`/categories/${id}`, categoryData),
+  
+  // Delete category
+  deleteCategory: (id) => api.delete(`/categories/${id}`),
+};
+
 export default api;

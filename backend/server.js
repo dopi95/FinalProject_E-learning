@@ -26,6 +26,12 @@ app.use('/api/auth', require('./routes/auth'));
 // Profile routes
 app.use('/api/profile', require('./routes/profile'));
 
+// Course routes
+app.use('/api/courses', require('./routes/courses'));
+
+// Category routes
+app.use('/api/categories', require('./routes/categories'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

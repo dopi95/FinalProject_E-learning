@@ -1,17 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Star, Users, User } from 'lucide-react';
 import LoginRequiredModal from './LoginRequiredModal';
+import RoleBasedModal from './RoleBasedModal';
+import { getUserData } from '../utils/userUtils';
 
 const Courses = () => {
   const { t } = useTranslation();
   const [starredCourses, setStarredCourses] = useState(new Set());
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const [user, setUser] = useState(null);
 
-  // Check if user is logged in (you can replace this with actual auth check)
-  const isLoggedIn = false; // Replace with actual auth state
+  useEffect(() => {
+    const userData = getUserData();
+    setUser(userData);
+  }, []);
+
+  const isLoggedIn = !!user;
 
   const handleStarLike = (courseId) => {
     if (!isLoggedIn) {
@@ -35,7 +43,14 @@ const Courses = () => {
       setShowLoginModal(true);
       return;
     }
-    // Handle enrollment logic here
+    
+    if (user.role !== 'student') {
+      setShowRoleModal(true);
+      return;
+    }
+    
+    // Handle enrollment logic for students
+    console.log('Enrolling student in course...');
   };
 
   const courses = [
@@ -157,6 +172,13 @@ const Courses = () => {
         isVisible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
         message={modalMessage}
+      />
+      
+      {/* Role Based Modal */}
+      <RoleBasedModal
+        isVisible={showRoleModal}
+        onClose={() => setShowRoleModal(false)}
+        userRole={user?.role}
       />
     </section>
   );

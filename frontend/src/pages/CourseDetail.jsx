@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LoginRequiredModal from '../components/LoginRequiredModal';
+import RoleBasedModal from '../components/RoleBasedModal';
 import { ArrowLeft, Star, Users, Clock, PlayCircle, CheckCircle, Globe, Award, User } from 'lucide-react';
+import { getUserData } from '../utils/userUtils';
 
 const CourseDetail = () => {
   const { id } = useParams();
@@ -12,10 +14,16 @@ const CourseDetail = () => {
   const navigate = useNavigate();
   const [starredCourses, setStarredCourses] = useState(new Set());
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const [user, setUser] = useState(null);
 
-  // Check if user is logged in (you can replace this with actual auth check)
-  const isLoggedIn = false; // Replace with actual auth state
+  useEffect(() => {
+    const userData = getUserData();
+    setUser(userData);
+  }, []);
+
+  const isLoggedIn = !!user;
 
   const handleStarLike = (courseId) => {
     if (!isLoggedIn) {
@@ -39,7 +47,14 @@ const CourseDetail = () => {
       setShowLoginModal(true);
       return;
     }
-    // Handle enrollment logic here
+    
+    if (user.role !== 'student') {
+      setShowRoleModal(true);
+      return;
+    }
+    
+    // Handle enrollment logic for students
+    console.log('Enrolling student in course...');
   };
 
   const handleBackToCourses = () => {
@@ -237,6 +252,13 @@ const CourseDetail = () => {
         isVisible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
         message={modalMessage}
+      />
+      
+      {/* Role Based Modal */}
+      <RoleBasedModal
+        isVisible={showRoleModal}
+        onClose={() => setShowRoleModal(false)}
+        userRole={user?.role}
       />
 
       <Footer />
