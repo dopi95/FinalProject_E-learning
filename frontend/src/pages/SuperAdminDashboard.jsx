@@ -389,7 +389,7 @@ const SuperAdminDashboard = () => {
         </div>
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Super Admin Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400">Welcome back{user ? `, ${user.name.split(' ')[0]}` : ''}, manage the entire platform</p>
+          <p className="text-gray-600 dark:text-gray-400">Welcome back{user ? `, ${user.name}` : ''}, manage the entire platform</p>
         </div>
       </div>
       

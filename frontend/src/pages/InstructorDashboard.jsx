@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, Home, User, Camera, X, Eye, EyeOff } from 'lucide-react';
-import { profileAPI } from '../services/api';
+import { profileAPI, courseAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 
@@ -9,6 +9,8 @@ const InstructorDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [courses, setCourses] = useState([]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -102,7 +104,17 @@ const InstructorDashboard = () => {
       }
     }
     fetchUserProfile();
+    fetchInstructorCourses();
   }, []);
+
+  const fetchInstructorCourses = async () => {
+    try {
+      const response = await courseAPI.getInstructorCourses();
+      setCourses(response.data.courses);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    }
+  };
 
   const fetchUserProfile = async () => {
     try {
@@ -196,7 +208,7 @@ const InstructorDashboard = () => {
         </div>
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Instructor Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400">Welcome back{user ? `, ${user.name.split(' ')[0]}` : ''}, manage your courses and students</p>
+          <p className="text-gray-600 dark:text-gray-400">Welcome back{user ? `, ${user.name}` : ''}, manage your courses and students</p>
         </div>
       </div>
       
@@ -206,7 +218,7 @@ const InstructorDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">My Courses</p>
-              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">8</p>
+              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{courses.length}</p>
               <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Active courses</p>
             </div>
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl">
@@ -219,7 +231,7 @@ const InstructorDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Students</p>
-              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">245</p>
+              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{courses.reduce((sum, course) => sum + (course.students?.length || 0), 0)}</p>
               <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Enrolled students</p>
             </div>
             <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-xl">
@@ -375,20 +387,37 @@ const InstructorDashboard = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">My Courses</h2>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm lg:text-base">
-          Create Course
-        </button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-        {[1, 2, 3, 4, 5, 6, 7, 8].map((course) => (
-          <div key={course} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 lg:p-6">
-            <div className="h-24 lg:h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mb-4"></div>
-            <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white mb-2">Course {course}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{30 + course} Students Enrolled</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Next class: Dec {20 + course}, 2024</p>
+        {courses.map((course) => (
+          <div key={course._id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 lg:p-6">
+            <div className="h-24 lg:h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mb-4 overflow-hidden">
+              {course.image ? (
+                <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600"></div>
+              )}
+            </div>
+            <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white mb-2">{course.title}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{course.students?.length || 0} Students Enrolled</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4"></p>
             <div className="flex space-x-2">
-              <button className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 text-sm">Manage</button>
-              <button className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
+              <button 
+                onClick={() => {
+                  setSelectedCourse(course);
+                  setActiveTab('materials');
+                }}
+                className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 text-sm"
+              >
+                Manage
+              </button>
+              <button 
+                onClick={() => {
+                  setSelectedCourse(course);
+                  setActiveTab('course-videos');
+                }}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
                 <Video className="h-4 w-4" />
               </button>
             </div>
@@ -401,7 +430,19 @@ const InstructorDashboard = () => {
   const renderMaterials = () => (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Learning Materials</h2>
+        <div className="flex items-center gap-4">
+          {selectedCourse && (
+            <button 
+              onClick={() => setActiveTab('courses')}
+              className="text-blue-600 hover:text-blue-800"
+            >
+              ← Back to Courses
+            </button>
+          )}
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+            {selectedCourse ? `${selectedCourse.title} Materials` : 'Learning Materials'}
+          </h2>
+        </div>
         <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm lg:text-base">
           <Upload className="h-4 w-4 mr-2" />
           Upload Material
@@ -425,7 +466,9 @@ const InstructorDashboard = () => {
                 </div>
                 <div>
                   <h3 className="text-base lg:text-lg font-medium text-gray-900 dark:text-white">Material {material}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Mathematics Course • Uploaded Dec {material}, 2024</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {selectedCourse ? selectedCourse.title : 'Mathematics Course'} • Uploaded Dec {material}, 2024
+                  </p>
                 </div>
               </div>
               <div className="flex space-x-2">
@@ -956,6 +999,47 @@ const InstructorDashboard = () => {
     </div>
   );
 
+  const renderCourseVideos = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => setActiveTab('courses')}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            ← Back to Courses
+          </button>
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+            {selectedCourse ? `${selectedCourse.title} Videos` : 'Course Videos'}
+          </h2>
+        </div>
+        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">
+          <Video className="h-4 w-4" />
+          Add Video
+        </button>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3, 4].map((video) => (
+          <div key={video} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+            <div className="h-32 bg-gray-300 rounded-lg mb-3 flex items-center justify-center">
+              <Video className="h-8 w-8 text-gray-600" />
+            </div>
+            <h3 className="font-semibold mb-2">Video {video}</h3>
+            <p className="text-sm text-gray-600 mb-3">Duration: {5 + video} minutes</p>
+            <div className="flex space-x-2">
+              <button className="flex-1 bg-blue-600 text-white py-1 px-2 rounded text-sm hover:bg-blue-700">
+                Play
+              </button>
+              <button className="px-2 py-1 border rounded text-sm hover:bg-gray-50">
+                Edit
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
   const renderAnalytics = () => (
     <div className="space-y-6">
       <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Analytics & Reports</h2>
@@ -991,6 +1075,7 @@ const InstructorDashboard = () => {
     switch (activeTab) {
       case 'overview': return renderOverview();
       case 'courses': return renderCourses();
+      case 'course-videos': return renderCourseVideos();
       case 'materials': return renderMaterials();
       case 'assignments': return renderAssignments();
       case 'quizzes': return renderQuizzes();

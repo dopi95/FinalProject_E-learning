@@ -57,6 +57,23 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get instructor's assigned courses
+router.get('/instructor/courses', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'instructor') {
+      return res.status(403).json({ message: 'Access denied. Instructors only.' });
+    }
+
+    const courses = await Course.find({ instructor: req.user.id })
+      .populate('instructor', 'name email')
+      .populate('students', 'name email')
+      .sort({ createdAt: -1 });
+    
+    res.json({ courses });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 // Get instructors
 router.get('/instructors', auth, async (req, res) => {
   try {
