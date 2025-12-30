@@ -17,11 +17,13 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
 import InstructorDashboard from './pages/InstructorDashboard.jsx';
 import StudentDashboard from './pages/StudentDashboard.jsx';
 import CourseDetail from './pages/CourseDetail.jsx';
+import LeaveReview from './pages/LeaveReview.jsx';
 import './i18n';
 
 const AppContent = () => {
   const location = useLocation();
   const isDashboardPage = location.pathname.includes('-dashboard');
+  const isLeaveReviewPage = location.pathname === '/leave-review';
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -40,8 +42,9 @@ const AppContent = () => {
         <Route path="/instructor-dashboard" element={<InstructorDashboard />} />
         <Route path="/student-dashboard" element={<StudentDashboard />} />
         <Route path="/course/:id" element={<CourseDetail />} />
+        <Route path="/leave-review" element={<LeaveReview />} />
       </Routes>
-      {!isDashboardPage && <Chatbot />}
+      {!isDashboardPage && !isLeaveReviewPage && <Chatbot />}
     </div>
   );
 };

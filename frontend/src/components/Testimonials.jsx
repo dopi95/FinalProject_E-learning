@@ -1,65 +1,93 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Star, Quote, User } from 'lucide-react';
+import { reviewAPI } from '../services/api';
 
 const Testimonials = () => {
   const { t } = useTranslation();
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const testimonials = [
+  const fallbackTestimonials = [
     {
       id: 1,
-      name: t('testimonials.abebe'),
-      role: t('testimonials.csStudent'),
+      user: { name: t('testimonials.abebe'), role: 'student' },
       rating: 5,
-      text: t('testimonials.student1Text')
+      message: t('testimonials.student1Text')
     },
     {
       id: 2,
-      name: t('testimonials.meron'),
-      role: t('testimonials.seInstructor'),
+      user: { name: t('testimonials.meron'), role: 'instructor' },
       rating: 5,
-      text: t('testimonials.instructor1Text')
+      message: t('testimonials.instructor1Text')
     },
     {
       id: 3,
-      name: t('testimonials.hanan'),
-      role: t('testimonials.baStudent'),
+      user: { name: t('testimonials.hanan'), role: 'student' },
       rating: 5,
-      text: t('testimonials.student2Text')
-    },
-    {
-      id: 4,
-      name: t('testimonials.abebe'),
-      role: t('testimonials.csStudent'),
-      rating: 5,
-      text: t('testimonials.student1Text')
-    },
-    {
-      id: 5,
-      name: t('testimonials.meron'),
-      role: t('testimonials.seInstructor'),
-      rating: 5,
-      text: t('testimonials.instructor1Text')
-    },
-    {
-      id: 6,
-      name: t('testimonials.hanan'),
-      role: t('testimonials.baStudent'),
-      rating: 5,
-      text: t('testimonials.student2Text')
+      message: t('testimonials.student2Text')
     }
   ];
 
-  const mobileSlides = testimonials.length; // Mobile: 1 per slide
+  useEffect(() => {
+    fetchApprovedReviews();
+  }, []);
+
+  const fetchApprovedReviews = async () => {
+    try {
+      const response = await reviewAPI.getApprovedReviews();
+      setReviews(response.data.reviews || []);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      setReviews([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testimonials = reviews;
+  const mobileSlides = testimonials.length;
 
   // Auto-slide functionality
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % (testimonials.length - 2));
-    }, 5000);
-    return () => clearInterval(interval);
+    if (testimonials.length > 3) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % (testimonials.length - 2));
+      }, 5000);
+      return () => clearInterval(interval);
+    }
   }, [testimonials.length]);
+
+  if (loading) {
+    return (
+      <section className="py-20 bg-gray-50 dark:bg-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading testimonials...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (testimonials.length === 0) {
+    return (
+      <section className="py-20 bg-gray-50 dark:bg-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              {t('testimonials.title')}
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+              No reviews available yet. Be the first to share your experience!
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const goToSlide = (index) => {
     setCurrentSlide(index);
@@ -94,7 +122,7 @@ const Testimonials = () => {
           
           {/* Desktop Dots */}
           <div className="flex justify-center mt-8 space-x-2">
-            {Array.from({ length: testimonials.length - 2 }).map((_, index) => (
+            {testimonials.length > 3 && Array.from({ length: Math.max(1, testimonials.length - 2) }).map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
@@ -145,6 +173,14 @@ const Testimonials = () => {
 
 // Testimonial Card Component
 const TestimonialCard = ({ testimonial }) => {
+  const getRoleDisplay = (role) => {
+    return role === 'instructor' ? 'Instructor' : 'Student';
+  };
+
+  const getInitials = (name) => {
+    return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
+  };
+
   return (
     <div className="group bg-white dark:bg-gray-900 rounded-3xl p-8 transition-all duration-500 transform hover:-translate-y-3 border border-gray-100 dark:border-gray-700 h-full">
       <div className="flex items-center mb-6">
@@ -155,19 +191,25 @@ const TestimonialCard = ({ testimonial }) => {
           ))}
         </div>
       </div>
-      <p className="text-gray-600 dark:text-gray-300 mb-8 italic leading-relaxed text-lg min-h-[120px] flex items-start">
-        "{testimonial.text}"
+      <p className="text-gray-600 dark:text-gray-300 mb-8 italic leading-relaxed text-lg break-words word-wrap">
+        "{testimonial.message || testimonial.text}"
       </p>
       <div className="flex items-center mt-auto">
-        <div className="w-14 h-14 rounded-full mr-4 bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-          <User className="h-7 w-7 text-white" />
+        <div className="w-14 h-14 rounded-full mr-4 bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform overflow-hidden">
+          {testimonial.user?.profileImage ? (
+            <img src={testimonial.user.profileImage} alt={testimonial.user.name || testimonial.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-white font-bold text-lg">
+              {getInitials(testimonial.user?.name || testimonial.name)}
+            </span>
+          )}
         </div>
         <div>
           <h4 className="font-bold text-gray-900 dark:text-white text-lg">
-            {testimonial.name}
+            {testimonial.user?.name || testimonial.name}
           </h4>
           <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-            {testimonial.role}
+            {getRoleDisplay(testimonial.user?.role || testimonial.role)}
           </p>
         </div>
       </div>

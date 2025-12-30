@@ -38,6 +38,9 @@ app.use('/api/stats', require('./routes/stats'));
 // Contact routes
 app.use('/api/contact', require('./routes/contact'));
 
+// Review routes
+app.use('/api/reviews', require('./routes/reviews'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

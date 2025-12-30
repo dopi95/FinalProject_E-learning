@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff } from 'lucide-react';
+import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star } from 'lucide-react';
 import { profileAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
@@ -195,6 +195,7 @@ const StudentDashboard = () => {
     { id: 'schedule', name: 'Schedule', icon: Calendar },
     { id: 'progress', name: 'Progress', icon: TrendingUp },
     { id: 'certificates', name: 'Certificates', icon: Award },
+    { id: 'review', name: 'Leave Review', icon: Star },
     { id: 'profile', name: 'My Profile', icon: User }
   ];
 
@@ -803,6 +804,7 @@ const StudentDashboard = () => {
       case 'schedule': return renderSchedule();
       case 'progress': return renderProgress();
       case 'certificates': return renderCertificates();
+      case 'review': return <div className="p-4"><iframe src="/leave-review" className="w-full h-screen border-0 rounded-lg" title="Leave Review"></iframe></div>;
       case 'profile': return renderProfile();
       default: return renderOverview();
     }

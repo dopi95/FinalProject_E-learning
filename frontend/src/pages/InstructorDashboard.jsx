@@ -196,6 +196,7 @@ const InstructorDashboard = () => {
     { id: 'schedule', name: 'Schedule', icon: Calendar },
     { id: 'students', name: 'Students', icon: Users },
     { id: 'analytics', name: 'Analytics', icon: BarChart3 },
+    { id: 'review', name: 'Leave Review', icon: Star },
     { id: 'profile', name: 'My Profile', icon: User }
   ];
 
@@ -1088,6 +1089,7 @@ const InstructorDashboard = () => {
       case 'schedule': return renderSchedule();
       case 'students': return renderStudents();
       case 'analytics': return renderAnalytics();
+      case 'review': return <div className="p-4"><iframe src="/leave-review" className="w-full h-screen border-0 rounded-lg" title="Leave Review"></iframe></div>;
       case 'profile': return renderProfile();
       default: return renderOverview();
     }

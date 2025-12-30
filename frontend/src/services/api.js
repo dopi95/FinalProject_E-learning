@@ -129,4 +129,28 @@ export const contactAPI = {
   replyContact: (id, replyData) => api.post(`/contact/${id}/reply`, replyData),
 };
 
+// Review API functions
+export const reviewAPI = {
+  // Submit review
+  submitReview: (reviewData) => api.post('/reviews', reviewData),
+  
+  // Get user's own review
+  getMyReview: () => api.get('/reviews/my-review'),
+  
+  // Delete user's own review
+  deleteMyReview: () => api.delete('/reviews/my-review'),
+  
+  // Get all reviews (SuperAdmin)
+  getAllReviews: () => api.get('/reviews'),
+  
+  // Get approved reviews for public display
+  getApprovedReviews: () => api.get('/reviews/approved'),
+  
+  // Update review status (SuperAdmin)
+  updateReviewStatus: (reviewId, status) => api.patch(`/reviews/${reviewId}/status`, { status }),
+  
+  // Delete review (SuperAdmin)
+  deleteReview: (reviewId) => api.delete(`/reviews/${reviewId}`),
+};
+
 export default api;

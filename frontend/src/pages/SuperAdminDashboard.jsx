@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply } from 'lucide-react';
-import { profileAPI, courseAPI, categoryAPI, contactAPI } from '../services/api';
+import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 
@@ -41,6 +41,10 @@ const SuperAdminDashboard = () => {
   const [selectedContact, setSelectedContact] = useState(null);
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [replyMessage, setReplyMessage] = useState('');
+
+  const [reviews, setReviews] = useState([]);
+  const [showReviewDetail, setShowReviewDetail] = useState(false);
+  const [selectedReview, setSelectedReview] = useState(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -138,6 +142,7 @@ const SuperAdminDashboard = () => {
     fetchCourses();
     fetchCategories();
     fetchContacts();
+    fetchReviews();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -267,6 +272,15 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const fetchReviews = async () => {
+    try {
+      const response = await reviewAPI.getAllReviews();
+      setReviews(response.data.reviews);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    }
+  };
+
   const handleCategoryFormChange = (field, value) => {
     setCategoryForm(prev => ({ ...prev, [field]: value }));
   };
@@ -347,6 +361,27 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const handleReviewAction = async (reviewId, action) => {
+    try {
+      setLoading(true);
+      if (action === 'delete') {
+        await reviewAPI.deleteReview(reviewId);
+        setReviews(prev => prev.filter(review => review._id !== reviewId));
+        showNotification('success', 'Review Deleted!', 'Review has been removed successfully');
+      } else {
+        const response = await reviewAPI.updateReviewStatus(reviewId, action);
+        setReviews(prev => prev.map(review => 
+          review._id === reviewId ? response.data.review : review
+        ));
+        showNotification('success', `Review ${action.charAt(0).toUpperCase() + action.slice(1)}!`, `Review has been ${action} successfully`);
+      }
+    } catch (error) {
+      showNotification('error', 'Error', error.response?.data?.message || `Failed to ${action} review`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchCourses();
   }, [searchTerm, selectedCategory]);
@@ -411,6 +446,7 @@ const SuperAdminDashboard = () => {
     { id: 'overview', name: 'System Overview', icon: Crown },
     { id: 'courses', name: 'Course Management', icon: BookOpen },
     { id: 'contacts', name: 'Contact Messages', icon: MessageSquare },
+    { id: 'reviews', name: 'Review Management', icon: Star },
     { id: 'admins', name: 'Admin Management', icon: Shield },
     { id: 'users', name: 'All Users', icon: Users },
     { id: 'system', name: 'System Control', icon: Server },
@@ -1990,12 +2026,267 @@ const SuperAdminDashboard = () => {
     </div>
   );
 
+  const renderReviews = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Review Management</h2>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            {reviews.filter(r => r.status === 'pending').length} pending reviews
+          </span>
+        </div>
+      </div>
+      
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">User</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Rating</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Message</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {reviews.map((review) => (
+                <tr key={review._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-3 overflow-hidden">
+                        {review.user.profileImage ? (
+                          <img src={review.user.profileImage} alt={review.user.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                            {review.user.name.charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">{review.user.name}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 capitalize">{review.user.role}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`h-4 w-4 ${
+                            star <= review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                          }`}
+                        />
+                      ))}
+                      <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">{review.rating}/5</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900 dark:text-white max-w-xs">
+                      {review.message.length > 20 ? `${review.message.substring(0, 20)}...` : review.message}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      review.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                      review.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                      'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                    }`}>
+                      {review.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {new Date(review.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => {
+                          setSelectedReview(review);
+                          setShowReviewDetail(true);
+                        }}
+                        className="text-blue-600 hover:text-blue-800 p-1 rounded"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      {review.status !== 'approved' && (
+                        <button 
+                          onClick={() => handleReviewAction(review._id, 'approved')}
+                          className="text-green-600 hover:text-green-800 p-1 rounded"
+                          title="Approve"
+                        >
+                          <ThumbsUp className="h-4 w-4" />
+                        </button>
+                      )}
+                      {review.status !== 'rejected' && (
+                        <button 
+                          onClick={() => handleReviewAction(review._id, 'rejected')}
+                          className="text-red-600 hover:text-red-800 p-1 rounded"
+                          title="Reject"
+                        >
+                          <ThumbsDown className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => handleReviewAction(review._id, 'delete')}
+                        className="text-red-600 hover:text-red-800 p-1 rounded"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Review Detail Modal */}
+      {showReviewDetail && selectedReview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Review Details</h3>
+                <button
+                  onClick={() => setShowReviewDetail(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center mb-4">
+                  <div className="h-16 w-16 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-4 overflow-hidden">
+                    {selectedReview.user.profileImage ? (
+                      <img src={selectedReview.user.profileImage} alt={selectedReview.user.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-lg font-medium text-gray-600 dark:text-gray-300">
+                        {selectedReview.user.name.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{selectedReview.user.name}</h4>
+                    <p className="text-gray-600 dark:text-gray-400 capitalize">{selectedReview.user.role}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rating</label>
+                  <div className="flex items-center">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-6 w-6 ${
+                          star <= selectedReview.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                        }`}
+                      />
+                    ))}
+                    <span className="ml-2 text-gray-600 dark:text-gray-400">{selectedReview.rating} out of 5 stars</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Review Message</label>
+                  <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-4 rounded-lg break-words">{selectedReview.message}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                    <span className={`px-3 py-1 text-sm rounded-full ${
+                      selectedReview.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                      selectedReview.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                      'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                    }`}>
+                      {selectedReview.status}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Submitted</label>
+                    <p className="text-gray-900 dark:text-white">{new Date(selectedReview.createdAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                
+                {selectedReview.reviewedAt && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Reviewed</label>
+                    <p className="text-gray-900 dark:text-white">{new Date(selectedReview.reviewedAt).toLocaleDateString()}</p>
+                  </div>
+                )}
+              </div>
+              
+              {selectedReview.status !== 'approved' && selectedReview.status !== 'rejected' ? (
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      handleReviewAction(selectedReview._id, 'approved');
+                      setShowReviewDetail(false);
+                    }}
+                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
+                  >
+                    <ThumbsUp className="h-4 w-4" />
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleReviewAction(selectedReview._id, 'rejected');
+                      setShowReviewDetail(false);
+                    }}
+                    className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 flex items-center justify-center gap-2"
+                  >
+                    <ThumbsDown className="h-4 w-4" />
+                    Reject
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-3 mt-6">
+                  {selectedReview.status === 'approved' && (
+                    <button
+                      onClick={() => {
+                        handleReviewAction(selectedReview._id, 'rejected');
+                        setShowReviewDetail(false);
+                      }}
+                      className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 flex items-center justify-center gap-2"
+                    >
+                      <ThumbsDown className="h-4 w-4" />
+                      Reject
+                    </button>
+                  )}
+                  {selectedReview.status === 'rejected' && (
+                    <button
+                      onClick={() => {
+                        handleReviewAction(selectedReview._id, 'approved');
+                        setShowReviewDetail(false);
+                      }}
+                      className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
+                    >
+                      <ThumbsUp className="h-4 w-4" />
+                      Approve
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   const renderContent = () => {
     switch (activeTab) {
       case 'overview': return renderOverview();
       case 'courses': return renderCourses();
       case 'categories': return renderCategories();
       case 'contacts': return renderContacts();
+      case 'reviews': return renderReviews();
       case 'admins': return renderAdmins();
       case 'users': return renderUsers();
       case 'system': return renderSystem();
