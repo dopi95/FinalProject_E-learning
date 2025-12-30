@@ -39,7 +39,8 @@ router.get('/', async (req, res) => {
     }
     
     const courses = await Course.find(query)
-      .populate('instructor', 'name email')
+      .populate('instructor', 'name email profileImage')
+      .populate('stars', 'name profileImage')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -65,8 +66,9 @@ router.get('/instructor/courses', auth, async (req, res) => {
     }
 
     const courses = await Course.find({ instructor: req.user.id })
-      .populate('instructor', 'name email')
+      .populate('instructor', 'name email profileImage')
       .populate('students', 'name email')
+      .populate('stars', 'name profileImage')
       .sort({ createdAt: -1 });
     
     res.json({ courses });
@@ -123,7 +125,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
     await course.save();
     
     const populatedCourse = await Course.findById(course._id)
-      .populate('instructor', 'name email');
+      .populate('instructor', 'name email profileImage');
     
     res.status(201).json({ course: populatedCourse });
   } catch (error) {
@@ -135,8 +137,9 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const course = await Course.findById(req.params.id)
-      .populate('instructor', 'name email')
-      .populate('students', 'name email');
+      .populate('instructor', 'name email profileImage')
+      .populate('students', 'name email')
+      .populate('stars', 'name profileImage');
     
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
@@ -181,7 +184,7 @@ router.put('/:id', auth, upload.single('image'), async (req, res) => {
       req.params.id,
       updateData,
       { new: true, runValidators: true }
-    ).populate('instructor', 'name email');
+    ).populate('instructor', 'name email profileImage');
     
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
@@ -211,6 +214,37 @@ router.delete('/:id', auth, async (req, res) => {
     }
     
     res.json({ message: 'Course deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Star/Unstar course
+router.post('/:id/star', auth, async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+    
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+    
+    const isStarred = course.stars.includes(req.user.id);
+    
+    if (isStarred) {
+      // Unstar
+      course.stars = course.stars.filter(userId => userId.toString() !== req.user.id);
+    } else {
+      // Star
+      course.stars.push(req.user.id);
+    }
+    
+    await course.save();
+    
+    res.json({ 
+      message: isStarred ? 'Course unstarred' : 'Course starred',
+      isStarred: !isStarred,
+      starCount: course.stars.length
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

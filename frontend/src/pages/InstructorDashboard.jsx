@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, Home, User, Camera, X, Eye, EyeOff } from 'lucide-react';
+import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, Home, User, Camera, X, Eye, EyeOff, Star } from 'lucide-react';
 import { profileAPI, courseAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
@@ -399,7 +399,13 @@ const InstructorDashboard = () => {
               )}
             </div>
             <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white mb-2">{course.title}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{course.students?.length || 0} Students Enrolled</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400">{course.students?.length || 0} Students Enrolled</p>
+              <div className="flex items-center gap-1 text-yellow-500">
+                <Star className="h-4 w-4" />
+                <span className="text-sm font-medium">{course.stars?.length || 0}</span>
+              </div>
+            </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4"></p>
             <div className="flex space-x-2">
               <button 

@@ -38,6 +38,10 @@ const courseSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  stars: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   isActive: {
     type: Boolean,
     default: true
@@ -48,6 +52,10 @@ const courseSchema = new mongoose.Schema({
 
 courseSchema.virtual('studentCount').get(function() {
   return this.students.length;
+});
+
+courseSchema.virtual('starCount').get(function() {
+  return this.stars.length;
 });
 
 courseSchema.set('toJSON', { virtuals: true });

@@ -91,6 +91,9 @@ export const courseAPI = {
   
   // Delete course
   deleteCourse: (id) => api.delete(`/courses/${id}`),
+  
+  // Star/Unstar course
+  starCourse: (id) => api.post(`/courses/${id}/star`),
 };
 
 // Category API functions
