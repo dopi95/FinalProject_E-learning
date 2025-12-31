@@ -119,7 +119,7 @@ const CourseDetail = () => {
     
     if (isEnrolled) {
       // Already enrolled, go to dashboard
-      navigate('/student-dashboard');
+      navigate('/student-dashboard?tab=courses');
       return;
     }
     

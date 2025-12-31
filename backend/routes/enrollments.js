@@ -42,4 +42,51 @@ router.get('/my-courses', auth, async (req, res) => {
   }
 });
 
+// Check enrollment status for a specific course
+router.get('/check/:courseId', auth, async (req, res) => {
+  try {
+    const enrollment = await Enrollment.findOne({
+      user: req.user.id,
+      course: req.params.courseId,
+      status: 'active'
+    });
+
+    res.json({
+      success: true,
+      data: {
+        isEnrolled: !!enrollment,
+        enrollment: enrollment || null
+      }
+    });
+  } catch (error) {
+    console.error('Check enrollment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check enrollment status'
+    });
+  }
+});
+
+// Get user enrollments
+router.get('/my-enrollments', auth, async (req, res) => {
+  try {
+    const enrollments = await Enrollment.find({ 
+      user: req.user.id 
+    })
+    .populate('course')
+    .sort({ enrollmentDate: -1 });
+
+    res.json({
+      success: true,
+      data: enrollments
+    });
+  } catch (error) {
+    console.error('Get enrollments error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch enrollments'
+    });
+  }
+});
+
 module.exports = router;

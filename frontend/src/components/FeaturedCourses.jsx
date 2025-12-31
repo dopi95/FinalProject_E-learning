@@ -27,8 +27,8 @@ const FeaturedCourses = () => {
 
   const checkEnrollments = async () => {
     try {
-      const response = await enrollmentAPI.getMyEnrollments();
-      const enrolled = new Set(response.data.data.map(e => e.course._id));
+      const response = await enrollmentAPI.getMyCourses();
+      const enrolled = new Set(response.data.courses.map(course => course._id));
       setEnrolledCourses(enrolled);
     } catch (error) {
       console.error('Error checking enrollments:', error);
@@ -81,7 +81,7 @@ const FeaturedCourses = () => {
     }
     
     if (enrolledCourses.has(courseId)) {
-      navigate('/student-dashboard');
+      navigate('/student-dashboard?tab=courses');
       return;
     }
     

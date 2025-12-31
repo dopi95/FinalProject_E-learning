@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star } from 'lucide-react';
 import { profileAPI, enrollmentAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 
 const StudentDashboard = () => {
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
@@ -113,6 +115,12 @@ const StudentDashboard = () => {
   };
 
   useEffect(() => {
+    // Check for tab parameter in URL
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+    
     // Get user data using utility function
     const userData = getUserData();
     if (userData) {
@@ -128,7 +136,7 @@ const StudentDashboard = () => {
     fetchUserProfile();
     // Fetch enrolled courses
     fetchEnrolledCourses();
-  }, []);
+  }, [searchParams]);
 
   const fetchUserProfile = async () => {
     try {
@@ -905,7 +913,7 @@ const StudentDashboard = () => {
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
         <div className="flex items-center gap-6">
           <img 
-            src={`https://images.unsplash.com/photo-${1633356122544 + (selectedCourse?.id || 1)}?w=200&h=150&fit=crop`}
+            src={selectedCourse?.image || `https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&h=150&fit=crop`}
             alt={selectedCourse?.title}
             className="w-32 h-24 object-cover rounded-xl"
           />
@@ -914,7 +922,7 @@ const StudentDashboard = () => {
               {selectedCourse?.title || 'Course Title'}
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-2">
-              Instructor: {selectedCourse?.instructor || 'Dr. John Smith'}
+              Instructor: {selectedCourse?.instructor?.name || 'Instructor'}
             </p>
           </div>
         </div>
