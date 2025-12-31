@@ -6,6 +6,7 @@ import Chatbot from './components/Chatbot';
 import Home from './components/Home.jsx';
 import About from './pages/About.jsx';
 import Contact from './pages/Contact.jsx';
+import AllCourses from './pages/AllCourses.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import VerifyEmail from './pages/VerifyEmail.jsx';
@@ -32,6 +33,7 @@ const AppContent = () => {
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/courses" element={<AllCourses />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/verify-email" element={<VerifyEmail />} />

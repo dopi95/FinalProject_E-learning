@@ -50,6 +50,9 @@ export const courseAPI = {
   // Get all courses
   getCourses: (params = {}) => api.get('/courses', { params }),
   
+  // Get featured courses (top 3)
+  getFeaturedCourses: () => api.get('/courses/featured'),
+  
   // Get instructor's assigned courses
   getInstructorCourses: () => api.get('/courses/instructor/courses'),
   

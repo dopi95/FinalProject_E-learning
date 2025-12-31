@@ -10,23 +10,7 @@ const Footer = () => {
   const navigate = useNavigate();
 
   const scrollToCourses = () => {
-    // If we're on home page, scroll to courses section
-    if (window.location.pathname === '/') {
-      const coursesSection = document.getElementById('courses-section');
-      if (coursesSection) {
-        coursesSection.scrollIntoView({ behavior: 'smooth' });
-      }
-    } else {
-      // Navigate to home page first
-      navigate('/');
-      // Wait for navigation to complete, then scroll
-      setTimeout(() => {
-        const coursesSection = document.getElementById('courses-section');
-        if (coursesSection) {
-          coursesSection.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 300);
-    }
+    navigate('/courses');
   };
 
   const scrollToTop = () => {

@@ -20,6 +20,21 @@ const upload = multer({
   }
 });
 
+// Get top 3 featured courses
+router.get('/featured', async (req, res) => {
+  try {
+    const courses = await Course.find({ isActive: true })
+      .populate('instructor', 'name email profileImage')
+      .populate('stars', 'name profileImage')
+      .sort({ createdAt: -1 })
+      .limit(3);
+    
+    res.json({ courses });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get all courses with search and filter
 router.get('/', async (req, res) => {
   try {
