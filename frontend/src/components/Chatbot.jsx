@@ -9,6 +9,7 @@ const Chatbot = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isInHeroSection, setIsInHeroSection] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -20,13 +21,31 @@ const Chatbot = () => {
       }
     };
 
+    const checkHeroSection = () => {
+      const heroSection = document.querySelector('section');
+      if (heroSection && window.innerWidth < 768) {
+        const rect = heroSection.getBoundingClientRect();
+        setIsInHeroSection(rect.bottom > 0 && rect.top < window.innerHeight);
+      } else {
+        setIsInHeroSection(false);
+      }
+    };
+
     const observer = new MutationObserver(checkMobileMenu);
     const targetNode = document.body;
     observer.observe(targetNode, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
     
     checkMobileMenu();
+    checkHeroSection();
     
-    return () => observer.disconnect();
+    window.addEventListener('scroll', checkHeroSection);
+    window.addEventListener('resize', checkHeroSection);
+    
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', checkHeroSection);
+      window.removeEventListener('resize', checkHeroSection);
+    };
   }, []);
 
   const scrollToBottom = () => {
@@ -113,7 +132,7 @@ const Chatbot = () => {
   return (
     <>
       {/* Floating Chat Button */}
-      {!isMobileMenuOpen && (
+      {!isMobileMenuOpen && !(isInHeroSection && window.innerWidth < 768) && (
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 ${
@@ -129,7 +148,7 @@ const Chatbot = () => {
       )}
 
       {/* Chat Popup */}
-      {!isMobileMenuOpen && (
+      {!isMobileMenuOpen && !(isInHeroSection && window.innerWidth < 768) && (
         <div className={`fixed bottom-20 right-4 sm:bottom-24 sm:right-6 z-40 w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} style={{ maxHeight: 'calc(100vh - 12rem)' }}>
         {/* Chat Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-t-2xl flex-shrink-0 relative z-10">

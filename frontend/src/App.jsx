@@ -24,6 +24,7 @@ const AppContent = () => {
   const location = useLocation();
   const isDashboardPage = location.pathname.includes('-dashboard');
   const isLeaveReviewPage = location.pathname === '/leave-review';
+  const isHomePage = location.pathname === '/';
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -44,7 +45,7 @@ const AppContent = () => {
         <Route path="/course/:id" element={<CourseDetail />} />
         <Route path="/leave-review" element={<LeaveReview />} />
       </Routes>
-      {!isDashboardPage && !isLeaveReviewPage && <Chatbot />}
+      {isHomePage && <Chatbot />}
     </div>
   );
 };

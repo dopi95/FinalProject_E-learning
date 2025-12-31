@@ -75,7 +75,7 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative h-[calc(100vh-80px)] flex items-center justify-center overflow-hidden">
+    <section className="relative h-screen md:h-[calc(100vh-80px)] flex items-center justify-center overflow-hidden">
       {/* Background Image Slider */}
       <div className="absolute inset-0">
         {heroImages.map((image, index) => (
