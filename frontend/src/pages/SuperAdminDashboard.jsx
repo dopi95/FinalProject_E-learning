@@ -813,7 +813,12 @@ const SuperAdminDashboard = () => {
                   {showEditCourse ? 'Edit Course' : 'Add New Course'}
                 </h3>
                 <button
-                  onClick={() => setShowAddCourse(false)}
+                  onClick={() => {
+                    setShowAddCourse(false);
+                    setShowEditCourse(false);
+                    setEditingCourse(null);
+                    setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null });
+                  }}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   <X className="h-6 w-6" />
