@@ -5,9 +5,10 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LoginRequiredModal from '../components/LoginRequiredModal';
 import RoleBasedModal from '../components/RoleBasedModal';
+import Toast from '../components/Toast';
 import { ArrowLeft, Star, Users, Clock, PlayCircle, CheckCircle, Globe, Award, User } from 'lucide-react';
 import { getUserData } from '../utils/userUtils';
-import { courseAPI } from '../services/api';
+import { courseAPI, enrollmentAPI } from '../services/api';
 
 const CourseDetail = () => {
   const { id } = useParams();
@@ -21,12 +22,24 @@ const CourseDetail = () => {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [enrollmentLoading, setEnrollmentLoading] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   useEffect(() => {
     const userData = getUserData();
     setUser(userData);
     fetchCourse();
+    if (userData) {
+      checkEnrollmentStatus();
+    }
   }, [id]);
+
+  useEffect(() => {
+    if (user) {
+      checkEnrollmentStatus();
+    }
+  }, [user]);
 
   const fetchCourse = async () => {
     try {
@@ -39,6 +52,27 @@ const CourseDetail = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const checkEnrollmentStatus = async () => {
+    try {
+      setEnrollmentLoading(true);
+      const response = await enrollmentAPI.checkEnrollment(id);
+      setIsEnrolled(response.data.data.isEnrolled);
+    } catch (error) {
+      console.error('Error checking enrollment:', error);
+      setIsEnrolled(false);
+    } finally {
+      setEnrollmentLoading(false);
+    }
+  };
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+  };
+
+  const hideToast = () => {
+    setToast({ show: false, message: '', type: 'success' });
   };
 
   const isLoggedIn = !!user;
@@ -66,6 +100,12 @@ const CourseDetail = () => {
   };
 
   const handleEnroll = () => {
+    console.log('Enroll button clicked!'); // Debug log
+    console.log('User:', user); // Debug log
+    console.log('Course ID:', course?._id); // Debug log
+    
+    showToast('Processing enrollment...', 'info');
+    
     if (!isLoggedIn) {
       setModalMessage('Please login to enroll in courses');
       setShowLoginModal(true);
@@ -77,8 +117,16 @@ const CourseDetail = () => {
       return;
     }
     
-    // Handle enrollment logic for students
-    console.log('Enrolling student in course...');
+    if (isEnrolled) {
+      // Already enrolled, go to dashboard
+      navigate('/student-dashboard');
+      return;
+    }
+    
+    // Redirect to payment page
+    console.log('Redirecting to payment page...'); // Debug log
+    showToast('Redirecting to payment...', 'success');
+    setTimeout(() => navigate(`/payment/${course._id}`), 1000);
   };
 
   const handleBackToCourses = () => {
@@ -222,10 +270,31 @@ const CourseDetail = () => {
 
                   <button 
                     onClick={handleEnroll}
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-6 rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 mb-6"
+                    disabled={enrollmentLoading}
+                    className={`w-full py-4 px-6 rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 mb-6 transition-all duration-300 ${
+                      isEnrolled 
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                    } ${enrollmentLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    {t('courses.enrollNow')}
+                    {enrollmentLoading ? (
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                        Loading...
+                      </div>
+                    ) : isEnrolled ? (
+                      'Go to Course'
+                    ) : (
+                      t('courses.enrollNow')
+                    )}
                   </button>
+
+                  {isEnrolled && (
+                    <div className="mb-6 flex items-center justify-center text-green-600 dark:text-green-400 text-sm font-medium">
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Registered
+                    </div>
+                  )}
 
                   <div className="space-y-4 mb-6">
                     <h3 className="font-bold text-gray-900 dark:text-white">{t('courses.courseIncludes')}</h3>
@@ -280,6 +349,14 @@ const CourseDetail = () => {
         isVisible={showRoleModal}
         onClose={() => setShowRoleModal(false)}
         userRole={user?.role}
+      />
+
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.show}
+        onClose={hideToast}
       />
 
       <Footer />

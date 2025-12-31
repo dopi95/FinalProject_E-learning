@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Star, Users, User, Search, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Star, Users, User, Search, Filter, X, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LoginRequiredModal from '../components/LoginRequiredModal';
 import RoleBasedModal from '../components/RoleBasedModal';
 import { getUserData } from '../utils/userUtils';
-import { courseAPI, categoryAPI } from '../services/api';
+import { courseAPI, categoryAPI, enrollmentAPI } from '../services/api';
 
 const AllCourses = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +21,7 @@ const AllCourses = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [enrolledCourses, setEnrolledCourses] = useState(new Set());
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
@@ -29,6 +31,9 @@ const AllCourses = () => {
     setUser(userData);
     fetchCourses();
     fetchCategories();
+    if (userData) {
+      checkEnrollments();
+    }
   }, []);
 
   useEffect(() => {
@@ -41,6 +46,16 @@ const AllCourses = () => {
       setCategories(response.data.categories);
     } catch (error) {
       console.error('Error fetching categories:', error);
+    }
+  };
+
+  const checkEnrollments = async () => {
+    try {
+      const response = await enrollmentAPI.getMyEnrollments();
+      const enrolled = new Set(response.data.data.map(e => e.course._id));
+      setEnrolledCourses(enrolled);
+    } catch (error) {
+      console.error('Error checking enrollments:', error);
     }
   };
 
@@ -90,7 +105,7 @@ const AllCourses = () => {
     }
   };
 
-  const handleEnroll = () => {
+  const handleEnroll = (courseId) => {
     if (!user) {
       setModalMessage('Please login to enroll in courses');
       setShowLoginModal(true);
@@ -102,7 +117,12 @@ const AllCourses = () => {
       return;
     }
     
-    console.log('Enrolling student in course...');
+    if (enrolledCourses.has(courseId)) {
+      navigate('/student-dashboard');
+      return;
+    }
+    
+    navigate(`/payment/${courseId}`);
   };
 
   const handlePageChange = (page) => {
@@ -289,10 +309,10 @@ const AllCourses = () => {
                     
                     <div className="flex gap-3">
                       <button 
-                        onClick={handleEnroll}
+                        onClick={() => handleEnroll(course._id)}
                         className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
                       >
-                        Enroll Now
+                        {enrolledCourses.has(course._id) ? 'Go to Course' : 'Enroll Now'}
                       </button>
                       <Link
                         to={`/course/${course._id}`}
@@ -301,6 +321,13 @@ const AllCourses = () => {
                         View Details
                       </Link>
                     </div>
+                    
+                    {enrolledCourses.has(course._id) && (
+                      <div className="mt-3 flex items-center justify-center text-green-600 dark:text-green-400 text-sm font-medium">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Registered
+                      </div>
+                    )}
                   </div>
                 </div>
               ))

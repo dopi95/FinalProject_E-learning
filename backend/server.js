@@ -62,6 +62,12 @@ app.use('/api/contact', require('./routes/contact'));
 // Review routes
 app.use('/api/reviews', require('./routes/reviews'));
 
+// Payment routes
+app.use('/api/payments', require('./routes/payments'));
+
+// Enrollment routes
+app.use('/api/enrollments', require('./routes/enrollments'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

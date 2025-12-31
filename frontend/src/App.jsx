@@ -18,6 +18,8 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
 import InstructorDashboard from './pages/InstructorDashboard.jsx';
 import StudentDashboard from './pages/StudentDashboard.jsx';
 import CourseDetail from './pages/CourseDetail.jsx';
+import PaymentPage from './pages/PaymentPage.jsx';
+import PaymentSuccess from './pages/PaymentSuccess.jsx';
 import LeaveReview from './pages/LeaveReview.jsx';
 import './i18n';
 
@@ -45,6 +47,8 @@ const AppContent = () => {
         <Route path="/instructor-dashboard" element={<InstructorDashboard />} />
         <Route path="/student-dashboard" element={<StudentDashboard />} />
         <Route path="/course/:id" element={<CourseDetail />} />
+        <Route path="/payment/:courseId" element={<PaymentPage />} />
+        <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/leave-review" element={<LeaveReview />} />
       </Routes>
       {isHomePage && <Chatbot />}

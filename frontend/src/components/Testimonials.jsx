@@ -46,7 +46,7 @@ const Testimonials = () => {
     }
   };
 
-  const testimonials = reviews;
+  const testimonials = reviews.length > 0 ? reviews : fallbackTestimonials;
   const mobileSlides = testimonials.length;
 
   // Auto-slide functionality
@@ -124,7 +124,7 @@ const Testimonials = () => {
           <div className="flex justify-center mt-8 space-x-2">
             {testimonials.length > 3 && Array.from({ length: Math.max(1, testimonials.length - 2) }).map((_, index) => (
               <button
-                key={index}
+                key={`desktop-dot-${index}`}
                 onClick={() => setCurrentSlide(index)}
                 className={`w-3 h-3 rounded-full transition-all duration-300 ${
                   currentSlide === index 
@@ -155,7 +155,7 @@ const Testimonials = () => {
           <div className="flex justify-center mt-8 space-x-2 flex-wrap">
             {testimonials.map((_, index) => (
               <button
-                key={index}
+                key={`mobile-dot-${index}`}
                 onClick={() => setCurrentSlide(index)}
                 className={`w-2 h-2 rounded-full transition-all duration-300 mb-2 ${
                   currentSlide === index 
@@ -187,7 +187,7 @@ const TestimonialCard = ({ testimonial }) => {
         <Quote className="h-8 w-8 text-blue-600 mr-3 group-hover:scale-110 transition-transform" />
         <div className="flex">
           {[...Array(testimonial.rating)].map((_, i) => (
-            <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+            <Star key={`star-${testimonial.id}-${i}`} className="h-5 w-5 text-yellow-400 fill-current" />
           ))}
         </div>
       </div>

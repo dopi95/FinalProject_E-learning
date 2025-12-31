@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Star, Users, User, ArrowRight } from 'lucide-react';
+import { Star, Users, User, ArrowRight, CheckCircle } from 'lucide-react';
 import LoginRequiredModal from './LoginRequiredModal';
 import RoleBasedModal from './RoleBasedModal';
-import { courseAPI } from '../services/api';
+import { courseAPI, enrollmentAPI } from '../services/api';
 import { getUserData } from '../utils/userUtils';
 
 const FeaturedCourses = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [enrolledCourses, setEnrolledCourses] = useState(new Set());
   const [user] = useState(getUserData());
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -18,7 +20,20 @@ const FeaturedCourses = () => {
 
   useEffect(() => {
     fetchFeaturedCourses();
+    if (user) {
+      checkEnrollments();
+    }
   }, []);
+
+  const checkEnrollments = async () => {
+    try {
+      const response = await enrollmentAPI.getMyEnrollments();
+      const enrolled = new Set(response.data.data.map(e => e.course._id));
+      setEnrolledCourses(enrolled);
+    } catch (error) {
+      console.error('Error checking enrollments:', error);
+    }
+  };
 
   const fetchFeaturedCourses = async () => {
     try {
@@ -53,7 +68,7 @@ const FeaturedCourses = () => {
     }
   };
 
-  const handleEnroll = () => {
+  const handleEnroll = (courseId) => {
     if (!user) {
       setModalMessage('Please login to enroll in courses');
       setShowLoginModal(true);
@@ -65,7 +80,12 @@ const FeaturedCourses = () => {
       return;
     }
     
-    console.log('Enrolling student in course...');
+    if (enrolledCourses.has(courseId)) {
+      navigate('/student-dashboard');
+      return;
+    }
+    
+    navigate(`/payment/${courseId}`);
   };
 
   return (
@@ -158,10 +178,14 @@ const FeaturedCourses = () => {
                   
                   <div className="flex gap-3">
                     <button 
-                      onClick={handleEnroll}
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                      onClick={() => handleEnroll(course._id)}
+                      className={`flex-1 py-3 px-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 ${
+                        enrolledCourses.has(course._id)
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                          : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                      }`}
                     >
-                      Enroll Now
+                      {enrolledCourses.has(course._id) ? 'Go to Course' : 'Enroll Now'}
                     </button>
                     <Link
                       to={`/course/${course._id}`}
@@ -170,6 +194,13 @@ const FeaturedCourses = () => {
                       View Details
                     </Link>
                   </div>
+                  
+                  {enrolledCourses.has(course._id) && (
+                    <div className="mt-3 flex items-center justify-center text-green-600 dark:text-green-400 text-sm font-medium">
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Registered
+                    </div>
+                  )}
                 </div>
               </div>
             ))

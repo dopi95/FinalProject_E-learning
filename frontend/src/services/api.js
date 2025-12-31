@@ -156,4 +156,28 @@ export const reviewAPI = {
   deleteReview: (reviewId) => api.delete(`/reviews/${reviewId}`),
 };
 
+// Payment API functions
+export const paymentAPI = {
+  // Initialize payment
+  initializePayment: (paymentData) => api.post('/payments/initialize', paymentData),
+  
+  // Verify payment
+  verifyPayment: (txRef) => api.post(`/payments/verify/${txRef}`),
+  
+  // Get payment receipt
+  getReceipt: (paymentId) => api.get(`/payments/receipt/${paymentId}`),
+  
+  // Get user payments
+  getMyPayments: () => api.get('/payments/my-payments'),
+};
+
+// Enrollment API functions
+export const enrollmentAPI = {
+  // Get user enrollments
+  getMyEnrollments: () => api.get('/enrollments/my-enrollments'),
+  
+  // Check enrollment status
+  checkEnrollment: (courseId) => api.get(`/enrollments/check/${courseId}`),
+};
+
 export default api;
