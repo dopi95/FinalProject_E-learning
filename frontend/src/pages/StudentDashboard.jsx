@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star } from 'lucide-react';
-import { profileAPI } from '../services/api';
+import { profileAPI, enrollmentAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 
@@ -10,6 +10,8 @@ const StudentDashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -97,6 +99,19 @@ const StudentDashboard = () => {
     }
   };
 
+  const fetchEnrolledCourses = async () => {
+    try {
+      setCoursesLoading(true);
+      const response = await enrollmentAPI.getMyCourses();
+      setEnrolledCourses(response.data.courses);
+    } catch (error) {
+      console.error('Fetch enrolled courses error:', error);
+      showNotification('error', 'Error', 'Failed to fetch enrolled courses');
+    } finally {
+      setCoursesLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Get user data using utility function
     const userData = getUserData();
@@ -111,6 +126,8 @@ const StudentDashboard = () => {
     
     // Fetch fresh user data from API
     fetchUserProfile();
+    // Fetch enrolled courses
+    fetchEnrolledCourses();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -210,7 +227,7 @@ const StudentDashboard = () => {
             <BookOpen className="h-8 w-8 text-blue-600" />
             <div className="ml-4">
               <p className="text-sm text-gray-600 dark:text-gray-400">Total My Courses</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">6</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{enrolledCourses.length}</p>
             </div>
           </div>
         </div>
@@ -308,65 +325,76 @@ const StudentDashboard = () => {
           </div>
           <div>
             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Total My Courses</p>
-            <p className="text-xl font-bold text-gray-900 dark:text-white">6</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white">{enrolledCourses.length}</p>
           </div>
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3, 4, 5, 6].map((course) => (
-          <div key={course} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 dark:border-gray-700">
-            <div className="relative">
-              <img 
-                src={`https://images.unsplash.com/photo-${1633356122544 + course}?w=400&h=200&fit=crop`}
-                alt={`Course ${course}`}
-                className="w-full h-48 object-cover"
-              />
-              <div className="absolute top-3 right-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-1 rounded-full">
-                <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">Active</span>
+      {coursesLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : enrolledCourses.length === 0 ? (
+        <div className="text-center py-12">
+          <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Courses Enrolled</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">You haven't enrolled in any courses yet.</p>
+          <button 
+            onClick={() => window.location.href = '/courses'}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Browse Courses
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {enrolledCourses.map((course) => (
+            <div key={course._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 dark:border-gray-700">
+              <div className="relative">
+                <img 
+                  src={course.image || `https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=200&fit=crop`}
+                  alt={course.title}
+                  className="w-full h-48 object-cover"
+                />
+                <div className="absolute top-3 right-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-1 rounded-full">
+                  <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">Active</span>
+                </div>
               </div>
-            </div>
-            
-            <div className="p-6">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 line-clamp-2">
-                Advanced Mathematics Course {course}
-              </h3>
               
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 rounded-full mr-3 overflow-hidden">
-                  <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center">
-                    <User className="h-5 w-5 text-white" />
+              <div className="p-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 line-clamp-2">
+                  {course.title}
+                </h3>
+                
+                <div className="flex items-center mb-4">
+                  <div className="w-10 h-10 rounded-full mr-3 overflow-hidden">
+                    <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center">
+                      <User className="h-5 w-5 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900 dark:text-white text-sm">{course.instructor?.name || 'Instructor'}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Instructor</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{course.studentCount || 0} students</p>
                   </div>
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900 dark:text-white text-sm">Dr. John Smith</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Instructor</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{120 + course * 15} students</p>
-                </div>
+                
+                <button 
+                  onClick={() => {
+                    setSelectedCourse(course);
+                    setActiveTab('course-details');
+                  }}
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                >
+                  View Course Materials
+                </button>
               </div>
-              
-
-              
-              <button 
-                onClick={() => {
-                  setSelectedCourse({ 
-                    id: course, 
-                    title: `Advanced Mathematics Course ${course}`,
-                    instructor: 'Dr. John Smith',
-                    progress: 65 + course * 5
-                  });
-                  setActiveTab('course-details');
-                }}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-              >
-                View Course Materials
-              </button>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 

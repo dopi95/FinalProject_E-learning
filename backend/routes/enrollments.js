@@ -1,54 +1,44 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
 const Enrollment = require('../models/Enrollment');
 const Course = require('../models/Course');
+const auth = require('../middleware/auth');
 
-// Get user enrollments
-router.get('/my-enrollments', auth, async (req, res) => {
+// Get user's enrolled courses
+router.get('/my-courses', auth, async (req, res) => {
   try {
-    const enrollments = await Enrollment.find({ user: req.user.id })
-      .populate('course', 'title description image price instructor')
-      .populate('payment', 'amount receiptNumber createdAt')
-      .populate({
-        path: 'course',
-        populate: {
-          path: 'instructor',
-          select: 'name'
-        }
-      })
-      .sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      data: enrollments
-    });
-  } catch (error) {
-    console.error('Enrollments fetch error:', error);
-    res.status(500).json({ message: 'Server error fetching enrollments' });
-  }
-});
-
-// Check enrollment status
-router.get('/check/:courseId', auth, async (req, res) => {
-  try {
-    const { courseId } = req.params;
-    
-    const enrollment = await Enrollment.findOne({ 
-      user: req.user.id, 
-      course: courseId 
-    }).populate('payment');
-
-    res.json({
-      success: true,
-      data: {
-        isEnrolled: !!enrollment,
-        enrollment
+    const enrollments = await Enrollment.find({ 
+      user: req.user.id,
+      status: 'active'
+    })
+    .populate({
+      path: 'course',
+      populate: {
+        path: 'instructor',
+        select: 'name email'
       }
+    })
+    .sort({ enrollmentDate: -1 });
+
+    const courses = enrollments.map(enrollment => ({
+      ...enrollment.course.toObject(),
+      enrollmentId: enrollment._id,
+      enrollmentDate: enrollment.enrollmentDate,
+      progress: enrollment.progress,
+      status: enrollment.status
+    }));
+
+    res.json({
+      success: true,
+      courses,
+      count: courses.length
     });
   } catch (error) {
-    console.error('Enrollment check error:', error);
-    res.status(500).json({ message: 'Server error checking enrollment' });
+    console.error('Get enrolled courses error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch enrolled courses'
+    });
   }
 });
 

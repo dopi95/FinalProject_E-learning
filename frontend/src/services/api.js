@@ -173,6 +173,9 @@ export const paymentAPI = {
 
 // Enrollment API functions
 export const enrollmentAPI = {
+  // Get user's enrolled courses
+  getMyCourses: () => api.get('/enrollments/my-courses'),
+  
   // Get user enrollments
   getMyEnrollments: () => api.get('/enrollments/my-enrollments'),
   
