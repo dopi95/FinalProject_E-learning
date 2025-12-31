@@ -9,6 +9,7 @@ const StudentDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -191,6 +192,8 @@ const StudentDashboard = () => {
   const tabs = [
     { id: 'overview', name: 'Overview', icon: BookOpen },
     { id: 'courses', name: 'My Courses', icon: BookOpen },
+    { id: 'browse-courses', name: 'Browse Courses', icon: BookOpen },
+    { id: 'course-details', name: 'Course Materials', icon: FileText },
     { id: 'assignments', name: 'Assignments', icon: FileText },
     { id: 'schedule', name: 'Schedule', icon: Calendar },
     { id: 'progress', name: 'Progress', icon: TrendingUp },
@@ -206,7 +209,7 @@ const StudentDashboard = () => {
           <div className="flex items-center">
             <BookOpen className="h-8 w-8 text-blue-600" />
             <div className="ml-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Enrolled Courses</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total My Courses</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">6</p>
             </div>
           </div>
@@ -290,27 +293,75 @@ const StudentDashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">My Courses</h2>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+        <button 
+          onClick={() => window.location.href = '/courses'}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+        >
           Browse Courses
         </button>
       </div>
+      
+      <div className="inline-block bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md border border-gray-100 dark:border-gray-700">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+            <BookOpen className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Total My Courses</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white">6</p>
+          </div>
+        </div>
+      </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[1, 2, 3, 4, 5, 6].map((course) => (
-          <div key={course} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mb-4"></div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Course {course}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Instructor Name</p>
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Progress</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">75%</span>
+          <div key={course} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 dark:border-gray-700">
+            <div className="relative">
+              <img 
+                src={`https://images.unsplash.com/photo-${1633356122544 + course}?w=400&h=200&fit=crop`}
+                alt={`Course ${course}`}
+                className="w-full h-48 object-cover"
+              />
+              <div className="absolute top-3 right-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-1 rounded-full">
+                <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">Active</span>
+              </div>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
-              <div className="bg-blue-600 h-2 rounded-full" style={{ width: '75%' }}></div>
-            </div>
-            <div className="flex space-x-2">
-              <button className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Continue</button>
-              <button className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
-                <Download className="h-4 w-4" />
+            
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 line-clamp-2">
+                Advanced Mathematics Course {course}
+              </h3>
+              
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 rounded-full mr-3 overflow-hidden">
+                  <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center">
+                    <User className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">Dr. John Smith</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Instructor</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{120 + course * 15} students</p>
+                </div>
+              </div>
+              
+
+              
+              <button 
+                onClick={() => {
+                  setSelectedCourse({ 
+                    id: course, 
+                    title: `Advanced Mathematics Course ${course}`,
+                    instructor: 'Dr. John Smith',
+                    progress: 65 + course * 5
+                  });
+                  setActiveTab('course-details');
+                }}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              >
+                View Course Materials
               </button>
             </div>
           </div>
@@ -798,6 +849,7 @@ const StudentDashboard = () => {
     switch (activeTab) {
       case 'overview': return renderOverview();
       case 'courses': return renderCourses();
+      case 'course-details': return renderCourseDetails();
       case 'assignments': return renderAssignments();
       case 'schedule': return renderSchedule();
       case 'progress': return renderProgress();
@@ -807,6 +859,79 @@ const StudentDashboard = () => {
       default: return renderOverview();
     }
   };
+
+  const renderCourseDetails = () => (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4 mb-6">
+        <button 
+          onClick={() => setActiveTab('courses')}
+          className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
+        >
+          ← Back to Courses
+        </button>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          {selectedCourse?.title || 'Course Materials'}
+        </h2>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+        <div className="flex items-center gap-6">
+          <img 
+            src={`https://images.unsplash.com/photo-${1633356122544 + (selectedCourse?.id || 1)}?w=200&h=150&fit=crop`}
+            alt={selectedCourse?.title}
+            className="w-32 h-24 object-cover rounded-xl"
+          />
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              {selectedCourse?.title || 'Course Title'}
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-2">
+              Instructor: {selectedCourse?.instructor || 'Dr. John Smith'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Video className="h-5 w-5 text-red-600" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Video Lectures</h3>
+          </div>
+          <div className="space-y-3">
+            {[1, 2, 3].map((video) => (
+              <div key={video} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <Video className="h-4 w-4 text-gray-600" />
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">Lecture {video}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{10 + video} minutes</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <FileText className="h-5 w-5 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">PDF Materials</h3>
+          </div>
+          <div className="space-y-3">
+            {[1, 2, 3].map((pdf) => (
+              <div key={pdf} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <FileText className="h-4 w-4 text-red-600" />
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">Chapter {pdf} Notes</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">PDF • 2.{pdf} MB</p>
+                </div>
+                <Download className="h-4 w-4 text-gray-400" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
@@ -873,8 +998,12 @@ const StudentDashboard = () => {
                 <button
                   key={tab.id}
                   onClick={() => {
-                    setActiveTab(tab.id);
-                    setSidebarOpen(false);
+                    if (tab.id === 'browse-courses') {
+                      window.location.href = '/courses';
+                    } else {
+                      setActiveTab(tab.id);
+                      setSidebarOpen(false);
+                    }
                   }}
                   className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 group ${
                     activeTab === tab.id
