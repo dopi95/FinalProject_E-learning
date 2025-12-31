@@ -141,20 +141,6 @@ const PaymentSuccess = () => {
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
             <button 
-              onClick={downloadReceipt}
-              className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
-            >
-              <Download className="h-5 w-5 mr-2" />
-              Download Receipt
-            </button>
-            <button 
-              onClick={shareReceipt}
-              className="inline-flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors"
-            >
-              <Share2 className="h-5 w-5 mr-2" />
-              Share Receipt
-            </button>
-            <button 
               onClick={() => navigate('/student-dashboard')}
               className="inline-flex items-center justify-center px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
             >
@@ -164,24 +150,39 @@ const PaymentSuccess = () => {
           </div>
 
           {/* Receipt */}
-          <div ref={receiptRef} className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden">
+          <div ref={receiptRef} className="bg-white shadow-lg max-w-2xl mx-auto relative">
+            {/* Diagonal PAID Stamp */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="transform -rotate-45 text-green-600 text-6xl font-bold opacity-30">
+                PAID
+              </div>
+            </div>
+
+            {/* Payment Method Stamp */}
+            <div className="absolute top-4 right-4 z-20">
+              <div className="rounded-full p-4 text-center w-20 h-20 flex flex-col items-center justify-center">
+                <img 
+                  src={payment?.paymentMethod === 'telebirr' ? '/assets/images/telebirrlogo.png' : '/assets/images/cbe.png'}
+                  alt={payment?.paymentMethod}
+                  className="w-8 h-8 object-contain mb-1"
+                />
+                <p className="text-xs font-bold text-gray-700 uppercase leading-none">
+                  {payment?.paymentMethod === 'telebirr' ? 'Telebirr' : 'CBE'}
+                </p>
+              </div>
+            </div>
             {/* Receipt Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <img 
-                    src="/assets/images/aaulogo.png" 
-                    alt="AAU Logo"
-                    className="h-12 w-auto mb-4"
-                  />
-                  <h2 className="text-2xl font-bold">AAU E-Learning Platform</h2>
-                  <p className="text-blue-100">Addis Ababa University</p>
-                </div>
+            <div className="border-b-2 border-gray-900 p-8">
+              <div className="text-center">
+                <img 
+                  src="/assets/images/aaulogo.png" 
+                  alt="AAU Logo"
+                  className="h-16 w-auto mx-auto mb-4"
+                />
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">AAU E-Learning</h1>
+                <p className="text-gray-700 mb-4">Addis Ababa University</p>
                 <div className="text-right">
-                  <div className="bg-green-500 text-white px-4 py-2 rounded-full text-sm font-semibold mb-2">
-                    PAID
-                  </div>
-                  <p className="text-blue-100 text-sm">Receipt #{payment?.receiptNumber}</p>
+                  <p className="text-sm text-gray-600">Receipt No: {payment?.receiptNumber}</p>
                 </div>
               </div>
             </div>
@@ -191,48 +192,46 @@ const PaymentSuccess = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 {/* Student Information */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                    <User className="h-5 w-5 mr-2" />
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-300 pb-2">
                     Student Information
                   </h3>
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Name:</span>
-                      <span className="text-gray-900 dark:text-white font-medium">{payment?.user.name}</span>
+                      <span className="text-gray-600">Name:</span>
+                      <span className="text-gray-900 font-medium">{payment?.user.name}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Email:</span>
-                      <span className="text-gray-900 dark:text-white font-medium">{payment?.user.email}</span>
+                      <span className="text-gray-600">Email:</span>
+                      <span className="text-gray-900 font-medium">{payment?.user.email}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Student ID:</span>
-                      <span className="text-gray-900 dark:text-white font-medium">{payment?.user._id.slice(-8).toUpperCase()}</span>
+                      <span className="text-gray-600">Student ID:</span>
+                      <span className="text-gray-900 font-medium">{payment?.user._id.slice(-8).toUpperCase()}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Payment Information */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                    <CreditCard className="h-5 w-5 mr-2" />
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-300 pb-2">
                     Payment Information
                   </h3>
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Payment Date:</span>
-                      <span className="text-gray-900 dark:text-white font-medium">
+                      <span className="text-gray-600">Date:</span>
+                      <span className="text-gray-900 font-medium">
                         {new Date(payment?.createdAt).toLocaleDateString()}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Payment Method:</span>
-                      <span className="text-gray-900 dark:text-white font-medium capitalize">
+                      <span className="text-gray-600">Method:</span>
+                      <span className="text-gray-900 font-medium capitalize">
                         {payment?.paymentMethod}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Transaction ID:</span>
-                      <span className="text-gray-900 dark:text-white font-medium">
+                      <span className="text-gray-600">Transaction ID:</span>
+                      <span className="text-gray-900 font-medium">
                         {payment?.transactionId || payment?.chapaReference}
                       </span>
                     </div>
@@ -241,35 +240,28 @@ const PaymentSuccess = () => {
               </div>
 
               {/* Course Information */}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-8 mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                  <BookOpen className="h-5 w-5 mr-2" />
+              <div className="border-t border-gray-300 pt-8 mb-8">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-300 pb-2">
                   Course Details
                 </h3>
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6">
-                  <div className="flex items-start space-x-4">
-                    <img 
-                      src={payment?.course.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400'} 
-                      alt={payment?.course.title}
-                      className="w-20 h-20 object-cover rounded-xl"
-                    />
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 dark:text-white text-lg mb-2">
+                <div className="bg-gray-50 p-6 rounded">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div className="flex-1 mb-4 md:mb-0">
+                      <h4 className="font-bold text-gray-900 text-lg mb-2">
                         {payment?.course.title}
                       </h4>
-                      <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">
+                      <p className="text-gray-600 mb-2">
                         Instructor: {payment?.course.instructor?.name}
                       </p>
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <Award className="h-4 w-4 mr-1" />
-                        <span>Certificate of Completion Included</span>
-                      </div>
+                      <p className="text-sm text-gray-500">
+                        Certificate of Completion Included
+                      </p>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      <div className="text-2xl font-bold text-gray-900">
                         {payment?.amount} ETB
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                      <div className="text-sm text-gray-600">
                         One-time payment
                       </div>
                     </div>
@@ -278,20 +270,20 @@ const PaymentSuccess = () => {
               </div>
 
               {/* Payment Summary */}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-8">
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6">
+              <div className="border-t border-gray-300 pt-8">
+                <div className="bg-gray-50 p-6 rounded">
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-gray-600 dark:text-gray-400">Subtotal:</span>
-                    <span className="text-gray-900 dark:text-white">{payment?.amount} ETB</span>
+                    <span className="text-gray-600">Subtotal:</span>
+                    <span className="text-gray-900">{payment?.amount} ETB</span>
                   </div>
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-gray-600 dark:text-gray-400">Tax:</span>
-                    <span className="text-gray-900 dark:text-white">0.00 ETB</span>
+                    <span className="text-gray-600">Tax:</span>
+                    <span className="text-gray-900">0.00 ETB</span>
                   </div>
-                  <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
+                  <div className="border-t border-gray-300 pt-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-lg font-semibold text-gray-900 dark:text-white">Total Paid:</span>
-                      <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      <span className="text-xl font-bold text-gray-900">Total Paid:</span>
+                      <span className="text-2xl font-bold text-gray-900">
                         {payment?.amount} ETB
                       </span>
                     </div>
@@ -300,8 +292,8 @@ const PaymentSuccess = () => {
               </div>
 
               {/* Footer */}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-8 mt-8">
-                <div className="text-center text-sm text-gray-600 dark:text-gray-400">
+              <div className="border-t border-gray-300 pt-8 mt-8">
+                <div className="text-center text-sm text-gray-600">
                   <p className="mb-2">Thank you for choosing AAU E-Learning Platform!</p>
                   <p>For support, contact us at support@aau-elearning.edu.et</p>
                   <p className="mt-4 text-xs">
@@ -310,6 +302,24 @@ const PaymentSuccess = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-center gap-4 mt-8">
+            <button 
+              onClick={downloadReceipt}
+              className="flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-lg"
+              title="Download Receipt"
+            >
+              <Download className="h-5 w-5" />
+            </button>
+            <button 
+              onClick={shareReceipt}
+              className="flex items-center justify-center w-12 h-12 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors shadow-lg"
+              title="Share Receipt"
+            >
+              <Share2 className="h-5 w-5" />
+            </button>
           </div>
         </div>
       </main>

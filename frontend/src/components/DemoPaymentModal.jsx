@@ -8,15 +8,29 @@ const DemoPaymentModal = ({ isVisible, onClose, paymentMethod, courseId }) => {
   const [accountNumber, setAccountNumber] = useState('');
   const [processing, setProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState('');
 
   if (!isVisible) return null;
 
   const handlePayment = async () => {
-    if (!accountNumber) {
-      alert('Please enter your account/phone number');
-      return;
+    if (paymentMethod === 'telebirr') {
+      if (!accountNumber || accountNumber.length !== 8 || !/^\d{8}$/.test(accountNumber)) {
+        setError('Incorrect phone number. Please enter a correct 8-digit number.');
+        return;
+      }
+    } else if (paymentMethod === 'cbe') {
+      if (!accountNumber || accountNumber.length !== 13 || !accountNumber.startsWith('1000') || !/^\d{13}$/.test(accountNumber)) {
+        setError('Invalid account number. CBE account must be 13 digits starting with 1000.');
+        return;
+      }
+    } else {
+      if (!accountNumber) {
+        setError('Please enter your account number');
+        return;
+      }
     }
 
+    setError('');
     setProcessing(true);
 
     try {
@@ -41,13 +55,13 @@ const DemoPaymentModal = ({ isVisible, onClose, paymentMethod, courseId }) => {
             }, 3000);
           } catch (error) {
             setProcessing(false);
-            alert('Payment verification failed');
+            setError('Payment verification failed');
           }
         }, 2000);
       }
     } catch (error) {
       setProcessing(false);
-      alert('Payment failed');
+      setError('Payment failed');
     }
   };
 
@@ -111,17 +125,45 @@ const DemoPaymentModal = ({ isVisible, onClose, paymentMethod, courseId }) => {
                 {paymentMethod === 'telebirr' ? 'Phone Number' : 'Account Number'}
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  {getIcon()}
+                {paymentMethod === 'telebirr' && (
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 text-sm">+251 9</span>
+                  </div>
+                )}
+                <div className={`absolute inset-y-0 ${paymentMethod === 'telebirr' ? 'left-16' : 'left-0'} pl-3 flex items-center pointer-events-none`}>
+                  {paymentMethod === 'cbe' && getIcon()}
                 </div>
                 <input
                   type="text"
                   value={accountNumber}
-                  onChange={(e) => setAccountNumber(e.target.value)}
-                  placeholder={getPlaceholder()}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (paymentMethod === 'telebirr') {
+                      // Only allow digits and max 8 characters
+                      if (/^\d{0,8}$/.test(value)) {
+                        setAccountNumber(value);
+                        setError('');
+                      }
+                    } else if (paymentMethod === 'cbe') {
+                      // Only allow digits and max 13 characters
+                      if (/^\d{0,13}$/.test(value)) {
+                        setAccountNumber(value);
+                        setError('');
+                      }
+                    } else {
+                      setAccountNumber(value);
+                      setError('');
+                    }
+                  }}
+                  placeholder=""
+                  className={`w-full ${paymentMethod === 'telebirr' ? 'pl-20' : 'pl-10'} pr-4 py-3 border ${error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white`}
                 />
               </div>
+              {error && (
+                <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+                </div>
+              )}
             </div>
 
             <button
