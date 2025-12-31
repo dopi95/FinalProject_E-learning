@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star } from 'lucide-react';
-import { profileAPI, enrollmentAPI } from '../services/api';
+import { profileAPI, enrollmentAPI, paymentAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 
@@ -14,6 +14,10 @@ const StudentDashboard = () => {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
+  const [payments, setPayments] = useState([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -101,6 +105,270 @@ const StudentDashboard = () => {
     }
   };
 
+  const fetchPayments = async () => {
+    try {
+      setPaymentsLoading(true);
+      const response = await paymentAPI.getMyPayments();
+      setPayments(response.data.data);
+    } catch (error) {
+      console.error('Fetch payments error:', error);
+      showNotification('error', 'Error', 'Failed to fetch payments');
+    } finally {
+      setPaymentsLoading(false);
+    }
+  };
+
+  const handleViewReceipt = async (paymentId) => {
+    try {
+      const response = await paymentAPI.getReceipt(paymentId);
+      const payment = response.data.data;
+      
+      const receiptHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Payment Receipt - ${payment.receiptNumber}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: white; }
+            .receipt { max-width: 800px; margin: 0 auto; background: white; position: relative; }
+            .diagonal-stamp { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 80px; font-weight: bold; color: rgba(34, 197, 94, 0.3); pointer-events: none; z-index: 10; }
+            .payment-stamp { position: absolute; top: 20px; right: 20px; z-index: 20; text-align: center; }
+            .payment-stamp img { width: 40px; height: 40px; object-fit: contain; margin-bottom: 5px; }
+            .payment-stamp p { font-size: 12px; font-weight: bold; color: #374151; text-transform: uppercase; margin: 0; }
+            .header { border-bottom: 2px solid #000; padding: 40px; text-align: center; }
+            .header img { height: 64px; width: auto; margin-bottom: 16px; }
+            .header h1 { font-size: 24px; font-weight: bold; color: #000; margin: 0 0 4px 0; }
+            .header p { color: #374151; margin: 0 0 16px 0; }
+            .receipt-no { text-align: right; font-size: 14px; color: #6b7280; }
+            .body { padding: 40px; }
+            .section { margin-bottom: 40px; }
+            .section h3 { font-size: 18px; font-weight: bold; color: #000; margin-bottom: 16px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+            .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+            .info-row span:first-child { color: #6b7280; }
+            .info-row span:last-child { color: #000; font-weight: 500; }
+            .course-details { background: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 40px; }
+            .course-header { display: flex; justify-content: space-between; align-items: flex-start; }
+            .course-info h4 { font-size: 18px; font-weight: bold; color: #000; margin: 0 0 8px 0; }
+            .course-info p { color: #6b7280; margin: 0 0 8px 0; }
+            .course-price { text-align: right; }
+            .course-price .amount { font-size: 24px; font-weight: bold; color: #000; }
+            .course-price .type { font-size: 14px; color: #6b7280; }
+            .summary { background: #f9fafb; padding: 24px; border-radius: 8px; }
+            .summary-row { display: flex; justify-content: space-between; margin-bottom: 16px; }
+            .summary-row.total { border-top: 1px solid #d1d5db; padding-top: 16px; font-weight: bold; }
+            .summary-row.total .amount { font-size: 24px; }
+            .footer { border-top: 1px solid #d1d5db; padding-top: 40px; margin-top: 40px; text-align: center; font-size: 14px; color: #6b7280; }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            <div class="diagonal-stamp">PAID</div>
+            
+            <div class="payment-stamp">
+              <img src="http://localhost:3000/assets/images/${payment.paymentMethod === 'telebirr' ? 'telebirrlogo.png' : 'cbe.png'}" alt="${payment.paymentMethod}">
+              <p>${payment.paymentMethod === 'telebirr' ? 'Telebirr' : 'CBE'}</p>
+            </div>
+            
+            <div class="header">
+              <img src="http://localhost:3000/assets/images/aaulogo.png" alt="AAU Logo">
+              <h1>AAU E-Learning</h1>
+              <p>Addis Ababa University</p>
+              <div class="receipt-no">Receipt No: ${payment.receiptNumber}</div>
+            </div>
+            
+            <div class="body">
+              <div class="info-grid">
+                <div class="section">
+                  <h3>Student Information</h3>
+                  <div class="info-row">
+                    <span>Name:</span>
+                    <span>${payment.user.name}</span>
+                  </div>
+                  <div class="info-row">
+                    <span>Email:</span>
+                    <span>${payment.user.email}</span>
+                  </div>
+                  <div class="info-row">
+                    <span>Student ID:</span>
+                    <span>${payment.user.systemId || payment.user._id.slice(-8).toUpperCase()}</span>
+                  </div>
+                </div>
+                
+                <div class="section">
+                  <h3>Payment Information</h3>
+                  <div class="info-row">
+                    <span>Date:</span>
+                    <span>${new Date(payment.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <div class="info-row">
+                    <span>Method:</span>
+                    <span style="text-transform: capitalize;">${payment.paymentMethod}</span>
+                  </div>
+                  <div class="info-row">
+                    <span>Transaction ID:</span>
+                    <span>${payment.transactionId}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="section">
+                <h3>Course Details</h3>
+                <div class="course-details">
+                  <div class="course-header">
+                    <div class="course-info">
+                      <h4>${payment.course.title}</h4>
+                      <p>Instructor: ${payment.course.instructor?.name || 'Instructor'}</p>
+                      <p style="font-size: 14px; color: #6b7280;">Certificate of Completion Included</p>
+                    </div>
+                    <div class="course-price">
+                      <div class="amount">${payment.amount} ETB</div>
+                      <div class="type">One-time payment</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="summary">
+                <div class="summary-row">
+                  <span>Subtotal:</span>
+                  <span>${payment.amount} ETB</span>
+                </div>
+                <div class="summary-row">
+                  <span>Tax:</span>
+                  <span>0.00 ETB</span>
+                </div>
+                <div class="summary-row total">
+                  <span style="font-size: 20px;">Total Paid:</span>
+                  <span class="amount">${payment.amount} ETB</span>
+                </div>
+              </div>
+              
+              <div class="footer">
+                <p>Thank you for choosing AAU E-Learning Platform!</p>
+                <p>For support, contact us at support@aau-elearning.edu.et</p>
+                <p style="margin-top: 16px; font-size: 12px;">This is an official receipt generated on ${new Date().toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      const blob = new Blob([receiptHTML], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
+    } catch (error) {
+      console.error('View receipt error:', error);
+      showNotification('error', 'Error', 'Failed to load receipt');
+    }
+  };
+
+  const handleDownloadReceipt = async (paymentId) => {
+    try {
+      const response = await paymentAPI.getReceipt(paymentId);
+      const payment = response.data.data;
+      
+      // Create a temporary element for html2pdf
+      const receiptElement = document.createElement('div');
+      receiptElement.innerHTML = `
+        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background: white; position: relative;">
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 80px; font-weight: bold; color: rgba(34, 197, 94, 0.3); pointer-events: none; z-index: 10;">PAID</div>
+          
+          <div style="position: absolute; top: 20px; right: 20px; z-index: 20; text-align: center;">
+            <img src="http://localhost:3000/assets/images/${payment.paymentMethod === 'telebirr' ? 'telebirrlogo.png' : 'cbe.png'}" alt="${payment.paymentMethod}" style="width: 40px; height: 40px; object-fit: contain; margin-bottom: 5px;">
+            <p style="font-size: 12px; font-weight: bold; color: #374151; text-transform: uppercase; margin: 0;">
+              ${payment.paymentMethod === 'telebirr' ? 'Telebirr' : 'CBE'}
+            </p>
+          </div>
+          
+          <div style="border-bottom: 2px solid #000; padding: 40px; text-align: center;">
+            <img src="http://localhost:3000/assets/images/aaulogo.png" alt="AAU Logo" style="height: 64px; width: auto; margin-bottom: 16px;">
+            <h1 style="font-size: 24px; font-weight: bold; color: #000; margin: 0 0 4px 0;">AAU E-Learning</h1>
+            <p style="color: #374151; margin: 0 0 16px 0;">Addis Ababa University</p>
+            <div style="text-align: right; font-size: 14px; color: #6b7280;">Receipt No: ${payment.receiptNumber}</div>
+          </div>
+          
+          <div style="padding: 40px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px;">
+              <div>
+                <h3 style="font-size: 18px; font-weight: bold; color: #000; margin-bottom: 16px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px;">Student Information</h3>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Name:</span><span style="color: #000; font-weight: 500;">${payment.user.name}</span></div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Email:</span><span style="color: #000; font-weight: 500;">${payment.user.email}</span></div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Student ID:</span><span style="color: #000; font-weight: 500;">${payment.user.systemId || payment.user._id.slice(-8).toUpperCase()}</span></div>
+              </div>
+              
+              <div>
+                <h3 style="font-size: 18px; font-weight: bold; color: #000; margin-bottom: 16px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px;">Payment Information</h3>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Date:</span><span style="color: #000; font-weight: 500;">${new Date(payment.createdAt).toLocaleDateString()}</span></div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Method:</span><span style="color: #000; font-weight: 500; text-transform: capitalize;">${payment.paymentMethod}</span></div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Transaction ID:</span><span style="color: #000; font-weight: 500;">${payment.transactionId}</span></div>
+              </div>
+            </div>
+            
+            <div style="margin-bottom: 40px;">
+              <h3 style="font-size: 18px; font-weight: bold; color: #000; margin-bottom: 16px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px;">Course Details</h3>
+              <div style="background: #f9fafb; padding: 24px; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                  <div>
+                    <h4 style="font-size: 18px; font-weight: bold; color: #000; margin: 0 0 8px 0;">${payment.course.title}</h4>
+                    <p style="color: #6b7280; margin: 0 0 8px 0;">Instructor: ${payment.course.instructor?.name || 'Instructor'}</p>
+                    <p style="font-size: 14px; color: #6b7280; margin: 0;">Certificate of Completion Included</p>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="font-size: 24px; font-weight: bold; color: #000;">${payment.amount} ETB</div>
+                    <div style="font-size: 14px; color: #6b7280;">One-time payment</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div style="background: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 40px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 16px;"><span>Subtotal:</span><span>${payment.amount} ETB</span></div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 16px;"><span>Tax:</span><span>0.00 ETB</span></div>
+              <div style="border-top: 1px solid #d1d5db; padding-top: 16px; display: flex; justify-content: space-between; font-weight: bold;">
+                <span style="font-size: 20px;">Total Paid:</span>
+                <span style="font-size: 24px;">${payment.amount} ETB</span>
+              </div>
+            </div>
+            
+            <div style="border-top: 1px solid #d1d5db; padding-top: 40px; text-align: center; font-size: 14px; color: #6b7280;">
+              <p>Thank you for choosing AAU E-Learning Platform!</p>
+              <p>For support, contact us at support@aau-elearning.edu.et</p>
+              <p style="margin-top: 16px; font-size: 12px;">This is an official receipt generated on ${new Date().toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(receiptElement);
+      
+      // Use html2pdf to generate PDF
+      const opt = {
+        margin: 0.5,
+        filename: `receipt-${payment.receiptNumber}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+      
+      const html2pdf = (await import('html2pdf.js')).default;
+      await html2pdf().set(opt).from(receiptElement).save();
+      
+      document.body.removeChild(receiptElement);
+      
+      showNotification('success', 'Downloaded', 'Receipt downloaded as PDF');
+    } catch (error) {
+      console.error('Download receipt error:', error);
+      showNotification('error', 'Error', 'Failed to download receipt');
+    }
+  };
+
   const fetchEnrolledCourses = async () => {
     try {
       setCoursesLoading(true);
@@ -137,6 +405,13 @@ const StudentDashboard = () => {
     // Fetch enrolled courses
     fetchEnrolledCourses();
   }, [searchParams]);
+
+  // Fetch payments when user is loaded
+  useEffect(() => {
+    if (user) {
+      fetchPayments();
+    }
+  }, [user]);
 
   const fetchUserProfile = async () => {
     try {
@@ -220,6 +495,7 @@ const StudentDashboard = () => {
     { id: 'browse-courses', name: 'Browse Courses', icon: BookOpen },
     { id: 'course-details', name: 'Course Materials', icon: FileText },
     { id: 'assignments', name: 'Assignments', icon: FileText },
+    { id: 'payments', name: 'Payments', icon: CreditCard },
     { id: 'schedule', name: 'Schedule', icon: Calendar },
     { id: 'progress', name: 'Progress', icon: TrendingUp },
     { id: 'certificates', name: 'Certificates', icon: Award },
@@ -403,6 +679,121 @@ const StudentDashboard = () => {
           ))}
         </div>
       )}
+    </div>
+  );
+
+  const renderPayments = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Payment History</h2>
+      
+      {paymentsLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : payments.length === 0 ? (
+        <div className="text-center py-12">
+          <CreditCard className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Payments Found</h3>
+          <p className="text-gray-500 dark:text-gray-400">You haven't made any payments yet.</p>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Course
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Amount
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Payment Method
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                {payments.map((payment) => (
+                  <tr key={payment._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <img 
+                          src={payment.course?.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=50'}
+                          alt={payment.course?.title}
+                          className="w-12 h-12 rounded-lg object-cover mr-4"
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {payment.course?.title || 'Course'}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Receipt: {payment.receiptNumber}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-lg font-bold text-gray-900 dark:text-white">
+                        {payment.amount} Birr
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 capitalize">
+                        {payment.paymentMethod}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                      {new Date(payment.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                        payment.status === 'success' 
+                          ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300'
+                          : payment.status === 'pending'
+                          ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300'
+                          : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300'
+                      }`}>
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        {payment.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleViewReceipt(payment._id)}
+                          className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                          title="View Receipt"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDownloadReceipt(payment._id)}
+                          className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                          title="Download Receipt"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      
+
     </div>
   );
 
@@ -887,6 +1278,7 @@ const StudentDashboard = () => {
       case 'courses': return renderCourses();
       case 'course-details': return renderCourseDetails();
       case 'assignments': return renderAssignments();
+      case 'payments': return renderPayments();
       case 'schedule': return renderSchedule();
       case 'progress': return renderProgress();
       case 'certificates': return renderCertificates();

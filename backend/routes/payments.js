@@ -158,8 +158,12 @@ router.get('/receipt/:payment_id', auth, async (req, res) => {
 // Get user payments
 router.get('/my-payments', auth, async (req, res) => {
   try {
-    const payments = await Payment.find({ user: req.user.id })
-      .populate('course', 'title image')
+    const payments = await Payment.find({ 
+      user: req.user.id,
+      status: 'success'
+    })
+      .populate('course')
+      .populate('user')
       .sort({ createdAt: -1 });
 
     res.json({
@@ -168,7 +172,11 @@ router.get('/my-payments', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Payments fetch error:', error);
-    res.status(500).json({ message: 'Server error fetching payments' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error fetching payments',
+      error: error.message
+    });
   }
 });
 
