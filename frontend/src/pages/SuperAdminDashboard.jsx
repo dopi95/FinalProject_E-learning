@@ -753,8 +753,8 @@ const SuperAdminDashboard = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 dark:text-white">{course.instructor.name}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{course.instructor.email}</div>
+                    <div className="text-sm text-gray-900 dark:text-white">{course.instructor?.name || 'Unknown Instructor'}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{course.instructor?.email || 'No email'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="text-sm font-medium text-gray-900 dark:text-white">{course.price} Birr</span>
@@ -1015,7 +1015,7 @@ const SuperAdminDashboard = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Instructor</label>
-                  <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{selectedCourse.instructor.name}</p>
+                  <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{selectedCourse.instructor?.name || 'Unknown Instructor'}</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -1634,14 +1634,12 @@ const SuperAdminDashboard = () => {
           <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Administrative Information</h4>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Admin ID</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">System ID</label>
               <input 
                 type="text" 
-                value={profileForm.adminId || ''} 
-                onChange={(e) => handleFormChange('adminId', e.target.value)}
-                placeholder="SA001" 
-                disabled={!isEditing} 
-                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} 
+                value={profileForm.systemId || ''} 
+                disabled
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 cursor-not-allowed dark:text-white" 
               />
             </div>
             <div>
@@ -2061,17 +2059,17 @@ const SuperAdminDashboard = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-3 overflow-hidden">
-                        {review.user.profileImage ? (
+                        {review.user?.profileImage ? (
                           <img src={review.user.profileImage} alt={review.user.name} className="h-full w-full object-cover" />
                         ) : (
                           <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                            {review.user.name.charAt(0).toUpperCase()}
+                            {review.user?.name?.charAt(0)?.toUpperCase() || 'U'}
                           </span>
                         )}
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">{review.user.name}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 capitalize">{review.user.role}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">{review.user?.name || 'Unknown User'}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 capitalize">{review.user?.role || 'user'}</div>
                       </div>
                     </div>
                   </td>
@@ -2168,17 +2166,17 @@ const SuperAdminDashboard = () => {
               <div className="space-y-4">
                 <div className="flex items-center mb-4">
                   <div className="h-16 w-16 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-4 overflow-hidden">
-                    {selectedReview.user.profileImage ? (
+                    {selectedReview.user?.profileImage ? (
                       <img src={selectedReview.user.profileImage} alt={selectedReview.user.name} className="h-full w-full object-cover" />
                     ) : (
                       <span className="text-lg font-medium text-gray-600 dark:text-gray-300">
-                        {selectedReview.user.name.charAt(0).toUpperCase()}
+                        {selectedReview.user?.name?.charAt(0)?.toUpperCase() || 'U'}
                       </span>
                     )}
                   </div>
                   <div>
-                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{selectedReview.user.name}</h4>
-                    <p className="text-gray-600 dark:text-gray-400 capitalize">{selectedReview.user.role}</p>
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{selectedReview.user?.name || 'Unknown User'}</h4>
+                    <p className="text-gray-600 dark:text-gray-400 capitalize">{selectedReview.user?.role || 'user'}</p>
                   </div>
                 </div>
                 

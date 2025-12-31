@@ -112,8 +112,8 @@ const Testimonials = () => {
               className="flex transition-transform duration-500 ease-in-out gap-8"
               style={{ transform: `translateX(-${currentSlide * (100/3)}%)` }}
             >
-              {testimonials.map((testimonial) => (
-                <div key={testimonial.id} className="w-1/3 flex-shrink-0">
+              {testimonials.map((testimonial, index) => (
+                <div key={testimonial.id || index} className="w-1/3 flex-shrink-0">
                   <TestimonialCard testimonial={testimonial} />
                 </div>
               ))}
@@ -124,7 +124,7 @@ const Testimonials = () => {
           <div className="flex justify-center mt-8 space-x-2">
             {testimonials.length > 3 && Array.from({ length: Math.max(1, testimonials.length - 2) }).map((_, index) => (
               <button
-                key={`desktop-dot-${index}`}
+                key={index}
                 onClick={() => setCurrentSlide(index)}
                 className={`w-3 h-3 rounded-full transition-all duration-300 ${
                   currentSlide === index 
@@ -144,7 +144,7 @@ const Testimonials = () => {
               style={{ transform: `translateX(-${currentSlide * (100 / mobileSlides) * mobileSlides}%)` }}
             >
               {testimonials.map((testimonial, index) => (
-                <div key={testimonial.id} className="w-full flex-shrink-0 px-2">
+                <div key={testimonial.id || index} className="w-full flex-shrink-0 px-2">
                   <TestimonialCard testimonial={testimonial} />
                 </div>
               ))}
@@ -155,7 +155,7 @@ const Testimonials = () => {
           <div className="flex justify-center mt-8 space-x-2 flex-wrap">
             {testimonials.map((_, index) => (
               <button
-                key={`mobile-dot-${index}`}
+                key={index}
                 onClick={() => setCurrentSlide(index)}
                 className={`w-2 h-2 rounded-full transition-all duration-300 mb-2 ${
                   currentSlide === index 
@@ -178,6 +178,7 @@ const TestimonialCard = ({ testimonial }) => {
   };
 
   const getInitials = (name) => {
+    if (!name) return 'U';
     return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
   };
 
@@ -187,7 +188,7 @@ const TestimonialCard = ({ testimonial }) => {
         <Quote className="h-8 w-8 text-blue-600 mr-3 group-hover:scale-110 transition-transform" />
         <div className="flex">
           {[...Array(testimonial.rating)].map((_, i) => (
-            <Star key={`star-${testimonial.id}-${i}`} className="h-5 w-5 text-yellow-400 fill-current" />
+            <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
           ))}
         </div>
       </div>

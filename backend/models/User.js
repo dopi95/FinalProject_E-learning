@@ -124,24 +124,24 @@ userSchema.pre('save', async function(next) {
 // Generate system ID before saving
 userSchema.pre('save', async function(next) {
   if (this.isNew && (this.role === 'student' || this.role === 'instructor')) {
-    const year = new Date().getFullYear();
+    const year = new Date().getFullYear().toString().slice(-2);
     const prefix = this.role === 'student' ? 'AAU' : 'INS';
     
     // Find the last user with the same role and year
     const lastUser = await this.constructor.findOne({
       role: this.role,
-      systemId: new RegExp(`^${prefix}\\d{4}\\/${year}$`)
+      systemId: new RegExp(`^${prefix}/\\d{4}/${year}$`)
     }).sort({ systemId: -1 });
     
     let nextNumber = 1;
     if (lastUser && lastUser.systemId) {
-      const match = lastUser.systemId.match(new RegExp(`^${prefix}(\\d{4})\\/${year}$`));
+      const match = lastUser.systemId.match(new RegExp(`^${prefix}/(\\d{4})/${year}$`));
       if (match) {
         nextNumber = parseInt(match[1]) + 1;
       }
     }
     
-    this.systemId = `${prefix}${nextNumber.toString().padStart(4, '0')}/${year}`;
+    this.systemId = `${prefix}/${nextNumber.toString().padStart(4, '0')}/${year}`;
   }
   next();
 });
