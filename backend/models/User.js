@@ -52,6 +52,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  systemId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
   program: {
     type: String,
     trim: true
@@ -113,6 +118,31 @@ const userSchema = new mongoose.Schema({
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
+  next();
+});
+
+// Generate system ID before saving
+userSchema.pre('save', async function(next) {
+  if (this.isNew && (this.role === 'student' || this.role === 'instructor')) {
+    const year = new Date().getFullYear();
+    const prefix = this.role === 'student' ? 'AAU' : 'INS';
+    
+    // Find the last user with the same role and year
+    const lastUser = await this.constructor.findOne({
+      role: this.role,
+      systemId: new RegExp(`^${prefix}\\d{4}\\/${year}$`)
+    }).sort({ systemId: -1 });
+    
+    let nextNumber = 1;
+    if (lastUser && lastUser.systemId) {
+      const match = lastUser.systemId.match(new RegExp(`^${prefix}(\\d{4})\\/${year}$`));
+      if (match) {
+        nextNumber = parseInt(match[1]) + 1;
+      }
+    }
+    
+    this.systemId = `${prefix}${nextNumber.toString().padStart(4, '0')}/${year}`;
+  }
   next();
 });
 

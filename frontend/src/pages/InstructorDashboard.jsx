@@ -821,6 +821,15 @@ const InstructorDashboard = () => {
           <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Professional Information</h4>
           <div className="space-y-4">
             <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Instructor ID</label>
+              <input 
+                type="text" 
+                value={profileForm.systemId || ''} 
+                disabled
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 cursor-not-allowed dark:text-white" 
+              />
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Department</label>
               <input 
                 type="text" 
