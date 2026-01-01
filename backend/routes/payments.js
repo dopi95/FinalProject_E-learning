@@ -126,7 +126,7 @@ router.get('/receipt/:payment_id', auth, async (req, res) => {
     const { payment_id } = req.params;
     
     const payment = await Payment.findById(payment_id)
-      .populate('user', 'name email')
+      .populate('user', 'name email systemId')
       .populate('course', 'title instructor')
       .populate({
         path: 'course',
@@ -140,9 +140,17 @@ router.get('/receipt/:payment_id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Payment not found' });
     }
 
-    // Check if user owns this payment
-    if (payment.user._id.toString() !== req.user.id) {
+    // Check if user owns this payment or is admin/superadmin
+    if (payment.user._id.toString() !== req.user.id && 
+        req.user.role !== 'admin' && 
+        req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Generate receipt number if not exists
+    if (!payment.receiptNumber) {
+      payment.receiptNumber = `RCP-${Date.now()}-${payment._id.toString().slice(-6).toUpperCase()}`;
+      await payment.save();
     }
 
     res.json({

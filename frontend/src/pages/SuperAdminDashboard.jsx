@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown } from 'lucide-react';
-import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI } from '../services/api';
+import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 
@@ -45,6 +45,18 @@ const SuperAdminDashboard = () => {
   const [reviews, setReviews] = useState([]);
   const [showReviewDetail, setShowReviewDetail] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
+
+  // Users management state
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showUserDetail, setShowUserDetail] = useState(false);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [selectedRole, setSelectedRole] = useState('all');
+  const [selectedCourseFilter, setSelectedCourseFilter] = useState('all');
+  const [userEnrollments, setUserEnrollments] = useState([]);
+  const [userPayments, setUserPayments] = useState([]);
+  const [userCourses, setUserCourses] = useState([]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -143,6 +155,7 @@ const SuperAdminDashboard = () => {
     fetchCategories();
     fetchContacts();
     fetchReviews();
+    fetchUsers();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -281,6 +294,377 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const handleExport = async (format) => {
+    try {
+      const filteredUsers = users.filter(user => {
+        if (selectedRole !== 'all' && user.role !== selectedRole) return false;
+        return true;
+      });
+
+      const courseName = selectedCourseFilter !== 'all' 
+        ? courses.find(c => c._id === selectedCourseFilter)?.title || 'Unknown Course'
+        : 'All Courses';
+      
+      const fileName = `${selectedRole}s_${courseName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}`;
+
+      if (format === 'pdf') {
+        await exportToPDF(filteredUsers, fileName, courseName);
+      } else {
+        await exportToExcel(filteredUsers, fileName, courseName);
+      }
+    } catch (error) {
+      showNotification('error', 'Export Failed', 'Failed to export data');
+    }
+  };
+
+  const exportToPDF = async (data, fileName, courseName) => {
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF();
+    
+    doc.setFontSize(20);
+    doc.text(`${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}s Report`, 20, 20);
+    doc.setFontSize(12);
+    doc.text(`Course: ${courseName}`, 20, 35);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 45);
+    doc.text(`Total Records: ${data.length}`, 20, 55);
+    
+    let yPos = 70;
+    data.forEach((user, index) => {
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.text(`${index + 1}. ${user.name} - ${user.email} - ${user.systemId || 'N/A'}`, 20, yPos);
+      yPos += 10;
+    });
+    
+    doc.save(`${fileName}.pdf`);
+    showNotification('success', 'Export Complete', 'PDF downloaded successfully');
+  };
+
+  const exportToExcel = async (data, fileName, courseName) => {
+    const XLSX = await import('xlsx');
+    
+    const worksheet = XLSX.utils.json_to_sheet(data.map(user => ({
+      Name: user.name,
+      Email: user.email,
+      [selectedRole === 'student' ? 'Student ID' : 'Instructor ID']: user.systemId || 'N/A',
+      Role: user.role,
+      'Verification Status': user.isVerified ? 'Verified' : 'Pending',
+      'Join Date': new Date(user.createdAt).toLocaleDateString(),
+      Phone: user.phone || 'N/A',
+      City: user.city || 'N/A'
+    })));
+    
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1) + 's');
+    
+    XLSX.writeFile(workbook, `${fileName}.xlsx`);
+    showNotification('success', 'Export Complete', 'Excel file downloaded successfully');
+  };
+
+  const fetchUsers = async () => {
+    try {
+      setUsersLoading(true);
+      const params = {};
+      if (userSearchTerm) params.search = userSearchTerm;
+      if (selectedRole !== 'all') params.role = selectedRole;
+      if (selectedCourseFilter !== 'all') params.course = selectedCourseFilter;
+      
+      const response = await usersAPI.getUsers(params);
+      setUsers(response.data.users);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      showNotification('error', 'Error', 'Failed to fetch users');
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const handleViewUser = async (userId) => {
+    try {
+      setLoading(true);
+      const response = await usersAPI.getUserDetails(userId);
+      setSelectedUser(response.data.user);
+      setUserEnrollments(response.data.enrollments || []);
+      setUserPayments(response.data.payments || []);
+      setUserCourses(response.data.courses || []);
+      setShowUserDetail(true);
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      showNotification('error', 'Error', error.response?.data?.message || 'Failed to fetch user details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+    
+    try {
+      await usersAPI.deleteUser(userId);
+      setUsers(prev => prev.filter(user => user._id !== userId));
+      showNotification('success', 'User Deleted!', 'User has been removed successfully');
+    } catch (error) {
+      showNotification('error', 'Error', error.response?.data?.message || 'Failed to delete user');
+    }
+  };
+
+  const handleViewUserReceipt = async (paymentId) => {
+    try {
+      const response = await paymentAPI.getReceipt(paymentId);
+      const payment = response.data.data;
+      
+      const receiptHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Payment Receipt - ${payment.receiptNumber}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: white; }
+            .receipt { max-width: 800px; margin: 0 auto; background: white; position: relative; }
+            .diagonal-stamp { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 80px; font-weight: bold; color: rgba(34, 197, 94, 0.3); pointer-events: none; z-index: 10; }
+            .payment-stamp { position: absolute; top: 20px; right: 20px; z-index: 20; text-align: center; }
+            .payment-stamp img { width: 40px; height: 40px; object-fit: contain; margin-bottom: 5px; }
+            .payment-stamp p { font-size: 12px; font-weight: bold; color: #374151; text-transform: uppercase; margin: 0; }
+            .header { border-bottom: 2px solid #000; padding: 40px; text-align: center; }
+            .header img { height: 64px; width: auto; margin-bottom: 16px; }
+            .header h1 { font-size: 24px; font-weight: bold; color: #000; margin: 0 0 4px 0; }
+            .header p { color: #374151; margin: 0 0 16px 0; }
+            .receipt-no { text-align: right; font-size: 14px; color: #6b7280; }
+            .body { padding: 40px; }
+            .section { margin-bottom: 40px; }
+            .section h3 { font-size: 18px; font-weight: bold; color: #000; margin-bottom: 16px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+            .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+            .info-row span:first-child { color: #6b7280; }
+            .info-row span:last-child { color: #000; font-weight: 500; }
+            .course-details { background: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 40px; }
+            .course-header { display: flex; justify-content: space-between; align-items: flex-start; }
+            .course-info h4 { font-size: 18px; font-weight: bold; color: #000; margin: 0 0 8px 0; }
+            .course-info p { color: #6b7280; margin: 0 0 8px 0; }
+            .course-price { text-align: right; }
+            .course-price .amount { font-size: 24px; font-weight: bold; color: #000; }
+            .course-price .type { font-size: 14px; color: #6b7280; }
+            .summary { background: #f9fafb; padding: 24px; border-radius: 8px; }
+            .summary-row { display: flex; justify-content: space-between; margin-bottom: 16px; }
+            .summary-row.total { border-top: 1px solid #d1d5db; padding-top: 16px; font-weight: bold; }
+            .summary-row.total .amount { font-size: 24px; }
+            .footer { border-top: 1px solid #d1d5db; padding-top: 40px; margin-top: 40px; text-align: center; font-size: 14px; color: #6b7280; }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            <div class="diagonal-stamp">PAID</div>
+            
+            <div class="payment-stamp">
+              <img src="http://localhost:3000/assets/images/${payment.paymentMethod === 'telebirr' ? 'telebirrlogo.png' : 'cbe.png'}" alt="${payment.paymentMethod}">
+              <p>${payment.paymentMethod === 'telebirr' ? 'Telebirr' : 'CBE'}</p>
+            </div>
+            
+            <div class="header">
+              <img src="http://localhost:3000/assets/images/aaulogo.png" alt="AAU Logo">
+              <h1>AAU E-Learning</h1>
+              <p>Addis Ababa University</p>
+              <div class="receipt-no">Receipt No: ${payment.receiptNumber}</div>
+            </div>
+            
+            <div class="body">
+              <div class="info-grid">
+                <div class="section">
+                  <h3>Student Information</h3>
+                  <div class="info-row">
+                    <span>Name:</span>
+                    <span>${payment.user.name}</span>
+                  </div>
+                  <div class="info-row">
+                    <span>Email:</span>
+                    <span>${payment.user.email}</span>
+                  </div>
+                  <div class="info-row">
+                    <span>Student ID:</span>
+                    <span>${payment.user.systemId || payment.user._id.slice(-8).toUpperCase()}</span>
+                  </div>
+                </div>
+                
+                <div class="section">
+                  <h3>Payment Information</h3>
+                  <div class="info-row">
+                    <span>Date:</span>
+                    <span>${new Date(payment.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <div class="info-row">
+                    <span>Method:</span>
+                    <span style="text-transform: capitalize;">${payment.paymentMethod}</span>
+                  </div>
+                  <div class="info-row">
+                    <span>Transaction ID:</span>
+                    <span>${payment.transactionId}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="section">
+                <h3>Course Details</h3>
+                <div class="course-details">
+                  <div class="course-header">
+                    <div class="course-info">
+                      <h4>${payment.course.title}</h4>
+                      <p>Instructor: ${payment.course.instructor?.name || 'Instructor'}</p>
+                      <p style="font-size: 14px; color: #6b7280;">Certificate of Completion Included</p>
+                    </div>
+                    <div class="course-price">
+                      <div class="amount">${payment.amount} ETB</div>
+                      <div class="type">One-time payment</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="summary">
+                <div class="summary-row">
+                  <span>Subtotal:</span>
+                  <span>${payment.amount} ETB</span>
+                </div>
+                <div class="summary-row">
+                  <span>Tax:</span>
+                  <span>0.00 ETB</span>
+                </div>
+                <div class="summary-row total">
+                  <span style="font-size: 20px;">Total Paid:</span>
+                  <span class="amount">${payment.amount} ETB</span>
+                </div>
+              </div>
+              
+              <div class="footer">
+                <p>Thank you for choosing AAU E-Learning Platform!</p>
+                <p>For support, contact us at support@aau-elearning.edu.et</p>
+                <p style="margin-top: 16px; font-size: 12px;">This is an official receipt generated on ${new Date().toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      const blob = new Blob([receiptHTML], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
+    } catch (error) {
+      console.error('View receipt error:', error);
+      showNotification('error', 'Error', 'Failed to load receipt');
+    }
+  };
+
+  const handleDownloadUserReceipt = async (paymentId) => {
+    try {
+      const response = await paymentAPI.getReceipt(paymentId);
+      const payment = response.data.data;
+      
+      const receiptElement = document.createElement('div');
+      receiptElement.innerHTML = `
+        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background: white; position: relative;">
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 80px; font-weight: bold; color: rgba(34, 197, 94, 0.3); pointer-events: none; z-index: 10;">PAID</div>
+          
+          <div style="position: absolute; top: 20px; right: 20px; z-index: 20; text-align: center;">
+            <img src="http://localhost:3000/assets/images/${payment.paymentMethod === 'telebirr' ? 'telebirrlogo.png' : 'cbe.png'}" alt="${payment.paymentMethod}" style="width: 40px; height: 40px; object-fit: contain; margin-bottom: 5px;">
+            <p style="font-size: 12px; font-weight: bold; color: #374151; text-transform: uppercase; margin: 0;">${payment.paymentMethod === 'telebirr' ? 'Telebirr' : 'CBE'}</p>
+          </div>
+          
+          <div style="border-bottom: 2px solid #000; padding: 40px; text-align: center;">
+            <img src="http://localhost:3000/assets/images/aaulogo.png" alt="AAU Logo" style="height: 64px; width: auto; margin-bottom: 16px;">
+            <h1 style="font-size: 24px; font-weight: bold; color: #000; margin: 0 0 4px 0;">AAU E-Learning</h1>
+            <p style="color: #374151; margin: 0 0 16px 0;">Addis Ababa University</p>
+            <div style="text-align: right; font-size: 14px; color: #6b7280;">Receipt No: ${payment.receiptNumber}</div>
+          </div>
+          
+          <div style="padding: 40px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px;">
+              <div>
+                <h3 style="font-size: 18px; font-weight: bold; color: #000; margin-bottom: 16px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px;">Student Information</h3>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Name:</span><span style="color: #000; font-weight: 500;">${payment.user.name}</span></div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Email:</span><span style="color: #000; font-weight: 500;">${payment.user.email}</span></div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Student ID:</span><span style="color: #000; font-weight: 500;">${payment.user.systemId || payment.user._id.slice(-8).toUpperCase()}</span></div>
+              </div>
+              
+              <div>
+                <h3 style="font-size: 18px; font-weight: bold; color: #000; margin-bottom: 16px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px;">Payment Information</h3>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Date:</span><span style="color: #000; font-weight: 500;">${new Date(payment.createdAt).toLocaleDateString()}</span></div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Method:</span><span style="color: #000; font-weight: 500; text-transform: capitalize;">${payment.paymentMethod}</span></div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Transaction ID:</span><span style="color: #000; font-weight: 500;">${payment.transactionId}</span></div>
+              </div>
+            </div>
+            
+            <div style="margin-bottom: 40px;">
+              <h3 style="font-size: 18px; font-weight: bold; color: #000; margin-bottom: 16px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px;">Course Details</h3>
+              <div style="background: #f9fafb; padding: 24px; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                  <div>
+                    <h4 style="font-size: 18px; font-weight: bold; color: #000; margin: 0 0 8px 0;">${payment.course.title}</h4>
+                    <p style="color: #6b7280; margin: 0 0 8px 0;">Instructor: ${payment.course.instructor?.name || 'Instructor'}</p>
+                    <p style="font-size: 14px; color: #6b7280; margin: 0;">Certificate of Completion Included</p>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="font-size: 24px; font-weight: bold; color: #000;">${payment.amount} ETB</div>
+                    <div style="font-size: 14px; color: #6b7280;">One-time payment</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div style="background: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 40px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 16px;"><span>Subtotal:</span><span>${payment.amount} ETB</span></div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 16px;"><span>Tax:</span><span>0.00 ETB</span></div>
+              <div style="border-top: 1px solid #d1d5db; padding-top: 16px; display: flex; justify-content: space-between; font-weight: bold;">
+                <span style="font-size: 20px;">Total Paid:</span>
+                <span style="font-size: 24px;">${payment.amount} ETB</span>
+              </div>
+            </div>
+            
+            <div style="border-top: 1px solid #d1d5db; padding-top: 40px; text-align: center; font-size: 14px; color: #6b7280;">
+              <p>Thank you for choosing AAU E-Learning Platform!</p>
+              <p>For support, contact us at support@aau-elearning.edu.et</p>
+              <p style="margin-top: 16px; font-size: 12px;">This is an official receipt generated on ${new Date().toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(receiptElement);
+      
+      const opt = {
+        margin: 0.5,
+        filename: `receipt-${payment.receiptNumber}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true, 
+          allowTaint: true,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: 800,
+          windowHeight: 600
+        },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+      
+      const html2pdf = (await import('html2pdf.js')).default;
+      await html2pdf().set(opt).from(receiptElement).save();
+      
+      document.body.removeChild(receiptElement);
+      
+      showNotification('success', 'Downloaded', 'Receipt downloaded as PDF');
+    } catch (error) {
+      console.error('Download receipt error:', error);
+      showNotification('error', 'Error', 'Failed to download receipt');
+    }
+  };
+
   const handleCategoryFormChange = (field, value) => {
     setCategoryForm(prev => ({ ...prev, [field]: value }));
   };
@@ -383,8 +767,8 @@ const SuperAdminDashboard = () => {
   };
 
   useEffect(() => {
-    fetchCourses();
-  }, [searchTerm, selectedCategory]);
+    fetchUsers();
+  }, [userSearchTerm, selectedRole, selectedCourseFilter]);
 
   const handleProfileSave = async () => {
     try {
@@ -444,11 +828,11 @@ const SuperAdminDashboard = () => {
 
   const tabs = [
     { id: 'overview', name: 'System Overview', icon: Crown },
+    { id: 'users', name: 'All Users', icon: Users },
     { id: 'courses', name: 'Course Management', icon: BookOpen },
     { id: 'contacts', name: 'Contact Messages', icon: MessageSquare },
     { id: 'reviews', name: 'Review Management', icon: Star },
     { id: 'admins', name: 'Admin Management', icon: Shield },
-    { id: 'users', name: 'All Users', icon: Users },
     { id: 'system', name: 'System Control', icon: Server },
     { id: 'security', name: 'Security Center', icon: Lock },
     { id: 'database', name: 'Database Management', icon: Database },
@@ -1288,65 +1672,537 @@ const SuperAdminDashboard = () => {
   );
 
   const renderUsers = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">All Users Management</h2>
+    <div className="space-y-4 lg:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">All Users Management</h2>
+        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <Users className="h-4 w-4" />
+          <span>{users.length} users found</span>
+        </div>
+      </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow text-center">
-          <p className="text-2xl font-bold text-blue-600">2,456</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Students</p>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
+          <p className="text-lg lg:text-2xl font-bold text-blue-600">{users.filter(u => u.role === 'student').length}</p>
+          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Students</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow text-center">
-          <p className="text-2xl font-bold text-green-600">89</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Instructors</p>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
+          <p className="text-lg lg:text-2xl font-bold text-green-600">{users.filter(u => u.role === 'instructor').length}</p>
+          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Instructors</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow text-center">
-          <p className="text-2xl font-bold text-purple-600">12</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Admins</p>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
+          <p className="text-lg lg:text-2xl font-bold text-purple-600">{users.filter(u => u.role === 'admin').length}</p>
+          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Admins</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow text-center">
-          <p className="text-2xl font-bold text-orange-600">1</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Super Admin</p>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
+          <p className="text-lg lg:text-2xl font-bold text-orange-600">{users.filter(u => u.role === 'superadmin').length}</p>
+          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Super Admins</p>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex justify-between items-center">
+      {/* Filters */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="relative">
+            <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search all users..."
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700"
+              placeholder="Search by name, email, or ID..."
+              value={userSearchTerm}
+              onChange={(e) => setUserSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
             />
-            <select className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700">
-              <option>All Roles</option>
-              <option>Students</option>
-              <option>Instructors</option>
-              <option>Admins</option>
-              <option>Super Admins</option>
-            </select>
           </div>
-        </div>
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {[1, 2, 3, 4, 5].map((user) => (
-            <div key={user} className="p-6 flex justify-between items-center">
-              <div className="flex items-center">
-                <div className="h-10 w-10 bg-gray-300 dark:bg-gray-600 rounded-full mr-4"></div>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">User {user}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">user{user}@example.com</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Role: {user % 3 === 0 ? 'Admin' : user % 2 === 0 ? 'Instructor' : 'Student'}</p>
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <button className="text-blue-600 hover:text-blue-800">View</button>
-                <button className="text-yellow-600 hover:text-yellow-800">Modify</button>
-                <button className="text-red-600 hover:text-red-800">Delete</button>
-              </div>
+          <select 
+            value={selectedRole}
+            onChange={(e) => setSelectedRole(e.target.value)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+          >
+            <option value="all">All Roles</option>
+            <option value="student">Students</option>
+            <option value="instructor">Instructors</option>
+            <option value="admin">Admins</option>
+            <option value="superadmin">Super Admins</option>
+          </select>
+          {(selectedRole === 'student' || selectedRole === 'instructor') && (
+            <select 
+              value={selectedCourseFilter}
+              onChange={(e) => setSelectedCourseFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+            >
+              <option value="all">All Courses</option>
+              {courses.map((course) => (
+                <option key={course._id} value={course._id}>
+                  {course.title}
+                </option>
+              ))}
+            </select>
+          )}
+          {(selectedRole === 'student' || selectedRole === 'instructor') && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleExport('pdf')}
+                className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium flex items-center gap-2"
+              >
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                PDF
+              </button>
+              <button
+                onClick={() => handleExport('excel')}
+                className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center gap-2"
+              >
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                Excel
+              </button>
             </div>
-          ))}
+          )}
         </div>
       </div>
+
+      {usersLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">User</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Role</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Joined</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {users.map((user) => (
+                    <tr key={user._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-3 overflow-hidden flex-shrink-0">
+                            {user.profileImage ? (
+                              <img src={user.profileImage} alt={user.name} className="h-full w-full object-cover" />
+                            ) : (
+                              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.name}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          user.role === 'superadmin' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' :
+                          user.role === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300' :
+                          user.role === 'instructor' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
+                          'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                        }`}>
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                        {user.systemId || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          user.isVerified ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                          'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
+                        }`}>
+                          {user.isVerified ? 'Verified' : 'Pending'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex space-x-2">
+                          <button 
+                            onClick={() => handleViewUser(user._id)}
+                            className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                            title="View Details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          {user.role !== 'superadmin' && (
+                            <button 
+                              onClick={() => handleDeleteUser(user._id)}
+                              className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                              title="Delete User"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden">
+            {users.length === 0 ? (
+              <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+                <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Users Found</h3>
+                <p className="text-gray-500 dark:text-gray-400">Try adjusting your search or filters.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {users.map((user) => (
+                  <div key={user._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
+                    {/* User Header */}
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="h-12 w-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {user.profileImage ? (
+                          <img src={user.profileImage} alt={user.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                            {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
+                          {user.name}
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                          {user.email}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            user.role === 'superadmin' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' :
+                            user.role === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300' :
+                            user.role === 'instructor' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
+                            'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                          }`}>
+                            {user.role}
+                          </span>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            user.isVerified ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
+                          }`}>
+                            {user.isVerified ? 'Verified' : 'Pending'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(user.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* User ID */}
+                    {user.systemId && (
+                      <div className="mb-3">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          {user.role === 'student' ? 'Student ID' : 
+                           user.role === 'instructor' ? 'Instructor ID' : 'System ID'}
+                        </p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{user.systemId}</p>
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleViewUser(user._id)}
+                        className="flex-1 flex items-center justify-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 py-2 px-3 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                      >
+                        <Eye className="h-4 w-4" />
+                        View Details
+                      </button>
+                      {user.role !== 'superadmin' && (
+                        <button
+                          onClick={() => handleDeleteUser(user._id)}
+                          className="flex-1 flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 py-2 px-3 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm font-medium"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* User Detail Modal */}
+      {showUserDetail && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">User Details</h3>
+                <button
+                  onClick={() => setShowUserDetail(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              {/* User Profile Header */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-20 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
+                    {selectedUser.profileImage ? (
+                      <img src={selectedUser.profileImage} alt={selectedUser.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-2xl font-bold text-gray-600 dark:text-gray-300">
+                        {selectedUser.name?.charAt(0)?.toUpperCase() || 'U'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{selectedUser.name}</h4>
+                    <p className="text-gray-600 dark:text-gray-400 mb-2">{selectedUser.email}</p>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                        selectedUser.role === 'superadmin' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' :
+                        selectedUser.role === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300' :
+                        selectedUser.role === 'instructor' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
+                        'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                      }`}>
+                        {selectedUser.role}
+                      </span>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                        selectedUser.isVerified ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
+                      }`}>
+                        {selectedUser.isVerified ? 'Verified' : 'Pending Verification'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* User Information Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Personal Information */}
+                <div className="bg-white dark:bg-gray-700/50 rounded-xl p-4">
+                  <h5 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Personal Information</h5>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {selectedUser.role === 'student' ? 'Student ID' : 
+                           selectedUser.role === 'instructor' ? 'Instructor ID' : 'System ID'}
+                        </p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.systemId || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Phone</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.phone || 'N/A'}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Date of Birth</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {selectedUser.dateOfBirth ? new Date(selectedUser.dateOfBirth).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">City</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.city || 'N/A'}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Address</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.address || 'N/A'}</p>
+                    </div>
+                    {selectedUser.bio && (
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Bio</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.bio}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Academic/Professional Information */}
+                <div className="bg-white dark:bg-gray-700/50 rounded-xl p-4">
+                  <h5 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    {selectedUser.role === 'student' ? 'Academic Information' : 
+                     selectedUser.role === 'instructor' ? 'Professional Information' : 'System Information'}
+                  </h5>
+                  <div className="space-y-3">
+                    {selectedUser.role === 'student' && (
+                      <>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Program</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.program || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Year of Study</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.yearOfStudy || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Field of Study</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.fieldOfStudy || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Institution</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.institution || 'N/A'}</p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {selectedUser.role === 'instructor' && (
+                      <>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Department</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.department || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Specialization</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.specialization || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Experience</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.experience || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Institution</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.institution || 'N/A'}</p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Joined Date</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {new Date(selectedUser.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Last Updated</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {new Date(selectedUser.updatedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Student Specific Data */}
+              {selectedUser.role === 'student' && (
+                <>
+                  {/* Enrolled Courses */}
+                  {userEnrollments.length > 0 && (
+                    <div className="mb-6">
+                      <h5 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Enrolled Courses ({userEnrollments.length})</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {userEnrollments.map((enrollment) => (
+                          <div key={enrollment._id} className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                            <h6 className="font-medium text-gray-900 dark:text-white mb-1">{enrollment.course.title}</h6>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Instructor: {enrollment.course.instructor?.name}</p>
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-gray-500">Enrolled: {new Date(enrollment.enrollmentDate).toLocaleDateString()}</span>
+                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">{enrollment.status}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Payment History */}
+                  {userPayments.length > 0 && (
+                    <div className="mb-6">
+                      <h5 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Payment History ({userPayments.length})</h5>
+                      <div className="bg-white dark:bg-gray-700/50 rounded-xl overflow-hidden">
+                        <div className="max-h-64 overflow-y-auto">
+                          {userPayments.map((payment) => (
+                            <div key={payment._id} className="p-4 border-b border-gray-200 dark:border-gray-600 last:border-b-0">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-medium text-gray-900 dark:text-white">{payment.course?.title}</p>
+                                  <p className="text-sm text-gray-600 dark:text-gray-400">Receipt: {payment.receiptNumber}</p>
+                                  <p className="text-sm text-gray-600 dark:text-gray-400">{new Date(payment.createdAt).toLocaleDateString()}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold text-gray-900 dark:text-white">{payment.amount} Birr</p>
+                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded capitalize">{payment.paymentMethod}</span>
+                                  <div className="mt-2 flex gap-1">
+                                    <button
+                                      onClick={() => handleViewUserReceipt(payment._id)}
+                                      className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded hover:bg-blue-200"
+                                    >
+                                      View
+                                    </button>
+                                    <button
+                                      onClick={() => handleDownloadUserReceipt(payment._id)}
+                                      className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-200"
+                                    >
+                                      Download
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Instructor Specific Data */}
+              {selectedUser.role === 'instructor' && userCourses.length > 0 && (
+                <div className="mb-6">
+                  <h5 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Teaching Courses ({userCourses.length})</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {userCourses.map((course) => (
+                      <div key={course._id} className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+                        <h6 className="font-medium text-gray-900 dark:text-white mb-1">{course.title}</h6>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{course.description}</p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-gray-500">Students: {course.students?.length || 0}</span>
+                          <span className="text-xs text-gray-500">Price: {course.price} Birr</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -1727,7 +2583,10 @@ const SuperAdminDashboard = () => {
           <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Administrative Information</h4>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">System ID</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {user?.role === 'student' ? 'Student ID' : 
+                 user?.role === 'instructor' ? 'Instructor ID' : 'System ID'}
+              </label>
               <input 
                 type="text" 
                 value={profileForm.systemId || ''} 

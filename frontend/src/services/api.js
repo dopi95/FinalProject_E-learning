@@ -183,4 +183,16 @@ export const enrollmentAPI = {
   checkEnrollment: (courseId) => api.get(`/enrollments/check/${courseId}`),
 };
 
+// Users API functions
+export const usersAPI = {
+  // Get all users with filtering
+  getUsers: (params = {}) => api.get('/users', { params }),
+  
+  // Get user details
+  getUserDetails: (id) => api.get(`/users/${id}`),
+  
+  // Delete user
+  deleteUser: (id) => api.delete(`/users/${id}`),
+};
+
 export default api;
