@@ -104,6 +104,20 @@ router.post('/verify/:tx_ref', auth, async (req, res) => {
       await Course.findByIdAndUpdate(payment.course._id, {
         $addToSet: { students: payment.user._id }
       });
+      
+      // Send enrollment confirmation email
+      try {
+        const emailService = require('../utils/emailService');
+        await emailService.sendEnrollmentConfirmationEmail(
+          payment.user.email,
+          payment.user.name,
+          payment.course.title,
+          payment.course.instructor.name
+        );
+      } catch (emailError) {
+        console.error('Enrollment email error:', emailError);
+        // Don't fail enrollment if email fails
+      }
     }
 
     res.json({

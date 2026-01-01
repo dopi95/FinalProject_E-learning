@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe } from 'lucide-react';
-import { profileAPI, courseAPI, instructorAPI } from '../services/api';
+import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, BellOff, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe } from 'lucide-react';
+import { profileAPI, courseAPI, instructorAPI, subscriptionAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 import { useTranslation } from 'react-i18next';
@@ -20,6 +20,8 @@ const InstructorDashboard = () => {
   const [gradeFields, setGradeFields] = useState([{ name: '', mark: '' }]);
   const [gradeLetter, setGradeLetter] = useState('');
   const [selectedStudentCourse, setSelectedStudentCourse] = useState(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [showSubscribeMenu, setShowSubscribeMenu] = useState(false);
 
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courses, setCourses] = useState([]);
@@ -118,7 +120,40 @@ const InstructorDashboard = () => {
     fetchUserProfile();
     fetchInstructorCourses();
     fetchInstructorStudents();
+    if (userData) {
+      fetchSubscriptionStatus();
+    }
   }, []);
+
+  const fetchSubscriptionStatus = async () => {
+    try {
+      const response = await subscriptionAPI.getStatus();
+      setIsSubscribed(response.data.isSubscribed);
+    } catch (error) {
+      console.error('Error fetching subscription status:', error);
+    }
+  };
+
+  const toggleSubscription = async () => {
+    try {
+      setLoading(true);
+      if (isSubscribed) {
+        await subscriptionAPI.unsubscribe(user.email);
+        setIsSubscribed(false);
+        showNotification('success', 'Unsubscribed!', 'You have been unsubscribed from email notifications');
+      } else {
+        await subscriptionAPI.subscribe(user.email);
+        setIsSubscribed(true);
+        showNotification('success', 'Subscribed!', 'You will now receive email notifications');
+      }
+      setShowSubscribeMenu(false);
+    } catch (error) {
+      console.error('Subscription error:', error);
+      showNotification('error', 'Error', error.response?.data?.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchInstructorStudents = async () => {
     try {
@@ -1604,14 +1639,6 @@ const InstructorDashboard = () => {
       <div className={`fixed inset-y-0 left-0 z-50 w-64 lg:w-72 bg-white dark:bg-gray-800 shadow-2xl border-r border-gray-200 dark:border-gray-700 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 ease-in-out lg:translate-x-0 lg:fixed lg:inset-y-0 flex flex-col overflow-hidden`}>
         {/* Logo/Title */}
         <div className="flex items-center justify-between h-16 lg:h-20 px-4 lg:px-6 bg-gradient-to-r from-blue-600 to-indigo-600 border-b border-blue-500 flex-shrink-0">
-          {/* Language Toggle */}
-          <button
-            onClick={() => i18n.changeLanguage(i18n.language === 'en' ? 'am' : 'en')}
-            className="lg:hidden text-white/80 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-1"
-          >
-            <Globe className="h-4 w-4" />
-            <span className="text-xs font-medium">{i18n.language === 'en' ? 'አማ' : 'EN'}</span>
-          </button>
           <button 
             onClick={() => setActiveTab('profile')}
             className="flex items-center hover:bg-white/10 rounded-lg p-2 transition-colors cursor-pointer w-full"
@@ -1680,14 +1707,34 @@ const InstructorDashboard = () => {
             
             {/* Additional Navigation Items */}
             <div className="mt-6 lg:mt-100 pt-3 lg:pt-4">
-              {/* Language Toggle for Desktop */}
-              <button
-                onClick={() => i18n.changeLanguage(i18n.language === 'en' ? 'am' : 'en')}
-                className="hidden lg:flex w-full items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all duration-200 mb-1"
-              >
-                <Globe className="h-4 w-4 mr-2 lg:mr-3 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                <span className="font-medium truncate">{i18n.language === 'en' ? 'Switch to Amharic' : 'Switch to English'}</span>
-              </button>
+              {/* Email Subscription Bell - Desktop */}
+              <div className="relative mb-1">
+                <button
+                  onClick={() => setShowSubscribeMenu(!showSubscribeMenu)}
+                  className="w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all duration-200"
+                >
+                  {isSubscribed ? (
+                    <Bell className="h-4 w-4 mr-2 lg:mr-3 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                  ) : (
+                    <BellOff className="h-4 w-4 mr-2 lg:mr-3 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                  )}
+                  <span className="font-medium truncate">{isSubscribed ? 'Subscribed' : 'Subscribe'}</span>
+                  {isSubscribed && (
+                    <div className="ml-auto w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                  )}
+                </button>
+                {showSubscribeMenu && (
+                  <div className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 z-50">
+                    <button
+                      onClick={toggleSubscription}
+                      disabled={loading}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded whitespace-nowrap disabled:opacity-50"
+                    >
+                      {loading ? 'Loading...' : (isSubscribed ? 'Unsubscribe' : 'Subscribe')}
+                    </button>
+                  </div>
+                )}
+              </div>
               <button
                 onClick={handleBackToWebsite}
                 className="w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all duration-200"
@@ -1724,6 +1771,13 @@ const InstructorDashboard = () => {
           {renderContent()}
         </div>
       </div>
+      {/* Click outside to close subscription menu */}
+      {showSubscribeMenu && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowSubscribeMenu(false)}
+        ></div>
+      )}
     </div>
   );
 };

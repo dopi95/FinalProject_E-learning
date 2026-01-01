@@ -85,6 +85,60 @@ class EmailService {
     }
     return results;
   }
+
+  async sendCourseCreatedEmail(email, courseName, instructorName) {
+    const subject = 'New Course Available - AAU E-Learning';
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">New Course Available!</h2>
+        <p>Hello,</p>
+        <p>We're excited to announce a new course has been added to AAU E-Learning:</p>
+        <div style="background-color: #f4f4f4; padding: 20px; margin: 20px 0; border-left: 4px solid #007bff;">
+          <h3 style="color: #007bff; margin: 0 0 10px 0;">${courseName}</h3>
+          <p style="margin: 0; color: #666;">Instructor: ${instructorName}</p>
+        </div>
+        <p>Visit our platform to learn more and enroll in this exciting new course!</p>
+        <p>Best regards,<br>AAU E-Learning Team</p>
+      </div>
+    `;
+    return await this.sendEmail(email, subject, htmlContent);
+  }
+
+  async sendInstructorAssignmentEmail(email, courseName, instructorName) {
+    const subject = 'Course Assignment - AAU E-Learning';
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Course Assignment Notification</h2>
+        <p>Hello ${instructorName},</p>
+        <p>You have been assigned as the instructor for a new course:</p>
+        <div style="background-color: #f4f4f4; padding: 20px; margin: 20px 0; border-left: 4px solid #28a745;">
+          <h3 style="color: #28a745; margin: 0 0 10px 0;">${courseName}</h3>
+          <p style="margin: 0; color: #666;">You are now the assigned instructor for this course.</p>
+        </div>
+        <p>Please log in to your instructor dashboard to manage this course.</p>
+        <p>Best regards,<br>AAU E-Learning Team</p>
+      </div>
+    `;
+    return await this.sendEmail(email, subject, htmlContent);
+  }
+
+  async sendEnrollmentConfirmationEmail(email, studentName, courseName, instructorName) {
+    const subject = 'Course Enrollment Confirmation - AAU E-Learning';
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Enrollment Confirmation</h2>
+        <p>Hello ${studentName},</p>
+        <p>Congratulations! You have successfully enrolled in:</p>
+        <div style="background-color: #f4f4f4; padding: 20px; margin: 20px 0; border-left: 4px solid #007bff;">
+          <h3 style="color: #007bff; margin: 0 0 10px 0;">${courseName}</h3>
+          <p style="margin: 0; color: #666;">Instructor: ${instructorName}</p>
+        </div>
+        <p>You can now access your course materials and start learning!</p>
+        <p>Best regards,<br>AAU E-Learning Team</p>
+      </div>
+    `;
+    return await this.sendEmail(email, subject, htmlContent);
+  }
 }
 
 module.exports = new EmailService();

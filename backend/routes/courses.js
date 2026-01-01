@@ -142,6 +142,40 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
     const populatedCourse = await Course.findById(course._id)
       .populate('instructor', 'name email profileImage');
     
+    // Send notifications
+    try {
+      const emailService = require('../utils/emailService');
+      const Subscription = require('../models/Subscription');
+      
+      // Get all subscribers
+      const subscriptions = await Subscription.find({ isActive: true });
+      const subscriberEmails = subscriptions.map(sub => sub.email);
+      
+      // Send course creation notification to all subscribers
+      if (subscriberEmails.length > 0) {
+        for (const email of subscriberEmails) {
+          await emailService.sendCourseCreatedEmail(
+            email, 
+            populatedCourse.title, 
+            populatedCourse.instructor.name
+          );
+        }
+      }
+      
+      // Send instructor assignment notification if instructor is subscribed
+      const instructorSubscription = subscriptions.find(sub => sub.email === populatedCourse.instructor.email);
+      if (instructorSubscription) {
+        await emailService.sendInstructorAssignmentEmail(
+          populatedCourse.instructor.email,
+          populatedCourse.title,
+          populatedCourse.instructor.name
+        );
+      }
+    } catch (emailError) {
+      console.error('Email notification error:', emailError);
+      // Don't fail course creation if email fails
+    }
+    
     res.status(201).json({ course: populatedCourse });
   } catch (error) {
     res.status(400).json({ message: error.message });
