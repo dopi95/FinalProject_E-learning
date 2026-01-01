@@ -18,6 +18,7 @@ const CourseDetail = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const [modalActionType, setModalActionType] = useState('subscribe');
   const [user, setUser] = useState(null);
   const [course, setCourse] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -90,7 +91,8 @@ const CourseDetail = () => {
 
   const handleStarLike = async (courseId) => {
     if (!isLoggedIn) {
-      setModalMessage('Please login to star courses');
+      setModalMessage('Please login or create an account to like courses.');
+      setModalActionType('like');
       setShowLoginModal(true);
       return;
     }
@@ -116,7 +118,8 @@ const CourseDetail = () => {
     console.log('Course ID:', course?._id); // Debug log
     
     if (!isLoggedIn) {
-      setModalMessage('Please login to enroll in courses');
+      setModalMessage('Please login or create an account to enroll in this course.');
+      setModalActionType('enroll');
       setShowLoginModal(true);
       return;
     }
@@ -289,7 +292,9 @@ const CourseDetail = () => {
                       isEnrolled 
                         ? 'bg-green-600 hover:bg-green-700 text-white'
                         : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                    } ${enrollmentLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    } ${enrollmentLoading ? 'opacity-50 cursor-not-allowed' : ''} ${
+                      user?.role === 'instructor' || user?.role === 'superadmin' ? 'hidden' : ''
+                    }`}
                   >
                     {enrollmentLoading ? (
                       <div className="flex items-center justify-center">
@@ -356,6 +361,7 @@ const CourseDetail = () => {
         isVisible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
         message={modalMessage}
+        actionType={modalActionType}
       />
       
       {/* Role Based Modal */}

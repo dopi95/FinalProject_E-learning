@@ -16,9 +16,10 @@ router.post('/subscribe', auth, async (req, res) => {
       if (existingSubscription.isActive) {
         return res.status(400).json({ message: 'Already subscribed' });
       } else {
-        // Reactivate subscription
+        // Reactivate subscription with new date
         existingSubscription.isActive = true;
         existingSubscription.user = userId;
+        existingSubscription.subscribedAt = new Date();
         await existingSubscription.save();
         return res.json({ message: 'Subscription reactivated successfully' });
       }

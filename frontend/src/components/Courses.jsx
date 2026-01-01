@@ -13,6 +13,7 @@ const Courses = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const [modalActionType, setModalActionType] = useState('subscribe');
   const [user, setUser] = useState(null);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +62,8 @@ const Courses = () => {
 
   const handleStarLike = async (courseId) => {
     if (!isLoggedIn) {
-      setModalMessage('Please login to star courses');
+      setModalMessage('Please login or create an account to like courses.');
+      setModalActionType('like');
       setShowLoginModal(true);
       return;
     }
@@ -89,7 +91,8 @@ const Courses = () => {
 
   const handleEnroll = () => {
     if (!isLoggedIn) {
-      setModalMessage('Please login to enroll in courses');
+      setModalMessage('Please login or create an account to enroll in courses.');
+      setModalActionType('enroll');
       setShowLoginModal(true);
       return;
     }
@@ -263,15 +266,17 @@ const Courses = () => {
                     </div>
                   </div>
                   <div className="flex gap-3 mt-auto">
-                    <button 
-                      onClick={handleEnroll}
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-                    >
-                      {t('courses.enrollNow')}
-                    </button>
+                    {user?.role !== 'instructor' && user?.role !== 'superadmin' && (
+                      <button 
+                        onClick={handleEnroll}
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                      >
+                        {t('courses.enrollNow')}
+                      </button>
+                    )}
                     <Link
                       to={`/course/${course._id}`}
-                      className="flex-1 border-2 border-blue-600 text-blue-600 dark:text-blue-400 py-3 px-4 rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold text-center flex items-center justify-center"
+                      className={`${user?.role === 'instructor' || user?.role === 'superadmin' ? 'flex-1' : 'flex-1'} border-2 border-blue-600 text-blue-600 dark:text-blue-400 py-3 px-4 rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold text-center flex items-center justify-center`}
                     >
                       {t('courses.viewDetails')}
                     </Link>
@@ -288,6 +293,7 @@ const Courses = () => {
         isVisible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
         message={modalMessage}
+        actionType={modalActionType}
       />
       
       {/* Role Based Modal */}

@@ -218,6 +218,8 @@ const resources = {
         title: 'Login Required',
         message: 'Please login or create an account to subscribe to our newsletter and receive updates about new courses and announcements.',
         loginToSubscribe: 'Login to Subscribe',
+        loginToEnroll: 'Login to Enroll',
+        loginToLike: 'Login to Like',
         createAccount: 'Create Account'
       },
       register: {
@@ -492,6 +494,8 @@ const resources = {
         title: 'መግባት ያስፍልጋል',
         message: 'የመገናንያ መጠን መመዝገብ እና ስል አዲስ ኮርሶች እና ማስታወቂያዎች አድመት ለማገኘት እባክዎ ይግቡ ወይም መለያ ይፍጠሩ።',
         loginToSubscribe: 'ለመመዝገብ ይግቡ',
+        loginToEnroll: 'ለመመዝገብ ይግቡ',
+        loginToLike: 'ለማወድ ይግቡ',
         createAccount: 'መለያ ፍጠር'
       },
       register: {
