@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown, Heart, Download } from 'lucide-react';
+import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown, Heart, Download, Calendar, Clock, MapPin, Save } from 'lucide-react';
 import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import SubscriptionManagement from '../components/SubscriptionManagement';
@@ -59,6 +59,30 @@ const SuperAdminDashboard = () => {
   const [userPayments, setUserPayments] = useState([]);
   const [userCourses, setUserCourses] = useState([]);
   const [totalPayments, setTotalPayments] = useState(0);
+
+  // Schedule management state
+  const [selectedCourseForSchedule, setSelectedCourseForSchedule] = useState(null);
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [schedules, setSchedules] = useState([]);
+  const [scheduleForm, setScheduleForm] = useState({
+    title: '',
+    description: '',
+    date: '',
+    startTime: '',
+    endTime: '',
+    location: '',
+    type: 'lecture'
+  });
+
+  // Settings state
+  const [platformSettings, setPlatformSettings] = useState({
+    platformName: 'AAU E-Learning Platform',
+    systemEmail: 'system@aau.edu.et',
+    maxUploadSize: '500',
+    maintenanceMode: false,
+    autoBackup: true,
+    debugMode: false
+  });
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -883,6 +907,46 @@ const SuperAdminDashboard = () => {
     setPasswordForm(prev => ({ ...prev, [field]: value }));
   };
 
+  // Schedule management functions
+  const handleScheduleFormChange = (field, value) => {
+    setScheduleForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCreateSchedule = () => {
+    if (!selectedCourseForSchedule || !scheduleForm.title || !scheduleForm.date || !scheduleForm.startTime || !scheduleForm.endTime) {
+      showNotification('error', 'Error', 'Please fill all required fields');
+      return;
+    }
+
+    const newSchedule = {
+      id: Date.now(),
+      courseId: selectedCourseForSchedule._id,
+      courseTitle: selectedCourseForSchedule.title,
+      ...scheduleForm,
+      createdAt: new Date().toISOString()
+    };
+
+    setSchedules(prev => [...prev, newSchedule]);
+    setScheduleForm({ title: '', description: '', date: '', startTime: '', endTime: '', location: '', type: 'lecture' });
+    setShowScheduleForm(false);
+    showNotification('success', 'Schedule Created!', 'Schedule has been successfully created');
+  };
+
+  const handleDeleteSchedule = (scheduleId) => {
+    if (!window.confirm('Are you sure you want to delete this schedule?')) return;
+    setSchedules(prev => prev.filter(s => s.id !== scheduleId));
+    showNotification('success', 'Schedule Deleted!', 'Schedule has been removed successfully');
+  };
+
+  // Settings functions
+  const handleSettingsChange = (field, value) => {
+    setPlatformSettings(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveSettings = () => {
+    showNotification('success', 'Settings Saved!', 'Platform settings have been updated successfully');
+  };
+
   // Generate initials from user name
   const getInitials = (name) => {
     if (!name) return 'SA';
@@ -902,6 +966,7 @@ const SuperAdminDashboard = () => {
     { id: 'overview', name: 'System Overview', icon: Crown },
     { id: 'users', name: 'All Users', icon: Users },
     { id: 'courses', name: 'Course Management', icon: BookOpen },
+    { id: 'schedules', name: 'Assign Schedule', icon: Calendar },
     { id: 'contacts', name: 'Contact Messages', icon: MessageSquare },
     { id: 'reviews', name: 'Review Management', icon: Star },
     { id: 'subscriptions', name: 'Email Subscriptions', icon: Mail },
@@ -929,7 +994,7 @@ const SuperAdminDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Users</p>
-              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">2,847</p>
+              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{users.length || 0}</p>
               <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">All platform users</p>
             </div>
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl">
@@ -942,7 +1007,7 @@ const SuperAdminDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Active Admins</p>
-              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">12</p>
+              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{users.filter(u => u.role === 'admin' || u.role === 'superadmin').length || 0}</p>
               <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">System administrators</p>
             </div>
             <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-xl">
@@ -954,12 +1019,12 @@ const SuperAdminDashboard = () => {
         <div className="bg-white dark:bg-gray-800 p-4 lg:p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 transform hover:scale-105 transition-all duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">System Uptime</p>
-              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">99.9%</p>
-              <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Server availability</p>
+              <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Instructors</p>
+              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{users.filter(u => u.role === 'instructor').length || 0}</p>
+              <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Course instructors</p>
             </div>
             <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-xl">
-              <Server className="h-6 w-6 lg:h-8 lg:w-8 text-green-600" />
+              <BookOpen className="h-6 w-6 lg:h-8 lg:w-8 text-green-600" />
             </div>
           </div>
         </div>
@@ -967,67 +1032,18 @@ const SuperAdminDashboard = () => {
         <div className="bg-white dark:bg-gray-800 p-4 lg:p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 transform hover:scale-105 transition-all duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Active Sessions</p>
-              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">1,234</p>
-              <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Current users online</p>
+              <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Students</p>
+              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{users.filter(u => u.role === 'student').length || 0}</p>
+              <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Enrolled students</p>
             </div>
             <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-xl">
-              <Activity className="h-6 w-6 lg:h-8 lg:w-8 text-orange-600" />
+              <User className="h-6 w-6 lg:h-8 lg:w-8 text-orange-600" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* System Health */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
-        <div className="flex items-center mb-4 lg:mb-6">
-          <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-lg mr-3">
-            <Activity className="h-5 w-5 lg:h-6 lg:w-6 text-green-600" />
-          </div>
-          <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">System Health</h3>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border-l-4 border-green-500">
-            <div className="flex-1">
-              <h4 className="font-semibold text-gray-900 dark:text-white text-sm lg:text-base">API Server</h4>
-              <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">Response time: 45ms</p>
-            </div>
-            <span className="px-2 lg:px-3 py-1 bg-green-500 text-white text-xs rounded-full font-medium">
-              Healthy
-            </span>
-          </div>
-          
-          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-l-4 border-blue-500">
-            <div className="flex-1">
-              <h4 className="font-semibold text-gray-900 dark:text-white text-sm lg:text-base">Database</h4>
-              <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">Connections: 8/20</p>
-            </div>
-            <span className="px-2 lg:px-3 py-1 bg-blue-500 text-white text-xs rounded-full font-medium">
-              Connected
-            </span>
-          </div>
 
-          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border-l-4 border-purple-500">
-            <div className="flex-1">
-              <h4 className="font-semibold text-gray-900 dark:text-white text-sm lg:text-base">File Storage</h4>
-              <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">Usage: 2.3GB/10GB</p>
-            </div>
-            <span className="px-2 lg:px-3 py-1 bg-purple-500 text-white text-xs rounded-full font-medium">
-              Available
-            </span>
-          </div>
-
-          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl border-l-4 border-yellow-500">
-            <div className="flex-1">
-              <h4 className="font-semibold text-gray-900 dark:text-white text-sm lg:text-base">Email Service</h4>
-              <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">Queue: 23 pending</p>
-            </div>
-            <span className="px-2 lg:px-3 py-1 bg-yellow-500 text-white text-xs rounded-full font-medium">
-              Warning
-            </span>
-          </div>
-        </div>
-      </div>
 
       {/* Quick Actions */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
@@ -1055,19 +1071,19 @@ const SuperAdminDashboard = () => {
           </button>
           
           <button 
-            onClick={() => setActiveTab('system')}
+            onClick={() => setActiveTab('courses')}
             className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30 transition-all duration-200 group border border-green-200 dark:border-green-700"
           >
-            <Server className="h-6 w-6 lg:h-8 lg:w-8 text-green-600 mb-2 group-hover:scale-110 transition-transform" />
-            <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">System Control</span>
+            <BookOpen className="h-6 w-6 lg:h-8 lg:w-8 text-green-600 mb-2 group-hover:scale-110 transition-transform" />
+            <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Manage Courses</span>
           </button>
           
           <button 
-            onClick={() => setActiveTab('security')}
-            className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-xl hover:from-red-100 hover:to-orange-100 dark:hover:from-red-900/30 dark:hover:to-orange-900/30 transition-all duration-200 group border border-red-200 dark:border-red-700"
+            onClick={() => setActiveTab('contacts')}
+            className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl hover:from-orange-100 hover:to-red-100 dark:hover:from-orange-900/30 dark:hover:to-red-900/30 transition-all duration-200 group border border-orange-200 dark:border-orange-700"
           >
-            <Lock className="h-6 w-6 lg:h-8 lg:w-8 text-red-600 mb-2 group-hover:scale-110 transition-transform" />
-            <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Security Center</span>
+            <MessageSquare className="h-6 w-6 lg:h-8 lg:w-8 text-orange-600 mb-2 group-hover:scale-110 transition-transform" />
+            <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Manage Contacts</span>
           </button>
         </div>
       </div>
@@ -1084,24 +1100,32 @@ const SuperAdminDashboard = () => {
           <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-l-4 border-blue-500">
             <Shield className="h-5 w-5 text-blue-600 mr-3" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">New admin created</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Admin John Doe was granted access • 2 hours ago</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-xl border-l-4 border-red-500">
-            <AlertTriangle className="h-5 w-5 text-red-600 mr-3" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Security alert</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Multiple failed login attempts detected • 4 hours ago</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">New admin account created</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Admin {user?.name || 'John Doe'} was granted system access • 2 hours ago</p>
             </div>
           </div>
           
           <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border-l-4 border-green-500">
-            <Database className="h-5 w-5 text-green-600 mr-3" />
+            <Users className="h-5 w-5 text-green-600 mr-3" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Database backup completed</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Automated backup successful • 6 hours ago</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">User management update</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{users.filter(u => u.role === 'student').length} students and {users.filter(u => u.role === 'instructor').length} instructors active • 4 hours ago</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border-l-4 border-purple-500">
+            <BookOpen className="h-5 w-5 text-purple-600 mr-3" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Course management activity</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{courses.length} courses managed, {instructors.length} instructors assigned • 6 hours ago</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl border-l-4 border-orange-500">
+            <MessageSquare className="h-5 w-5 text-orange-600 mr-3" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Contact messages reviewed</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{contacts.filter(c => c.status === 'pending').length} pending messages, {contacts.filter(c => c.status === 'replied').length} replied • 8 hours ago</p>
             </div>
           </div>
         </div>
@@ -1758,43 +1782,241 @@ const SuperAdminDashboard = () => {
       )}
     </div>
   );
+  const renderSchedules = () => (
+    <div className="space-y-4 lg:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Assign Schedule</h2>
+        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <Calendar className="h-4 w-4" />
+          <span>{schedules.length} schedules created</span>
+        </div>
+      </div>
+
+      {!selectedCourseForSchedule ? (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Select Course to Assign Schedule</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {courses.map((course) => (
+              <div key={course._id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedCourseForSchedule(course)}>
+                <img src={course.image} alt={course.title} className="w-full h-32 object-cover rounded-lg mb-3" />
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{course.title}</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Instructor: {course.instructor?.name}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-500">Students: {course.studentCount || 0}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Selected Course Header */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <img src={selectedCourseForSchedule.image} alt={selectedCourseForSchedule.title} className="w-16 h-16 object-cover rounded-lg" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{selectedCourseForSchedule.title}</h3>
+                  <p className="text-gray-600 dark:text-gray-400">Instructor: {selectedCourseForSchedule.instructor?.name}</p>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button onClick={() => setShowScheduleForm(true)} className="w-full sm:w-auto bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 text-sm font-medium">
+                  <Plus className="h-4 w-4" /> Add Schedule
+                </button>
+                <button onClick={() => setSelectedCourseForSchedule(null)} className="w-full sm:w-auto bg-gray-500 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-600 text-sm font-medium">
+                  Back to Courses
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Course Schedules */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Course Schedules</h4>
+            {schedules.filter(s => s.courseId === selectedCourseForSchedule._id).length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">No schedules created yet. Click "Add Schedule" to create one.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {schedules.filter(s => s.courseId === selectedCourseForSchedule._id).map((schedule) => (
+                  <div key={schedule.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h5 className="font-semibold text-gray-900 dark:text-white">{schedule.title}</h5>
+                        <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${
+                          schedule.type === 'lecture' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
+                          schedule.type === 'exam' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' :
+                          'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                        }`}>
+                          {schedule.type}
+                        </span>
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={() => {
+                          setScheduleForm(schedule);
+                          setShowScheduleForm(true);
+                        }} className="text-green-600 hover:text-green-800 p-1">
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => handleDeleteSchedule(schedule.id)} className="text-red-600 hover:text-red-800 p-1">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <span>{new Date(schedule.date).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        <span>{schedule.startTime} - {schedule.endTime}</span>
+                      </div>
+                      {schedule.location && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          <span>{schedule.location}</span>
+                        </div>
+                      )}
+                      {schedule.description && (
+                        <p className="text-gray-700 dark:text-gray-300 mt-2">{schedule.description}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Form Modal */}
+      {showScheduleForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto">
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Create Schedule</h3>
+                <button onClick={() => setShowScheduleForm(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1">
+                  <X className="h-5 w-5 sm:h-6 sm:w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Schedule Title *</label>
+                  <input type="text" value={scheduleForm.title} onChange={(e) => handleScheduleFormChange('title', e.target.value)} className="w-full px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base" placeholder="e.g., Week 1 Lecture" />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
+                  <select value={scheduleForm.type} onChange={(e) => handleScheduleFormChange('type', e.target.value)} className="w-full px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base">
+                    <option value="lecture">Lecture</option>
+                    <option value="exam">Exam</option>
+                    <option value="assignment">Assignment</option>
+                  </select>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date *</label>
+                    <input type="date" value={scheduleForm.date} onChange={(e) => handleScheduleFormChange('date', e.target.value)} className="w-full px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Time *</label>
+                      <input type="time" value={scheduleForm.startTime} onChange={(e) => handleScheduleFormChange('startTime', e.target.value)} className="w-full px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Time *</label>
+                      <input type="time" value={scheduleForm.endTime} onChange={(e) => handleScheduleFormChange('endTime', e.target.value)} className="w-full px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Location</label>
+                  <input type="text" value={scheduleForm.location} onChange={(e) => handleScheduleFormChange('location', e.target.value)} className="w-full px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base" placeholder="e.g., Room 101, Online" />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                  <textarea rows="3" value={scheduleForm.description} onChange={(e) => handleScheduleFormChange('description', e.target.value)} className="w-full px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base resize-none" placeholder="Additional details about this schedule..." />
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                <button onClick={handleCreateSchedule} className="w-full sm:flex-1 bg-blue-600 text-white py-3 sm:py-2 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 text-sm sm:text-base font-medium">
+                  <Save className="h-4 w-4" /> Create Schedule
+                </button>
+                <button onClick={() => setShowScheduleForm(false)} className="w-full sm:flex-1 bg-gray-500 text-white py-3 sm:py-2 px-4 rounded-lg hover:bg-gray-600 text-sm sm:text-base font-medium">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   const renderAdmins = () => (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Management</h2>
-        <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
-          Create Admin
+        <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2">
+          <Plus className="h-4 w-4" /> Create Admin
         </button>
       </div>
       
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
         <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {[1, 2, 3, 4, 5].map((admin) => (
-            <div key={admin} className="p-6 flex justify-between items-center">
+          {users.filter(u => u.role === 'admin' || u.role === 'superadmin').map((admin, index) => (
+            <div key={admin._id} className="p-6 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
               <div className="flex items-center">
-                <div className="h-10 w-10 bg-purple-100 dark:bg-purple-900/20 rounded-full mr-4 flex items-center justify-center">
-                  <Shield className="h-5 w-5 text-purple-600" />
+                <div className="h-12 w-12 bg-purple-100 dark:bg-purple-900/20 rounded-full mr-4 flex items-center justify-center overflow-hidden">
+                  {admin.profileImage ? (
+                    <img src={admin.profileImage} alt={admin.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <Shield className="h-6 w-6 text-purple-600" />
+                  )}
                 </div>
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">Admin {admin}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">admin{admin}@aau.edu</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Last active: 2 hours ago</p>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">{admin.name}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{admin.email}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Role: {admin.role} • Joined: {new Date(admin.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
               <div className="flex space-x-2">
-                <button className="text-blue-600 hover:text-blue-800">Edit</button>
-                <button className="text-red-600 hover:text-red-800">Revoke</button>
-                <button className="text-green-600 hover:text-green-800">Permissions</button>
+                <button onClick={() => handleViewUser(admin._id)} className="text-blue-600 hover:text-blue-800 px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                  View
+                </button>
+                <button className="text-green-600 hover:text-green-800 px-3 py-1 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                  Permissions
+                </button>
+                {admin.role !== 'superadmin' && (
+                  <button onClick={() => handleDeleteUser(admin._id)} className="text-red-600 hover:text-red-800 px-3 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                    Revoke
+                  </button>
+                )}
               </div>
             </div>
           ))}
+          {users.filter(u => u.role === 'admin' || u.role === 'superadmin').length === 0 && (
+            <div className="p-12 text-center">
+              <Shield className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Admins Found</h3>
+              <p className="text-gray-500 dark:text-gray-400">Create your first admin account to get started.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 
   const renderUsers = () => (
-    <div className="space-y-4 lg:space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">All Users Management</h2>
         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
@@ -2379,41 +2601,98 @@ const SuperAdminDashboard = () => {
 
   const renderSettings = () => (
     <div className="space-y-6">
-      <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Global Settings</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Global Settings</h2>
+        <button onClick={handleSaveSettings} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">
+          <Save className="h-4 w-4" /> Save Settings
+        </button>
+      </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 lg:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
           <h3 className="text-base lg:text-lg font-semibold mb-4 text-gray-900 dark:text-white">Platform Configuration</h3>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Platform Name</label>
-              <input type="text" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700" defaultValue="AAU E-Learning Platform" />
+              <input type="text" value={platformSettings.platformName} onChange={(e) => handleSettingsChange('platformName', e.target.value)} className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">System Email</label>
-              <input type="email" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700" defaultValue="system@aau.edu" />
+              <input type="email" value={platformSettings.systemEmail} onChange={(e) => handleSettingsChange('systemEmail', e.target.value)} className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Upload Size (MB)</label>
-              <input type="number" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700" defaultValue="500" />
+              <input type="number" value={platformSettings.maxUploadSize} onChange={(e) => handleSettingsChange('maxUploadSize', e.target.value)} className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Support Contact</label>
+              <input type="email" defaultValue="support@aau-elearning.edu.et" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default Language</label>
+              <select className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white">
+                <option value="en">English</option>
+                <option value="am">Amharic</option>
+              </select>
             </div>
           </div>
         </div>
         
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 lg:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
           <h3 className="text-base lg:text-lg font-semibold mb-4 text-gray-900 dark:text-white">System Maintenance</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-700 dark:text-gray-300">Maintenance Mode</span>
-              <button className="bg-red-600 text-white px-3 py-1 rounded text-sm">Disabled</button>
+              <button onClick={() => handleSettingsChange('maintenanceMode', !platformSettings.maintenanceMode)} className={`px-3 py-1 rounded text-sm font-medium ${platformSettings.maintenanceMode ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`}>
+                {platformSettings.maintenanceMode ? 'Enabled' : 'Disabled'}
+              </button>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-700 dark:text-gray-300">Auto Backup</span>
-              <button className="bg-green-600 text-white px-3 py-1 rounded text-sm">Enabled</button>
+              <button onClick={() => handleSettingsChange('autoBackup', !platformSettings.autoBackup)} className={`px-3 py-1 rounded text-sm font-medium ${platformSettings.autoBackup ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                {platformSettings.autoBackup ? 'Enabled' : 'Disabled'}
+              </button>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-700 dark:text-gray-300">Debug Mode</span>
-              <button className="bg-yellow-600 text-white px-3 py-1 rounded text-sm">Development</button>
+              <button onClick={() => handleSettingsChange('debugMode', !platformSettings.debugMode)} className={`px-3 py-1 rounded text-sm font-medium ${platformSettings.debugMode ? 'bg-yellow-600 text-white' : 'bg-gray-600 text-white'}`}>
+                {platformSettings.debugMode ? 'Development' : 'Production'}
+              </button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700 dark:text-gray-300">User Registration</span>
+              <button className="bg-green-600 text-white px-3 py-1 rounded text-sm font-medium">Open</button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700 dark:text-gray-300">Email Notifications</span>
+              <button className="bg-green-600 text-white px-3 py-1 rounded text-sm font-medium">Enabled</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Additional Settings */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
+        <h3 className="text-base lg:text-lg font-semibold mb-4 text-gray-900 dark:text-white">Security & Performance</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Session Timeout (minutes)</label>
+              <input type="number" defaultValue="30" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password Min Length</label>
+              <input type="number" defaultValue="8" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white" />
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Max Login Attempts</label>
+              <input type="number" defaultValue="5" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cache Duration (hours)</label>
+              <input type="number" defaultValue="24" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white" />
             </div>
           </div>
         </div>
@@ -3464,6 +3743,7 @@ const SuperAdminDashboard = () => {
       case 'overview': return renderOverview();
       case 'courses': return renderCourses();
       case 'categories': return renderCategories();
+      case 'schedules': return renderSchedules();
       case 'contacts': return renderContacts();
       case 'reviews': return renderReviews();
       case 'subscriptions': return <SubscriptionManagement />;
