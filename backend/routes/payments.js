@@ -177,6 +177,42 @@ router.get('/receipt/:payment_id', auth, async (req, res) => {
   }
 });
 
+// Get public receipt (no auth required)
+router.get('/public-receipt/:tx_ref', async (req, res) => {
+  try {
+    const { tx_ref } = req.params;
+    
+    const payment = await Payment.findOne({ chapaReference: tx_ref })
+      .populate('user', 'name email systemId')
+      .populate('course', 'title instructor')
+      .populate({
+        path: 'course',
+        populate: {
+          path: 'instructor',
+          select: 'name'
+        }
+      });
+
+    if (!payment || payment.status !== 'success') {
+      return res.status(404).json({ message: 'Receipt not found' });
+    }
+
+    // Generate receipt number if not exists
+    if (!payment.receiptNumber) {
+      payment.receiptNumber = `RCP-${Date.now()}-${payment._id.toString().slice(-6).toUpperCase()}`;
+      await payment.save();
+    }
+
+    res.json({
+      success: true,
+      data: payment
+    });
+  } catch (error) {
+    console.error('Public receipt fetch error:', error);
+    res.status(500).json({ message: 'Server error fetching receipt' });
+  }
+});
+
 // Get user payments
 router.get('/my-payments', auth, async (req, res) => {
   try {

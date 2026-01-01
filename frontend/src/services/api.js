@@ -167,6 +167,9 @@ export const paymentAPI = {
   // Get payment receipt
   getReceipt: (paymentId) => api.get(`/payments/receipt/${paymentId}`),
   
+  // Get public receipt (no auth required)
+  getPublicReceipt: (txRef) => axios.get(`${API_BASE_URL}/payments/public-receipt/${txRef}`),
+  
   // Get user payments
   getMyPayments: () => api.get('/payments/my-payments'),
 };

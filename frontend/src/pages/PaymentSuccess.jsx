@@ -65,19 +65,21 @@ const PaymentSuccess = () => {
   };
 
   const shareReceipt = async () => {
+    const shareUrl = `${window.location.origin}/receipt?tx_ref=${txRef}&status=success`;
+    
     if (navigator.share) {
       try {
         await navigator.share({
           title: 'Course Enrollment Receipt',
           text: `I just enrolled in ${payment.course.title} at AAU E-Learning!`,
-          url: window.location.href
+          url: shareUrl
         });
       } catch (error) {
         console.log('Error sharing:', error);
       }
     } else {
       // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard.writeText(shareUrl);
       alert('Receipt link copied to clipboard!');
     }
   };
