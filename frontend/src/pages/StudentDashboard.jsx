@@ -20,6 +20,11 @@ const StudentDashboard = () => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedInstructor, setSelectedInstructor] = useState(null);
   const [showInstructorModal, setShowInstructorModal] = useState(false);
+  const [showCoursesSubmenu, setShowCoursesSubmenu] = useState(false);
+  const [grades, setGrades] = useState([]);
+  const [gradesLoading, setGradesLoading] = useState(false);
+  const [selectedGrade, setSelectedGrade] = useState(null);
+  const [showGradeDetail, setShowGradeDetail] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -384,6 +389,51 @@ const StudentDashboard = () => {
     }
   };
 
+  const fetchGrades = async () => {
+    try {
+      setGradesLoading(true);
+      // Mock grades data - replace with actual API call
+      const mockGrades = [
+        {
+          _id: '1',
+          course: {
+            _id: 'course1',
+            title: 'Advanced Mathematics',
+            instructor: { name: 'Dr. John Smith' }
+          },
+          enrollmentDate: '2024-01-15',
+          gradeLetter: 'A',
+          assessments: [
+            { name: 'Quiz 1', mark: 95 },
+            { name: 'Midterm Exam', mark: 88 },
+            { name: 'Assignment 1', mark: 92 }
+          ]
+        },
+        {
+          _id: '2',
+          course: {
+            _id: 'course2',
+            title: 'Physics Laboratory',
+            instructor: { name: 'Dr. Sarah Johnson' }
+          },
+          enrollmentDate: '2024-01-20',
+          gradeLetter: 'B+',
+          assessments: [
+            { name: 'Lab Report 1', mark: 85 },
+            { name: 'Quiz 1', mark: 82 },
+            { name: 'Final Project', mark: 87 }
+          ]
+        }
+      ];
+      setGrades(mockGrades);
+    } catch (error) {
+      console.error('Fetch grades error:', error);
+      showNotification('error', 'Error', 'Failed to fetch grades');
+    } finally {
+      setGradesLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Check for tab parameter in URL
     const tabParam = searchParams.get('tab');
@@ -406,6 +456,8 @@ const StudentDashboard = () => {
     fetchUserProfile();
     // Fetch enrolled courses
     fetchEnrolledCourses();
+    // Fetch grades
+    fetchGrades();
   }, [searchParams]);
 
   // Fetch payments when user is loaded
@@ -494,7 +546,7 @@ const StudentDashboard = () => {
   const tabs = [
     { id: 'overview', name: 'Overview', icon: BookOpen },
     { id: 'browse-courses', name: 'Browse Courses', icon: BookOpen },
-    { id: 'courses', name: 'My Courses', icon: BookOpen },
+    { id: 'courses', name: 'My Courses', icon: BookOpen, hasSubmenu: true },
     { id: 'course-details', name: 'Course Materials', icon: FileText },
     { id: 'assignments', name: 'Assignments', icon: FileText },
     { id: 'schedule', name: 'Schedule', icon: Calendar },
@@ -992,24 +1044,204 @@ const StudentDashboard = () => {
     </div>
   );
 
-  const renderCertificates = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Certificates</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3].map((cert) => (
-          <div key={cert} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="h-32 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg mb-4 flex items-center justify-center">
-              <Award className="h-12 w-12 text-white" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Certificate {cert}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Completed Course {cert}</p>
-            <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-              <Download className="h-4 w-4 inline mr-2" />
-              Download
-            </button>
-          </div>
-        ))}
+  const renderGrades = () => (
+    <div className="space-y-4 lg:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">My Grades</h2>
+        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <Award className="h-4 w-4" />
+          <span>{grades.length} courses graded</span>
+        </div>
       </div>
+      
+      {gradesLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : grades.length === 0 ? (
+        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+          <Award className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Grades Available</h3>
+          <p className="text-gray-500 dark:text-gray-400">Your grades will appear here once instructors submit them.</p>
+        </div>
+      ) : (
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Course</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Instructor</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Enrolled Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Grade</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {grades.map((grade) => (
+                    <tr key={grade._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">{grade.course.title}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 dark:text-white">{grade.course.instructor.name}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 dark:text-white">
+                          {new Date(grade.enrollmentDate).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                          grade.gradeLetter === 'A' || grade.gradeLetter === 'A+' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                          grade.gradeLetter === 'B' || grade.gradeLetter === 'B+' || grade.gradeLetter === 'B-' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
+                          grade.gradeLetter === 'C' || grade.gradeLetter === 'C+' || grade.gradeLetter === 'C-' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                          'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                        }`}>
+                          {grade.gradeLetter}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => {
+                            setSelectedGrade(grade);
+                            setShowGradeDetail(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                          title="View Assessment Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-4">
+            {grades.map((grade) => (
+              <div key={grade._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
+                      {grade.course.title}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      Instructor: {grade.course.instructor.name}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Enrolled: {new Date(grade.enrollmentDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                    grade.gradeLetter === 'A' || grade.gradeLetter === 'A+' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                    grade.gradeLetter === 'B' || grade.gradeLetter === 'B+' || grade.gradeLetter === 'B-' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
+                    grade.gradeLetter === 'C' || grade.gradeLetter === 'C+' || grade.gradeLetter === 'C-' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                    'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                  }`}>
+                    {grade.gradeLetter}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedGrade(grade);
+                    setShowGradeDetail(true);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 py-2 px-3 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                >
+                  <Eye className="h-4 w-4" />
+                  View Assessment Details
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Grade Detail Modal */}
+      {showGradeDetail && selectedGrade && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Assessment Details</h3>
+                <button
+                  onClick={() => setShowGradeDetail(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    {selectedGrade.course.title}
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    Instructor: {selectedGrade.course.instructor.name}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Enrolled: {new Date(selectedGrade.enrollmentDate).toLocaleDateString()}
+                  </p>
+                </div>
+                
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h5 className="text-lg font-semibold text-gray-900 dark:text-white">Final Grade</h5>
+                    <span className={`inline-flex items-center px-4 py-2 rounded-full text-lg font-bold ${
+                      selectedGrade.gradeLetter === 'A' || selectedGrade.gradeLetter === 'A+' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                      selectedGrade.gradeLetter === 'B' || selectedGrade.gradeLetter === 'B+' || selectedGrade.gradeLetter === 'B-' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
+                      selectedGrade.gradeLetter === 'C' || selectedGrade.gradeLetter === 'C+' || selectedGrade.gradeLetter === 'C-' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                      'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                    }`}>
+                      {selectedGrade.gradeLetter}
+                    </span>
+                  </div>
+                </div>
+                
+                <div>
+                  <h5 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Assessment Breakdown</h5>
+                  <div className="space-y-3">
+                    {selectedGrade.assessments.map((assessment, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <span className="font-medium text-gray-900 dark:text-white">{assessment.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold text-gray-900 dark:text-white">{assessment.mark}%</span>
+                          <div className="w-16 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full ${
+                                assessment.mark >= 90 ? 'bg-green-500' :
+                                assessment.mark >= 80 ? 'bg-blue-500' :
+                                assessment.mark >= 70 ? 'bg-yellow-500' : 'bg-red-500'
+                              }`}
+                              style={{ width: `${assessment.mark}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-900 dark:text-white">Overall Average</span>
+                    <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                      {Math.round(selectedGrade.assessments.reduce((sum, a) => sum + a.mark, 0) / selectedGrade.assessments.length)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -1376,10 +1608,33 @@ const StudentDashboard = () => {
     </div>
   );
 
+  const renderCertificates = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Certificates</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3].map((cert) => (
+          <div key={cert} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="h-32 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg mb-4 flex items-center justify-center">
+              <Award className="h-12 w-12 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Certificate {cert}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Completed Course {cert}</p>
+            <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+              <Download className="h-4 w-4 inline mr-2" />
+              Download
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   const renderContent = () => {
     switch (activeTab) {
       case 'overview': return renderOverview();
       case 'courses': return renderCourses();
+      case 'enrolled-courses': return renderCourses();
+      case 'view-grades': return renderGrades();
       case 'course-details': return renderCourseDetails();
       case 'assignments': return renderAssignments();
       case 'payments': return renderPayments();
@@ -1527,32 +1782,78 @@ const StudentDashboard = () => {
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    if (tab.id === 'browse-courses') {
-                      window.location.href = '/courses';
-                    } else {
-                      setActiveTab(tab.id);
-                      setSidebarOpen(false);
-                    }
-                  }}
-                  className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 group ${
-                    activeTab === tab.id
-                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Icon className={`h-4 w-4 mr-2 lg:mr-3 flex-shrink-0 ${
-                    activeTab === tab.id ? 'text-white' : 'text-gray-500 dark:text-gray-400'
-                  }`} />
-                  <span className="font-medium truncate">{tab.name}</span>
-                  {activeTab === tab.id && (
-                    <div className="ml-auto w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
+                <div key={tab.id}>
+                  <button
+                    onClick={() => {
+                      if (tab.id === 'browse-courses') {
+                        window.location.href = '/courses';
+                      } else if (tab.hasSubmenu) {
+                        setShowCoursesSubmenu(!showCoursesSubmenu);
+                      } else {
+                        setActiveTab(tab.id);
+                        setSidebarOpen(false);
+                      }
+                    }}
+                    className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 group ${
+                      activeTab === tab.id || (tab.hasSubmenu && (activeTab === 'enrolled-courses' || activeTab === 'view-grades'))
+                        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 mr-2 lg:mr-3 flex-shrink-0 ${
+                      activeTab === tab.id || (tab.hasSubmenu && (activeTab === 'enrolled-courses' || activeTab === 'view-grades')) ? 'text-white' : 'text-gray-500 dark:text-gray-400'
+                    }`} />
+                    <span className="font-medium truncate">{tab.name}</span>
+                    {tab.hasSubmenu && (
+                      <svg className={`ml-auto h-4 w-4 transition-transform ${
+                        showCoursesSubmenu ? 'rotate-180' : ''
+                      }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    )}
+                    {(activeTab === tab.id || (tab.hasSubmenu && (activeTab === 'enrolled-courses' || activeTab === 'view-grades'))) && (
+                      <div className="ml-auto w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
+                    )}
+                  </button>
+                  
+                  {/* Submenu for My Courses */}
+                  {tab.hasSubmenu && showCoursesSubmenu && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      <button
+                        onClick={() => {
+                          setActiveTab('enrolled-courses');
+                          setShowCoursesSubmenu(false);
+                          setSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 ${
+                          activeTab === 'enrolled-courses'
+                            ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <BookOpen className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <span className="font-medium truncate">Enrolled Courses</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setActiveTab('view-grades');
+                          setShowCoursesSubmenu(false);
+                          setSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 ${
+                          activeTab === 'view-grades'
+                            ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <Award className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <span className="font-medium truncate">View Grades</span>
+                      </button>
+                    </div>
                   )}
-                </button>
+                </div>
               );
-            })}
+            })}}
             
             {/* Separator */}
             <div className="border-t border-gray-200 dark:border-gray-700 my-2 mt-100"></div>
