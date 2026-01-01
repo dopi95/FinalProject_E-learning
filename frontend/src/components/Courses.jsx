@@ -157,7 +157,7 @@ const Courses = () => {
                   <button
                     key={category._id}
                     onClick={() => setSelectedCategory(category.slug)}
-                    className={`px-6 py-3 rounded-2xl font-medium transition-all duration-300 transform hover:scale-105 capitalize ${
+                    className={`px-6 py-3 rounded-2xl font-medium transition-all duration-300 transform hover:scale-105 ${
                       selectedCategory === category.slug
                         ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
                         : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400'
@@ -181,7 +181,7 @@ const Courses = () => {
                   </div>
                 )}
                 {selectedCategory !== 'all' && (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-sm capitalize">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-sm">
                     <span>Category: {categories.find(c => c.slug === selectedCategory)?.name}</span>
                     <button onClick={() => setSelectedCategory('all')} className="hover:bg-purple-200 dark:hover:bg-purple-800 rounded-full p-1">
                       <X className="h-3 w-3" />
@@ -214,7 +214,7 @@ const Courses = () => {
                   <div className="absolute top-4 right-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-4 py-2 rounded-full">
                     <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{course.price} {t('courses.birr')}</span>
                   </div>
-                  <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium capitalize">
+                  <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                     {course.category}
                   </div>
                 </div>

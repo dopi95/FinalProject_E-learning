@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Star, Users, User, Search, Filter, X, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
+import { Star, Users, User, Search, Filter, X, ChevronLeft, ChevronRight, CheckCircle, Heart } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LoginRequiredModal from '../components/LoginRequiredModal';
@@ -138,10 +138,10 @@ const AllCourses = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-              All Courses
+              {t('courses.allCoursesTitle')}
             </h1>
             <p className="text-lg text-gray-600 dark:text-gray-300">
-              Explore our complete collection of courses
+              {t('courses.allCoursesSubtitle')}
             </p>
           </div>
 
@@ -195,7 +195,7 @@ const AllCourses = () => {
                         setSelectedCategory(category.slug);
                         setCurrentPage(1);
                       }}
-                      className={`px-6 py-3 rounded-2xl font-medium transition-all duration-300 capitalize ${
+                      className={`px-6 py-3 rounded-2xl font-medium transition-all duration-300 ${
                         selectedCategory === category.slug
                           ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
                           : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-600 hover:border-blue-500'
@@ -218,7 +218,7 @@ const AllCourses = () => {
                     </div>
                   )}
                   {selectedCategory !== 'all' && (
-                    <div className="flex items-center gap-2 px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-sm capitalize">
+                    <div className="flex items-center gap-2 px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-sm">
                       <span>Category: {categories.find(c => c.slug === selectedCategory)?.name}</span>
                       <button onClick={() => setSelectedCategory('all')} className="hover:bg-purple-200 dark:hover:bg-purple-800 rounded-full p-1">
                         <X className="h-3 w-3" />
@@ -253,9 +253,9 @@ const AllCourses = () => {
                       className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500" 
                     />
                     <div className="absolute top-4 right-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-4 py-2 rounded-full">
-                      <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{course.price} Birr</span>
+                      <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{course.price} {t('courses.birr')}</span>
                     </div>
-                    <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium capitalize">
+                    <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                       {course.category}
                     </div>
                   </div>
@@ -281,7 +281,7 @@ const AllCourses = () => {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white text-sm">{course.instructor?.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Instructor</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('courses.instructor')}</p>
                       </div>
                     </div>
                     
@@ -290,10 +290,10 @@ const AllCourses = () => {
                         onClick={() => handleStarCourse(course._id)}
                         className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
                       >
-                        <Star 
+                        <Heart 
                           className={`h-4 w-4 ${
                             course.stars?.some(star => star._id === user?.id)
-                              ? 'text-yellow-500 fill-current' 
+                              ? 'text-red-500 fill-current' 
                               : 'text-gray-600 dark:text-gray-400'
                           }`} 
                         />
@@ -312,20 +312,20 @@ const AllCourses = () => {
                         onClick={() => handleEnroll(course._id)}
                         className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
                       >
-                        {enrolledCourses.has(course._id) ? 'Go to Course' : 'Enroll Now'}
+                        {enrolledCourses.has(course._id) ? t('courses.goToCourse') : t('courses.enrollNow')}
                       </button>
                       <Link
                         to={`/course/${course._id}`}
                         className="flex-1 border-2 border-blue-600 text-blue-600 dark:text-blue-400 py-3 px-4 rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold text-center flex items-center justify-center"
                       >
-                        View Details
+                        {t('courses.viewDetails')}
                       </Link>
                     </div>
                     
                     {enrolledCourses.has(course._id) && (
                       <div className="mt-3 flex items-center justify-center text-green-600 dark:text-green-400 text-sm font-medium">
                         <CheckCircle className="h-4 w-4 mr-2" />
-                        Registered
+                        {t('courses.registered')}
                       </div>
                     )}
                   </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, BellOff, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe } from 'lucide-react';
+import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, BellOff, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe, Heart } from 'lucide-react';
 import { profileAPI, courseAPI, instructorAPI, subscriptionAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
@@ -25,6 +25,7 @@ const InstructorDashboard = () => {
 
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courses, setCourses] = useState([]);
+  const [sortByLikes, setSortByLikes] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -492,55 +493,71 @@ const InstructorDashboard = () => {
     </div>
   );
 
-  const renderCourses = () => (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">My Courses</h2>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-        {courses.map((course) => (
-          <div key={course._id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 lg:p-6">
-            <div className="h-24 lg:h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mb-4 overflow-hidden">
-              {course.image ? (
-                <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600"></div>
-              )}
-            </div>
-            <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white mb-2">{course.title}</h3>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-600 dark:text-gray-400">{course.students?.length || 0} Students Enrolled</p>
-              <div className="flex items-center gap-1 text-yellow-500">
-                <Star className="h-4 w-4" />
-                <span className="text-sm font-medium">{course.stars?.length || 0}</span>
+  const renderCourses = () => {
+    const sortedCourses = sortByLikes 
+      ? [...courses].sort((a, b) => (b.stars?.length || 0) - (a.stars?.length || 0))
+      : courses;
+
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">My Courses</h2>
+          <button
+            onClick={() => setSortByLikes(!sortByLikes)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              sortByLikes 
+                ? 'bg-red-600 text-white hover:bg-red-700' 
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+            }`}
+          >
+            {sortByLikes ? 'Show All' : 'Sort by Likes'}
+          </button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+          {sortedCourses.map((course) => (
+            <div key={course._id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 lg:p-6">
+              <div className="h-24 lg:h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mb-4 overflow-hidden">
+                {course.image ? (
+                  <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600"></div>
+                )}
+              </div>
+              <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white mb-2">{course.title}</h3>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm text-gray-600 dark:text-gray-400">{course.students?.length || 0} Students Enrolled</p>
+                <div className="flex items-center gap-1 text-red-500">
+                  <Heart className="h-4 w-4" />
+                  <span className="text-sm font-medium">{course.stars?.length || 0}</span>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4"></p>
+              <div className="flex space-x-2">
+                <button 
+                  onClick={() => {
+                    setSelectedCourse(course);
+                    setActiveTab('materials');
+                  }}
+                  className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 text-sm"
+                >
+                  Manage
+                </button>
+                <button 
+                  onClick={() => {
+                    setSelectedCourse(course);
+                    setActiveTab('course-videos');
+                  }}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <Video className="h-4 w-4" />
+                </button>
               </div>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4"></p>
-            <div className="flex space-x-2">
-              <button 
-                onClick={() => {
-                  setSelectedCourse(course);
-                  setActiveTab('materials');
-                }}
-                className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 text-sm"
-              >
-                Manage
-              </button>
-              <button 
-                onClick={() => {
-                  setSelectedCourse(course);
-                  setActiveTab('course-videos');
-                }}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <Video className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderMaterials = () => (
     <div className="space-y-6">

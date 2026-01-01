@@ -6,7 +6,7 @@ import Footer from '../components/Footer';
 import LoginRequiredModal from '../components/LoginRequiredModal';
 import RoleBasedModal from '../components/RoleBasedModal';
 import Toast from '../components/Toast';
-import { ArrowLeft, Star, Users, Clock, PlayCircle, CheckCircle, Globe, Award, User } from 'lucide-react';
+import { ArrowLeft, Star, Users, Clock, PlayCircle, CheckCircle, Globe, Award, User, Heart } from 'lucide-react';
 import { getUserData } from '../utils/userUtils';
 import { courseAPI, enrollmentAPI } from '../services/api';
 
@@ -230,10 +230,10 @@ const CourseDetail = () => {
                         onClick={() => handleStarLike(course._id)}
                         className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200"
                       >
-                        <Star 
+                        <Heart 
                           className={`h-5 w-5 transition-colors ${
                             course.stars?.some(star => star._id === user?.id)
-                              ? 'text-yellow-500 fill-current' 
+                              ? 'text-red-500 fill-current' 
                               : 'text-gray-600 dark:text-gray-400'
                           }`} 
                         />
@@ -263,7 +263,7 @@ const CourseDetail = () => {
                 <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 sticky top-24">
                   <div className="text-center mb-6">
                     <div className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                      {course.price} Birr
+                      {course.price} {t('courses.birr')}
                     </div>
                     <p className="text-gray-500 dark:text-gray-400">{t('courses.oneTimePayment')}</p>
                   </div>
@@ -283,7 +283,7 @@ const CourseDetail = () => {
                         Loading...
                       </div>
                     ) : isEnrolled ? (
-                      'Go to Course'
+                      t('courses.goToCourse')
                     ) : (
                       t('courses.enrollNow')
                     )}
@@ -292,7 +292,7 @@ const CourseDetail = () => {
                   {isEnrolled && (
                     <div className="mb-6 flex items-center justify-center text-green-600 dark:text-green-400 text-sm font-medium">
                       <CheckCircle className="h-4 w-4 mr-2" />
-                      Registered
+                      {t('courses.registered')}
                     </div>
                   )}
 
@@ -323,7 +323,7 @@ const CourseDetail = () => {
                   <div className="flex items-center justify-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                     <div className="flex items-center">
                       <Globe className="h-4 w-4 mr-1" />
-                      <span>Online</span>
+                      <span>{t('courses.online')}</span>
                     </div>
                     <div className="flex items-center">
                       <Award className="h-4 w-4 mr-1" />

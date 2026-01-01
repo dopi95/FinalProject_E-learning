@@ -19,6 +19,9 @@ const resources = {
       },
       courses: {
         title: 'Featured Courses',
+        subtitle: 'Discover our most popular and highly-rated courses',
+        allCoursesTitle: 'All Courses',
+        allCoursesSubtitle: 'Explore our complete collection of courses',
         searchPlaceholder: 'Search courses...',
         allCategories: 'All Categories',
         programming: 'Programming',
@@ -26,6 +29,11 @@ const resources = {
         business: 'Business',
         marketing: 'Marketing',
         enrollNow: 'Enroll Now',
+        goToCourse: 'Go to Course',
+        viewDetails: 'View Details',
+        browseAllCourses: 'Browse All Courses',
+        registered: 'Registered',
+        price: 'Price',
         reactCourse: 'React Development Masterclass',
         uiuxCourse: 'UI/UX Design Fundamentals',
         marketingCourse: 'Digital Marketing Strategy',
@@ -51,7 +59,9 @@ const resources = {
         uiuxLongDescription: 'Dive deep into UI/UX design principles and create stunning user interfaces. Learn design thinking, wireframing, prototyping, and user research. Master tools like Figma and Adobe XD to create professional designs that users love.',
         marketingDescription: 'Master digital marketing strategies and grow your business online.',
         marketingLongDescription: 'Learn comprehensive digital marketing strategies including SEO, social media marketing, content marketing, email campaigns, and paid advertising. Understand analytics, conversion optimization, and how to build a complete digital marketing funnel that drives results.',
-        certificateText: 'Certificate'
+        likes: 'Likes',
+        likeCount: 'likes',
+        online: 'Online'
       },
       testimonials: {
         title: 'What Our Community Says',
@@ -64,7 +74,9 @@ const resources = {
         hanan: 'Hanan Mohammed',
         csStudent: 'Student',
         seInstructor: 'Instructor',
-        baStudent: 'Student'
+        baStudent: 'Student',
+        studentRole: 'Student',
+        instructorRole: 'Instructor'
       },
       footer: {
         copyright: '© 2026 AAU E-Learning. All rights reserved.',
@@ -202,6 +214,12 @@ const resources = {
         verifyEmail: 'Verify Email',
         goToLogin: 'Go to Login'
       },
+      loginModal: {
+        title: 'Login Required',
+        message: 'Please login or create an account to subscribe to our newsletter and receive updates about new courses and announcements.',
+        loginToSubscribe: 'Login to Subscribe',
+        createAccount: 'Create Account'
+      },
       register: {
         title: 'Join AAU E-Learning',
         subtitle: 'Create your account to start learning',
@@ -274,6 +292,9 @@ const resources = {
       },
       courses: {
         title: 'ተመራጭ ኮርሶች',
+        subtitle: 'በጣም ተወዳጅ እና ከፍተኛ ደረጃ ያላቸውን ኮርሶቻችንን ያግኙ',
+        allCoursesTitle: 'ሁሉም ኮርሶች',
+        allCoursesSubtitle: 'የእኛን ሙሉ የኮርሶች ስብስብ አስሱ',
         searchPlaceholder: 'ኮርሶችን ይፈልጉ...',
         allCategories: 'ሁሉም ምድቦች',
         programming: 'ፕሮግራሚንግ',
@@ -281,6 +302,11 @@ const resources = {
         business: 'ንግድ',
         marketing: 'ማርኬቲንግ',
         enrollNow: 'አሁን ይመዝገቡ',
+        goToCourse: 'ወደ ኮርሱ ይሂዱ',
+        viewDetails: 'ዝርዝር ይመልከቱ',
+        browseAllCourses: 'ሁሉንም ኮርሶች አስሱ',
+        registered: 'ተመዝግበዋል',
+        price: 'ዋጋ',
         reactCourse: 'የሪአክት ልማት ማስተር ክላስ',
         uiuxCourse: 'የUI/UX ዲዛይን መሰረታዊ ነገሮች',
         marketingCourse: 'የዲጂታል ማርኬቲንግ ስትራቴጂ',
@@ -293,11 +319,11 @@ const resources = {
         students: 'ተማሪዎች',
         aboutCourse: 'ስለዚህ ኮርስ',
         courseIncludes: 'ዚህ ኮርስ የሚከተለውን:',
-        lifetimeAccess: 'የትምህርት መሳሪያዎች የሁልንም መብታት',
-        certificate: 'የመጠናነት ሰንድ',
-        instructorSupport: 'ከአስተማሪ ቀስለ ድግፍ',
-        mobileAccess: 'በሞባይል እና ዴስክቶፕ መብታት',
-        moneyBack: 'በተመን 30 ቀን ነጥብ ውጤት ዋንትይ',
+        lifetimeAccess: 'የዕድሜ ልክ የኮርስ ቁሳቁሶች መዳረሻ',
+        certificate: 'የማጠናቀቂያ ሰርተፊኬት',
+        instructorSupport: 'ቀጥተኛ የአስተማሪ ድጋፍ',
+        mobileAccess: 'በሞባይል እና ዴስክቶፕ መዳረሻ',
+        moneyBack: '30 ቀን የገንዘብ መመለሻ ዋስትና',
         oneTimePayment: 'አንድ ጊዜ ይፈይያ',
         online: 'ኦንላይን',
         birr: 'ብር',
@@ -307,7 +333,9 @@ const resources = {
         uiuxLongDescription: 'በUI/UX ዲዛይን መርሆች ውስጥ በጥልቀት ይግቡ እና አስደናቂ የተጠቃሚ በይነገጾችን ይፍጠሩ። የዲዛይን አስተሳሰብ፣ wireframing፣ prototyping እና የተጠቃሚ ምርምርን ይማሩ። ተጠቃሚዎች የሚወዷቸውን ሙያዊ ዲዛይኖች ለመፍጠር እንደ Figma እና Adobe XD ያሉ መሳሪያዎችን ይቆጣጠሩ።',
         marketingDescription: 'የዲጂታል ማርኬቲንግ ስትራቴጂዎችን ይቆጣጠሩ እና የንግድ ስራዎን በመስመር ላይ ያሳድጉ።',
         marketingLongDescription: 'SEO፣ ማህበራዊ ሚዲያ ማርኬቲንግ፣ የይዘት ማርኬቲንግ፣ የኢሜይል ዘመቻዎች እና የተከፈለ ማስታወቂያን ጨምሮ አጠቃላይ የዲጂታል ማርኬቲንግ ስትራቴጂዎችን ይማሩ። ትንታኔዎችን፣ የልወጣ ማሻሻያን እና ውጤቶችን የሚያመጣ ሙሉ የዲጂታል ማርኬቲንግ ፈነልን እንዴት መገንባት እንደሚቻል ይረዱ።',
-        certificateText: 'ሰርተፊኬት'
+        likes: 'ላይኮች',
+        likeCount: 'ላይኮች',
+        online: 'ኦንላይን'
       },
       testimonials: {
         title: 'የእኛ ማህበረሰብ ምን ይላል',
@@ -320,7 +348,9 @@ const resources = {
         hanan: 'ሀናን መሀመድ',
         csStudent: 'ተማሪ',
         seInstructor: 'አስተማሪ',
-        baStudent: 'ተማሪ'
+        baStudent: 'ተማሪ',
+        studentRole: 'ተማሪ',
+        instructorRole: 'አስተማሪ'
       },
       footer: {
         copyright: '© 2026 AAU ኢ-ትምህርት። ሁሉም መብቶች የተጠበቁ ናቸው።',
@@ -457,6 +487,12 @@ const resources = {
         verifying: 'እያረጋገጠ ነው...',
         verifyEmail: 'ኢሜይል አረጋግጥ',
         goToLogin: 'ወደ መግቢያ ሂድ'
+      },
+      loginModal: {
+        title: 'መግባት ያስፍልጋል',
+        message: 'የመገናንያ መጠን መመዝገብ እና ስል አዲስ ኮርሶች እና ማስታወቂያዎች አድመት ለማገኘት እባክዎ ይግቡ ወይም መለያ ይፍጠሩ።',
+        loginToSubscribe: 'ለመመዝገብ ይግቡ',
+        createAccount: 'መለያ ፍጠር'
       },
       register: {
         title: 'ወደ AAU ኢ-ትምህርት ይተወሰቡ',

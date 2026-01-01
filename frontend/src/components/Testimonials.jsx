@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Star, Quote, User } from 'lucide-react';
+import { Star, Quote, User, Heart } from 'lucide-react';
 import { reviewAPI } from '../services/api';
 
 const Testimonials = () => {
@@ -173,8 +173,10 @@ const Testimonials = () => {
 
 // Testimonial Card Component
 const TestimonialCard = ({ testimonial }) => {
+  const { t } = useTranslation();
+  
   const getRoleDisplay = (role) => {
-    return role === 'instructor' ? 'Instructor' : 'Student';
+    return role === 'instructor' ? t('testimonials.instructorRole') : t('testimonials.studentRole');
   };
 
   const getInitials = (name) => {

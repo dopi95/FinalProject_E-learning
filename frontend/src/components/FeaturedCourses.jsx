@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Star, Users, User, ArrowRight, CheckCircle } from 'lucide-react';
+import { Star, Users, User, ArrowRight, CheckCircle, Heart } from 'lucide-react';
 import LoginRequiredModal from './LoginRequiredModal';
 import RoleBasedModal from './RoleBasedModal';
 import { courseAPI, enrollmentAPI } from '../services/api';
@@ -47,7 +47,11 @@ const FeaturedCourses = () => {
   };
 
   const handleStarCourse = async (courseId) => {
-    if (!user) return;
+    if (!user) {
+      setModalMessage('Please login to like courses');
+      setShowLoginModal(true);
+      return;
+    }
     
     try {
       const response = await courseAPI.starCourse(courseId);
@@ -93,10 +97,10 @@ const FeaturedCourses = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Featured Courses
+            {t('courses.title')}
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-300">
-            Discover our most popular and highly-rated courses
+            {t('courses.subtitle')}
           </p>
         </div>
 
@@ -122,9 +126,9 @@ const FeaturedCourses = () => {
                     className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500" 
                   />
                   <div className="absolute top-4 right-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-4 py-2 rounded-full">
-                    <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{course.price} Birr</span>
+                    <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{course.price} {t('courses.birr')}</span>
                   </div>
-                  <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium capitalize">
+                  <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                     {course.category}
                   </div>
                 </div>
@@ -150,7 +154,7 @@ const FeaturedCourses = () => {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900 dark:text-white text-sm">{course.instructor?.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Instructor</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{t('courses.instructor')}</p>
                     </div>
                   </div>
                   
@@ -159,10 +163,10 @@ const FeaturedCourses = () => {
                       onClick={() => handleStarCourse(course._id)}
                       className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
                     >
-                      <Star 
+                      <Heart 
                         className={`h-4 w-4 ${
                           course.stars?.some(star => star._id === user?.id)
-                            ? 'text-yellow-500 fill-current' 
+                            ? 'text-red-500 fill-current' 
                             : 'text-gray-600 dark:text-gray-400'
                         }`} 
                       />
@@ -185,20 +189,20 @@ const FeaturedCourses = () => {
                           : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
                       }`}
                     >
-                      {enrolledCourses.has(course._id) ? 'Go to Course' : 'Enroll Now'}
+                      {enrolledCourses.has(course._id) ? t('courses.goToCourse') : t('courses.enrollNow')}
                     </button>
                     <Link
                       to={`/course/${course._id}`}
                       className="flex-1 border-2 border-blue-600 text-blue-600 dark:text-blue-400 py-3 px-4 rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold text-center flex items-center justify-center"
                     >
-                      View Details
+                      {t('courses.viewDetails')}
                     </Link>
                   </div>
                   
                   {enrolledCourses.has(course._id) && (
                     <div className="mt-3 flex items-center justify-center text-green-600 dark:text-green-400 text-sm font-medium">
                       <CheckCircle className="h-4 w-4 mr-2" />
-                      Registered
+                      {t('courses.registered')}
                     </div>
                   )}
                 </div>
@@ -212,7 +216,7 @@ const FeaturedCourses = () => {
             to="/courses"
             className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1"
           >
-            Browse All Courses
+            {t('courses.browseAllCourses')}
             <ArrowRight className="h-5 w-5" />
           </Link>
         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown, Heart } from 'lucide-react';
 import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import SubscriptionManagement from '../components/SubscriptionManagement';
@@ -197,6 +197,10 @@ const SuperAdminDashboard = () => {
       showNotification('error', 'Error', 'Failed to fetch courses');
     }
   };
+
+  useEffect(() => {
+    fetchCourses();
+  }, [searchTerm, selectedCategory]);
 
   const handleCourseFormChange = (field, value) => {
     setCourseForm(prev => ({ ...prev, [field]: value }));
@@ -1122,7 +1126,7 @@ const SuperAdminDashboard = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Course</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Instructor</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Stars</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Likes</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Students</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Created</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
@@ -1136,7 +1140,7 @@ const SuperAdminDashboard = () => {
                       <img className="h-12 w-12 rounded-lg object-cover mr-4 flex-shrink-0" src={course.image} alt={course.title} />
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{course.title}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{course.category}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{course.category}</div>
                       </div>
                     </div>
                   </td>
@@ -1149,7 +1153,7 @@ const SuperAdminDashboard = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-yellow-500" />
+                      <Heart className="h-4 w-4 text-red-500" />
                       <span className="text-sm text-gray-900 dark:text-white">{course.stars?.length || 0}</span>
                     </div>
                   </td>
@@ -1216,7 +1220,7 @@ const SuperAdminDashboard = () => {
                       <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight mb-1">
                         {course.title}
                       </h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 capitalize">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                         {course.category}
                       </p>
                       <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -1232,10 +1236,10 @@ const SuperAdminDashboard = () => {
                   <div className="grid grid-cols-3 gap-4 mb-4">
                     <div className="text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
                       <div className="flex items-center justify-center gap-1 mb-1">
-                        <Star className="h-3 w-3 text-yellow-500" />
+                        <Heart className="h-3 w-3 text-red-500" />
                         <span className="text-xs font-medium text-gray-900 dark:text-white">{course.stars?.length || 0}</span>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Stars</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Likes</p>
                     </div>
                     <div className="text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
                       <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">{course.studentCount || 0}</p>
@@ -1489,7 +1493,7 @@ const SuperAdminDashboard = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
-                    <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg capitalize">{selectedCourse.category}</p>
+                    <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{selectedCourse.category}</p>
                   </div>
                 </div>
                 
@@ -1516,56 +1520,51 @@ const SuperAdminDashboard = () => {
     </div>
   );
   const renderCategories = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Category Management</h2>
+    <div className="space-y-4 lg:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Category Management</h2>
         <button 
           onClick={() => setShowAddCategory(true)}
-          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2"
+          className="w-full sm:w-auto bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center justify-center gap-2 text-sm font-medium"
         >
           <Plus className="h-4 w-4" />
           Add Category
         </button>
       </div>
       
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      {/* Desktop Table View */}
+      <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Slug</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Description</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Created</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {categories.map((category) => (
-                <tr key={category._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr key={category._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-6 py-4">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">{category.name}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">{category.slug}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">{category.description || 'No description'}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                     {new Date(category.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <td className="px-6 py-4">
                     <div className="flex space-x-2">
                       <button 
                         onClick={() => handleEditCategory(category)}
-                        className="text-green-600 hover:text-green-800 p-1 rounded"
+                        className="text-green-600 hover:text-green-800 p-1.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                        title="Edit Category"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button 
                         onClick={() => handleDeleteCategory(category._id)}
-                        className="text-red-600 hover:text-red-800 p-1 rounded"
+                        className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        title="Delete Category"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -1576,6 +1575,63 @@ const SuperAdminDashboard = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="lg:hidden">
+        {categories.length === 0 ? (
+          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+            <div className="h-16 w-16 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Plus className="h-8 w-8 text-purple-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Categories Found</h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">Create your first category to get started.</p>
+            <button 
+              onClick={() => setShowAddCategory(true)}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium"
+            >
+              Add Category
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {categories.map((category) => (
+              <div key={category._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
+                {/* Category Header */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-base mb-1">
+                      {category.name}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Created: {new Date(category.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEditCategory(category)}
+                      className="flex items-center justify-center w-8 h-8 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                      title="Edit Category"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCategory(category._id)}
+                      className="flex items-center justify-center w-8 h-8 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                      title="Delete Category"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Add/Edit Category Modal */}
@@ -3142,6 +3198,13 @@ const SuperAdminDashboard = () => {
                       Reject
                     </button>
                   )}
+                  <button
+                    onClick={() => handleReviewAction(review._id, 'delete')}
+                    className="flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 py-2 px-3 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm font-medium"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </button>
                 </div>
               </div>
             ))}
