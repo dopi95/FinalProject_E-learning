@@ -459,12 +459,12 @@ const SuperAdminDashboard = () => {
             <div class="diagonal-stamp">PAID</div>
             
             <div class="payment-stamp">
-              <img src="/assets/images/${payment.paymentMethod === 'telebirr' ? 'telebirrlogo.png' : 'cbe.png'}" alt="${payment.paymentMethod}">
+              <img src="${window.location.origin}/assets/images/${payment.paymentMethod === 'telebirr' ? 'telebirrlogo.png' : 'cbe.png'}" alt="${payment.paymentMethod}">
               <p>${payment.paymentMethod === 'telebirr' ? 'Telebirr' : 'CBE'}</p>
             </div>
             
             <div class="header">
-              <img src="/assets/images/aaulogo.png" alt="AAU Logo">
+              <img src="${window.location.origin}/assets/images/aaulogo.png" alt="AAU Logo">
               <h1>AAU E-Learning</h1>
               <p>Addis Ababa University</p>
               <div class="receipt-no">Receipt No: ${payment.receiptNumber}</div>
