@@ -268,20 +268,40 @@ const PublicReceipt = () => {
             
             {/* Course Details */}
             <div className="mb-10">
-              <h3 className="text-lg font-bold text-black mb-4 border-b border-gray-300 pb-2">Course Details</h3>
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="text-lg font-bold text-black mb-2">{receipt.course.title}</h4>
-                    <p className="text-gray-600 mb-2">Instructor: {receipt.course.instructor?.name || 'Instructor'}</p>
-                    <p className="text-sm text-gray-500">Certificate of Completion Included</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-black">{receipt.amount} ETB</div>
-                    <div className="text-sm text-gray-500">One-time payment</div>
+              <h3 className="text-lg font-bold text-black mb-4 border-b border-gray-300 pb-2">
+                {receipt.isBulk ? 'Courses Details' : 'Course Details'}
+              </h3>
+              {receipt.isBulk ? (
+                <div className="space-y-4">
+                  {receipt.courses.map((course, index) => (
+                    <div key={course._id} className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="text-lg font-bold text-black mb-2">{course.title}</h4>
+                          <p className="text-gray-600 mb-2">Instructor: {course.instructor?.name || 'Instructor'}</p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xl font-bold text-black">{course.price} ETB</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-lg font-bold text-black mb-2">{receipt.course.title}</h4>
+                      <p className="text-gray-600 mb-2">Instructor: {receipt.course.instructor?.name || 'Instructor'}</p>
+                      <p className="text-sm text-gray-500">Certificate of Completion Included</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-black">{receipt.amount} ETB</div>
+                      <div className="text-sm text-gray-500">One-time payment</div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
             
             {/* Summary */}

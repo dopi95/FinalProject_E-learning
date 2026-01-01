@@ -161,6 +161,9 @@ export const paymentAPI = {
   // Initialize payment
   initializePayment: (paymentData) => api.post('/payments/initialize', paymentData),
   
+  // Initialize bulk payment
+  initializeBulkPayment: (paymentData) => api.post('/payments/initialize-bulk', paymentData),
+  
   // Verify payment
   verifyPayment: (txRef) => api.post(`/payments/verify/${txRef}`),
   

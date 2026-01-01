@@ -20,6 +20,7 @@ import StudentDashboard from './pages/StudentDashboard.jsx';
 import CourseDetail from './pages/CourseDetail.jsx';
 import PaymentPage from './pages/PaymentPage.jsx';
 import PaymentSuccess from './pages/PaymentSuccess.jsx';
+import BulkPaymentPage from './pages/BulkPaymentPage.jsx';
 import PublicReceipt from './pages/PublicReceipt.jsx';
 import LeaveReview from './pages/LeaveReview.jsx';
 import './i18n';
@@ -49,6 +50,7 @@ const AppContent = () => {
         <Route path="/student-dashboard" element={<StudentDashboard />} />
         <Route path="/course/:id" element={<CourseDetail />} />
         <Route path="/payment/:courseId" element={<PaymentPage />} />
+        <Route path="/payment/bulk" element={<BulkPaymentPage />} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/receipt" element={<PublicReceipt />} />
         <Route path="/leave-review" element={<LeaveReview />} />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown, Heart } from 'lucide-react';
+import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown, Heart, Download } from 'lucide-react';
 import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import SubscriptionManagement from '../components/SubscriptionManagement';
@@ -417,8 +417,14 @@ const SuperAdminDashboard = () => {
 
   const handleViewUserReceipt = async (paymentId) => {
     try {
+      setLoading(true);
       const response = await paymentAPI.getReceipt(paymentId);
       const payment = response.data.data;
+      
+      if (!payment) {
+        showNotification('error', 'Error', 'Receipt not found');
+        return;
+      }
       
       const receiptHTML = `
         <!DOCTYPE html>
@@ -452,6 +458,8 @@ const SuperAdminDashboard = () => {
             .course-price { text-align: right; }
             .course-price .amount { font-size: 24px; font-weight: bold; color: #000; }
             .course-price .type { font-size: 14px; color: #6b7280; }
+            .course-item { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e5e7eb; }
+            .course-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
             .summary { background: #f9fafb; padding: 24px; border-radius: 8px; }
             .summary-row { display: flex; justify-content: space-between; margin-bottom: 16px; }
             .summary-row.total { border-top: 1px solid #d1d5db; padding-top: 16px; font-weight: bold; }
@@ -511,19 +519,36 @@ const SuperAdminDashboard = () => {
               </div>
               
               <div class="section">
-                <h3>Course Details</h3>
+                <h3>${payment.isBulk ? 'Courses Details' : 'Course Details'}</h3>
                 <div class="course-details">
-                  <div class="course-header">
-                    <div class="course-info">
-                      <h4>${payment.course.title}</h4>
-                      <p>Instructor: ${payment.course.instructor?.name || 'Instructor'}</p>
-                      <p style="font-size: 14px; color: #6b7280;">Certificate of Completion Included</p>
-                    </div>
-                    <div class="course-price">
-                      <div class="amount">${payment.amount} ETB</div>
-                      <div class="type">One-time payment</div>
-                    </div>
-                  </div>
+                  ${payment.isBulk ? 
+                    payment.courses.map(course => `
+                      <div class="course-item">
+                        <div class="course-header">
+                          <div class="course-info">
+                            <h4>${course.title}</h4>
+                            <p>Instructor: ${course.instructor?.name || 'Instructor'}</p>
+                            <p style="font-size: 14px; color: #6b7280;">Certificate of Completion Included</p>
+                          </div>
+                          <div class="course-price">
+                            <div class="amount">${course.price} ETB</div>
+                            <div class="type">Individual price</div>
+                          </div>
+                        </div>
+                      </div>
+                    `).join('') :
+                    `<div class="course-header">
+                      <div class="course-info">
+                        <h4>${payment.course.title}</h4>
+                        <p>Instructor: ${payment.course.instructor?.name || 'Instructor'}</p>
+                        <p style="font-size: 14px; color: #6b7280;">Certificate of Completion Included</p>
+                      </div>
+                      <div class="course-price">
+                        <div class="amount">${payment.amount} ETB</div>
+                        <div class="type">One-time payment</div>
+                      </div>
+                    </div>`
+                  }
                 </div>
               </div>
               
@@ -563,13 +588,21 @@ const SuperAdminDashboard = () => {
     } catch (error) {
       console.error('View receipt error:', error);
       showNotification('error', 'Error', 'Failed to load receipt');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDownloadUserReceipt = async (paymentId) => {
     try {
+      setLoading(true);
       const response = await paymentAPI.getReceipt(paymentId);
       const payment = response.data.data;
+      
+      if (!payment) {
+        showNotification('error', 'Error', 'Receipt not found');
+        return;
+      }
       
       const receiptElement = document.createElement('div');
       receiptElement.innerHTML = `
@@ -605,22 +638,38 @@ const SuperAdminDashboard = () => {
               </div>
             </div>
             
-            <div style="margin-bottom: 40px;">
-              <h3 style="font-size: 18px; font-weight: bold; color: #000; margin-bottom: 16px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px;">Course Details</h3>
-              <div style="background: #f9fafb; padding: 24px; border-radius: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                  <div>
-                    <h4 style="font-size: 18px; font-weight: bold; color: #000; margin: 0 0 8px 0;">${payment.course.title}</h4>
-                    <p style="color: #6b7280; margin: 0 0 8px 0;">Instructor: ${payment.course.instructor?.name || 'Instructor'}</p>
-                    <p style="font-size: 14px; color: #6b7280; margin: 0;">Certificate of Completion Included</p>
-                  </div>
-                  <div style="text-align: right;">
-                    <div style="font-size: 24px; font-weight: bold; color: #000;">${payment.amount} ETB</div>
-                    <div style="font-size: 14px; color: #6b7280;">One-time payment</div>
-                  </div>
+              <div style="margin-bottom: 40px;">
+                <h3 style="font-size: 18px; font-weight: bold; color: #000; margin-bottom: 16px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px;">${payment.isBulk ? 'Courses Details' : 'Course Details'}</h3>
+                <div style="background: #f9fafb; padding: 24px; border-radius: 8px;">
+                  ${payment.isBulk ? 
+                    payment.courses.map(course => `
+                      <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e5e7eb;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                          <div>
+                            <h4 style="font-size: 18px; font-weight: bold; color: #000; margin: 0 0 8px 0;">${course.title}</h4>
+                            <p style="color: #6b7280; margin: 0 0 8px 0;">Instructor: ${course.instructor?.name || 'Instructor'}</p>
+                            <p style="font-size: 14px; color: #6b7280; margin: 0;">Certificate of Completion Included</p>
+                          </div>
+                          <div style="text-align: right;">
+                            <div style="font-size: 20px; font-weight: bold; color: #000;">${course.price} ETB</div>
+                          </div>
+                        </div>
+                      </div>
+                    `).join('') :
+                    `<div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                      <div>
+                        <h4 style="font-size: 18px; font-weight: bold; color: #000; margin: 0 0 8px 0;">${payment.course?.title || 'Course'}</h4>
+                        <p style="color: #6b7280; margin: 0 0 8px 0;">Instructor: ${payment.course?.instructor?.name || 'Instructor'}</p>
+                        <p style="font-size: 14px; color: #6b7280; margin: 0;">Certificate of Completion Included</p>
+                      </div>
+                      <div style="text-align: right;">
+                        <div style="font-size: 24px; font-weight: bold; color: #000;">${payment.amount} ETB</div>
+                        <div style="font-size: 14px; color: #6b7280;">One-time payment</div>
+                      </div>
+                    </div>`
+                  }
                 </div>
               </div>
-            </div>
             
             <div style="background: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 40px;">
               <div style="display: flex; justify-content: space-between; margin-bottom: 16px;"><span>Subtotal:</span><span>${payment.amount} ETB</span></div>
@@ -667,6 +716,8 @@ const SuperAdminDashboard = () => {
     } catch (error) {
       console.error('Download receipt error:', error);
       showNotification('error', 'Error', 'Failed to download receipt');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -2207,25 +2258,68 @@ const SuperAdminDashboard = () => {
                           {userPayments.map((payment) => (
                             <div key={payment._id} className="p-4 border-b border-gray-200 dark:border-gray-600 last:border-b-0">
                               <div className="flex justify-between items-start">
-                                <div>
-                                  <p className="font-medium text-gray-900 dark:text-white">{payment.course?.title}</p>
-                                  <p className="text-sm text-gray-600 dark:text-gray-400">Receipt: {payment.receiptNumber}</p>
-                                  <p className="text-sm text-gray-600 dark:text-gray-400">{new Date(payment.createdAt).toLocaleDateString()}</p>
+                                <div className="flex-1">
+                                  <div className="flex items-start gap-3">
+                                    <img 
+                                      src={payment.course?.image || payment.courses?.[0]?.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=50'}
+                                      alt={payment.course?.title || 'Course'}
+                                      className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-gray-900 dark:text-white">
+                                        {payment.isBulk ? `${payment.courses?.length || 0} Courses Bundle` : payment.course?.title || 'Course'}
+                                      </p>
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">Receipt: {payment.receiptNumber}</p>
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">{new Date(payment.createdAt).toLocaleDateString()}</p>
+                                      {payment.isBulk && payment.courses && (
+                                        <div className="mt-2">
+                                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Courses:</p>
+                                          <div className="flex flex-wrap gap-1">
+                                            {payment.courses.slice(0, 2).map((course, index) => (
+                                              <span key={course._id} className="text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">
+                                                {course.title}
+                                              </span>
+                                            ))}
+                                            {payment.courses.length > 2 && (
+                                              <span className="text-xs text-gray-500 dark:text-gray-400">+{payment.courses.length - 2} more</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="text-right">
+                                <div className="text-right ml-4">
                                   <p className="font-bold text-gray-900 dark:text-white">{payment.amount} Birr</p>
-                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded capitalize">{payment.paymentMethod}</span>
+                                  <div className="flex items-center gap-1 mt-1">
+                                    <span className="text-xs bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300 px-2 py-1 rounded capitalize">{payment.paymentMethod}</span>
+                                    <span className="text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">{payment.status}</span>
+                                  </div>
                                   <div className="mt-2 flex gap-1">
                                     <button
                                       onClick={() => handleViewUserReceipt(payment._id)}
-                                      className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded hover:bg-blue-200"
+                                      disabled={loading}
+                                      className="flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 px-2 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      title="View Receipt"
                                     >
+                                      {loading ? (
+                                        <div className="animate-spin rounded-full h-3 w-3 border-b border-current"></div>
+                                      ) : (
+                                        <Eye className="h-3 w-3" />
+                                      )}
                                       View
                                     </button>
                                     <button
                                       onClick={() => handleDownloadUserReceipt(payment._id)}
-                                      className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-200"
+                                      disabled={loading}
+                                      className="flex items-center gap-1 text-xs bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300 px-2 py-1 rounded hover:bg-green-200 dark:hover:bg-green-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      title="Download Receipt"
                                     >
+                                      {loading ? (
+                                        <div className="animate-spin rounded-full h-3 w-3 border-b border-current"></div>
+                                      ) : (
+                                        <Download className="h-3 w-3" />
+                                      )}
                                       Download
                                     </button>
                                   </div>

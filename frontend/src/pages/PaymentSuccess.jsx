@@ -71,7 +71,9 @@ const PaymentSuccess = () => {
       try {
         await navigator.share({
           title: 'Course Enrollment Receipt',
-          text: `I just enrolled in ${payment.course.title} at AAU E-Learning!`,
+          text: payment?.isBulk 
+            ? `I just enrolled in ${payment.courses?.length || 0} courses at AAU E-Learning!`
+            : `I just enrolled in ${payment.course.title} at AAU E-Learning!`,
           url: shareUrl
         });
       } catch (error) {
@@ -136,7 +138,10 @@ const PaymentSuccess = () => {
             </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Payment Successful!</h1>
             <p className="text-gray-600 dark:text-gray-300 text-lg">
-              You have successfully enrolled in the course. Welcome aboard!
+              {payment?.isBulk 
+                ? `You have successfully enrolled in ${payment.courses?.length || 0} courses. Welcome aboard!`
+                : 'You have successfully enrolled in the course. Welcome aboard!'
+              }
             </p>
           </div>
 
@@ -244,31 +249,55 @@ const PaymentSuccess = () => {
               {/* Course Information */}
               <div className="border-t border-gray-300 pt-8 mb-8">
                 <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-300 pb-2">
-                  Course Details
+                  {payment?.isBulk ? 'Courses Details' : 'Course Details'}
                 </h3>
-                <div className="bg-gray-50 p-6 rounded">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                    <div className="flex-1 mb-4 md:mb-0">
-                      <h4 className="font-bold text-gray-900 text-lg mb-2">
-                        {payment?.course.title}
-                      </h4>
-                      <p className="text-gray-600 mb-2">
-                        Instructor: {payment?.course.instructor?.name}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Certificate of Completion Included
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-gray-900">
-                        {payment?.amount} ETB
+                {payment?.isBulk ? (
+                  <div className="space-y-4">
+                    {payment.courses?.map((course, index) => (
+                      <div key={course._id} className="bg-gray-50 p-4 rounded">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                          <div className="flex-1 mb-2 md:mb-0">
+                            <h4 className="font-bold text-gray-900 text-lg mb-1">
+                              {course.title}
+                            </h4>
+                            <p className="text-gray-600 mb-1">
+                              Instructor: {course.instructor?.name}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-gray-900">
+                              {course.price} ETB
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-600">
-                        One-time payment
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 p-6 rounded">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                      <div className="flex-1 mb-4 md:mb-0">
+                        <h4 className="font-bold text-gray-900 text-lg mb-2">
+                          {payment?.course.title}
+                        </h4>
+                        <p className="text-gray-600 mb-2">
+                          Instructor: {payment?.course.instructor?.name}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Certificate of Completion Included
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900">
+                          {payment?.amount} ETB
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          One-time payment
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Payment Summary */}

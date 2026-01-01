@@ -8,8 +8,15 @@ const paymentSchema = new mongoose.Schema({
   },
   course: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Course',
-    required: true
+    ref: 'Course'
+  },
+  courses: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Course'
+  }],
+  isBulk: {
+    type: Boolean,
+    default: false
   },
   amount: {
     type: Number,

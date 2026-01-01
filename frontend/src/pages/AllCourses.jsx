@@ -22,6 +22,7 @@ const AllCourses = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [enrolledCourses, setEnrolledCourses] = useState(new Set());
+  const [selectedCourses, setSelectedCourses] = useState(new Set());
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
@@ -103,6 +104,47 @@ const AllCourses = () => {
     } catch (error) {
       console.error('Error starring course:', error);
     }
+  };
+
+  const handleCourseSelection = (courseId) => {
+    if (!user) {
+      setModalMessage('Please login to select courses');
+      setShowLoginModal(true);
+      return;
+    }
+    
+    if (user.role !== 'student') {
+      setShowRoleModal(true);
+      return;
+    }
+    
+    if (enrolledCourses.has(courseId)) {
+      return; // Can't select already enrolled courses
+    }
+    
+    setSelectedCourses(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(courseId)) {
+        newSet.delete(courseId);
+      } else {
+        newSet.add(courseId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleBulkEnroll = () => {
+    if (selectedCourses.size === 0) return;
+    
+    const courseIds = Array.from(selectedCourses).join(',');
+    navigate(`/payment/bulk?courses=${courseIds}`);
+  };
+
+  const getTotalPrice = () => {
+    return Array.from(selectedCourses).reduce((total, courseId) => {
+      const course = courses.find(c => c._id === courseId);
+      return total + (course?.price || 0);
+    }, 0);
   };
 
   const handleEnroll = (courseId) => {
@@ -230,6 +272,63 @@ const AllCourses = () => {
             </div>
           </div>
 
+          {/* Selected Courses Summary */}
+          {selectedCourses.size > 0 && (
+            <div className="fixed bottom-6 right-6 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 z-50 max-w-sm">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
+                Selected Courses ({selectedCourses.size})
+              </h3>
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-4">
+                Total: {getTotalPrice()} Birr
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedCourses(new Set())}
+                  className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors text-sm"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={handleBulkEnroll}
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
+                  Enroll All
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Select All Checkbox - Above Courses Grid */}
+          {user?.role === 'student' && courses.length > 0 && (
+            <div className="flex items-center gap-3 mb-6 p-4">
+              <input
+                type="checkbox"
+                id="selectAll"
+                checked={selectedCourses.size > 0 && selectedCourses.size === courses.filter(course => !enrolledCourses.has(course._id)).length}
+                onChange={() => {
+                  const availableCourses = courses.filter(course => !enrolledCourses.has(course._id));
+                  if (selectedCourses.size === availableCourses.length) {
+                    setSelectedCourses(new Set());
+                  } else {
+                    setSelectedCourses(new Set(availableCourses.map(c => c._id)));
+                  }
+                }}
+                className="w-5 h-5 text-blue-600 bg-white border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:ring-2 transition-all"
+              />
+              <label htmlFor="selectAll" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                {selectedCourses.size > 0 && selectedCourses.size === courses.filter(course => !enrolledCourses.has(course._id)).length
+                  ? 'Deselect All Courses'
+                  : 'Select All Available Courses'
+                }
+              </label>
+              {selectedCourses.size > 0 && (
+                <span className="ml-auto text-sm text-blue-600 dark:text-blue-400 font-medium">
+                  {selectedCourses.size} selected
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Courses Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
             {loading ? (
@@ -245,7 +344,7 @@ const AllCourses = () => {
               ))
             ) : (
               courses.map(course => (
-                <div key={course._id} className="group bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 border border-gray-100 dark:border-gray-700">
+                <div key={course._id} className="group bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 border border-gray-100 dark:border-gray-700 relative">
                   <div className="relative overflow-hidden">
                     <img 
                       src={course.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400'} 
@@ -261,9 +360,20 @@ const AllCourses = () => {
                   </div>
                   
                   <div className="p-8">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                      {course.title}
-                    </h3>
+                    <div className="flex items-start gap-3 mb-4">
+                      {/* Selection Checkbox */}
+                      {user?.role === 'student' && !enrolledCourses.has(course._id) && (
+                        <input
+                          type="checkbox"
+                          checked={selectedCourses.has(course._id)}
+                          onChange={() => handleCourseSelection(course._id)}
+                          className="w-5 h-5 text-blue-600 bg-white border-2 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 mt-1 flex-shrink-0"
+                        />
+                      )}
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex-1">
+                        {course.title}
+                      </h3>
+                    </div>
                     
                     <div className="flex items-center mb-6">
                       <div className="w-10 h-10 rounded-full mr-3 overflow-hidden">

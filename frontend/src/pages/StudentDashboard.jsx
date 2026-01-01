@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star, Globe } from 'lucide-react';
+import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star, Globe, Heart } from 'lucide-react';
 import { profileAPI, enrollmentAPI, paymentAPI, subscriptionAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
@@ -292,13 +292,33 @@ const StudentDashboard = () => {
                 <div class="course-details">
                   <div class="course-header">
                     <div class="course-info">
-                      <h4>${payment.course.title}</h4>
-                      <p>Instructor: ${payment.course.instructor?.name || 'Instructor'}</p>
-                      <p style="font-size: 14px; color: #6b7280;">Certificate of Completion Included</p>
-                    </div>
-                    <div class="course-price">
-                      <div class="amount">${payment.amount} ETB</div>
-                      <div class="type">One-time payment</div>
+                      <h4>${payment.isBulk ? 'Courses Details' : 'Course Details'}</h4>
+                      ${payment.isBulk ? 
+                        payment.courses.map(course => `
+                          <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e5e7eb;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                              <div>
+                                <h5 style="font-size: 16px; font-weight: bold; color: #000; margin: 0 0 8px 0;">${course.title}</h5>
+                                <p style="color: #6b7280; margin: 0 0 8px 0;">Instructor: ${course.instructor?.name || 'Instructor'}</p>
+                              </div>
+                              <div style="text-align: right;">
+                                <div style="font-size: 20px; font-weight: bold; color: #000;">${course.price} ETB</div>
+                              </div>
+                            </div>
+                          </div>
+                        `).join('') :
+                        `<div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                          <div>
+                            <h5 style="font-size: 18px; font-weight: bold; color: #000; margin: 0 0 8px 0;">${payment.course.title}</h5>
+                            <p style="color: #6b7280; margin: 0 0 8px 0;">Instructor: ${payment.course.instructor?.name || 'Instructor'}</p>
+                            <p style="font-size: 14px; color: #6b7280;">Certificate of Completion Included</p>
+                          </div>
+                          <div style="text-align: right;">
+                            <div style="font-size: 24px; font-weight: bold; color: #000;">${payment.amount} ETB</div>
+                            <div style="font-size: 14px; color: #6b7280;">One-time payment</div>
+                          </div>
+                        </div>`
+                      }
                     </div>
                   </div>
                 </div>
@@ -386,19 +406,34 @@ const StudentDashboard = () => {
             </div>
             
             <div style="margin-bottom: 40px;">
-              <h3 style="font-size: 18px; font-weight: bold; color: #000; margin-bottom: 16px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px;">Course Details</h3>
+              <h3 style="font-size: 18px; font-weight: bold; color: #000; margin-bottom: 16px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px;">${payment.isBulk ? 'Courses Details' : 'Course Details'}</h3>
               <div style="background: #f9fafb; padding: 24px; border-radius: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                  <div>
-                    <h4 style="font-size: 18px; font-weight: bold; color: #000; margin: 0 0 8px 0;">${payment.course.title}</h4>
-                    <p style="color: #6b7280; margin: 0 0 8px 0;">Instructor: ${payment.course.instructor?.name || 'Instructor'}</p>
-                    <p style="font-size: 14px; color: #6b7280; margin: 0;">Certificate of Completion Included</p>
-                  </div>
-                  <div style="text-align: right;">
-                    <div style="font-size: 24px; font-weight: bold; color: #000;">${payment.amount} ETB</div>
-                    <div style="font-size: 14px; color: #6b7280;">One-time payment</div>
-                  </div>
-                </div>
+                ${payment.isBulk ? 
+                  payment.courses.map(course => `
+                    <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e5e7eb;">
+                      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                          <h4 style="font-size: 18px; font-weight: bold; color: #000; margin: 0 0 8px 0;">${course.title}</h4>
+                          <p style="color: #6b7280; margin: 0 0 8px 0;">Instructor: ${course.instructor?.name || 'Instructor'}</p>
+                        </div>
+                        <div style="text-align: right;">
+                          <div style="font-size: 20px; font-weight: bold; color: #000;">${course.price} ETB</div>
+                        </div>
+                      </div>
+                    </div>
+                  `).join('') :
+                  `<div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                      <h4 style="font-size: 18px; font-weight: bold; color: #000; margin: 0 0 8px 0;">${payment.course.title}</h4>
+                      <p style="color: #6b7280; margin: 0 0 8px 0;">Instructor: ${payment.course.instructor?.name || 'Instructor'}</p>
+                      <p style="font-size: 14px; color: #6b7280; margin: 0;">Certificate of Completion Included</p>
+                    </div>
+                    <div style="text-align: right;">
+                      <div style="font-size: 24px; font-weight: bold; color: #000;">${payment.amount} ETB</div>
+                      <div style="font-size: 14px; color: #6b7280;">One-time payment</div>
+                    </div>
+                  </div>`
+                }
               </div>
             </div>
             
@@ -737,27 +772,28 @@ const StudentDashboard = () => {
 
     return (
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">My Courses</h2>
-          <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">My Courses</h2>
             <button
               onClick={() => setShowLikedOnly(!showLikedOnly)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              className={`flex items-center gap-2 text-sm font-medium transition-colors hover:opacity-80 ${
                 showLikedOnly 
-                  ? 'bg-red-600 text-white hover:bg-red-700' 
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  ? 'text-red-500' 
+                  : 'text-gray-500 dark:text-gray-400'
               }`}
             >
-              <Star className="h-4 w-4" />
-              {showLikedOnly ? 'Show All' : 'Liked Courses'}
-            </button>
-            <button 
-              onClick={() => window.location.href = '/courses'}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
-              Browse Courses
+              <Heart className={`h-5 w-5 ${showLikedOnly ? 'fill-current' : ''}`} />
+              Liked Courses
             </button>
           </div>
+          <button 
+            onClick={() => window.location.href = '/courses'}
+            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+          >
+            <BookOpen className="h-4 w-4" />
+            Browse Courses
+          </button>
         </div>
         
         <div className="inline-block bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md border border-gray-100 dark:border-gray-700">

@@ -108,20 +108,15 @@ router.get('/:id', auth, async (req, res) => {
           status: 'success'
         })
           .populate('course')
+          .populate('courses')
+          .populate({
+            path: 'courses',
+            populate: {
+              path: 'instructor',
+              select: 'name'
+            }
+          })
           .sort({ createdAt: -1 });
-        
-        // Remove duplicates by course ID
-        const uniquePayments = [];
-        const seenCourses = new Set();
-        
-        for (const payment of payments) {
-          if (payment.course && !seenCourses.has(payment.course._id.toString())) {
-            seenCourses.add(payment.course._id.toString());
-            uniquePayments.push(payment);
-          }
-        }
-        
-        payments = uniquePayments;
       } catch (err) {
         console.log('Payment error:', err);
       }
