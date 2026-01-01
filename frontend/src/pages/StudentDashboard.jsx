@@ -18,6 +18,8 @@ const StudentDashboard = () => {
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [selectedInstructor, setSelectedInstructor] = useState(null);
+  const [showInstructorModal, setShowInstructorModal] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -491,14 +493,14 @@ const StudentDashboard = () => {
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: BookOpen },
-    { id: 'courses', name: 'My Courses', icon: BookOpen },
     { id: 'browse-courses', name: 'Browse Courses', icon: BookOpen },
+    { id: 'courses', name: 'My Courses', icon: BookOpen },
     { id: 'course-details', name: 'Course Materials', icon: FileText },
     { id: 'assignments', name: 'Assignments', icon: FileText },
-    { id: 'payments', name: 'Payments', icon: CreditCard },
     { id: 'schedule', name: 'Schedule', icon: Calendar },
     { id: 'progress', name: 'Progress', icon: TrendingUp },
     { id: 'certificates', name: 'Certificates', icon: Award },
+    { id: 'payments', name: 'Payments', icon: CreditCard },
     { id: 'review', name: 'Leave Review', icon: Star },
     { id: 'profile', name: 'My Profile', icon: User }
   ];
@@ -652,16 +654,26 @@ const StudentDashboard = () => {
                 
                 <div className="flex items-center mb-4">
                   <div className="w-10 h-10 rounded-full mr-3 overflow-hidden">
-                    <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center">
-                      <User className="h-5 w-5 text-white" />
-                    </div>
+                    {course.instructor?.profileImage ? (
+                      <img 
+                        src={course.instructor.profileImage} 
+                        alt={course.instructor.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center">
+                        <span className="text-white text-sm font-semibold">
+                          {course.instructor?.name ? course.instructor.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'IN'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-gray-900 dark:text-white text-sm">{course.instructor?.name || 'Instructor'}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Instructor</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{course.studentCount || 0} students</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{course.enrolledStudents || 0} students</p>
                   </div>
                 </div>
                 
@@ -683,80 +695,143 @@ const StudentDashboard = () => {
   );
 
   const renderPayments = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Payment History</h2>
+    <div className="space-y-4 lg:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Payment History</h2>
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+          <CreditCard className="h-4 w-4" />
+          <span>{payments.length} transactions</span>
+        </div>
+      </div>
       
       {paymentsLoading ? (
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : payments.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
           <CreditCard className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Payments Found</h3>
           <p className="text-gray-500 dark:text-gray-400">You haven't made any payments yet.</p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Course
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Payment Method
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                {payments.map((payment) => (
-                  <tr key={payment._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <img 
-                          src={payment.course?.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=50'}
-                          alt={payment.course?.title}
-                          className="w-12 h-12 rounded-lg object-cover mr-4"
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {payment.course?.title || 'Course'}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Receipt: {payment.receiptNumber}
-                          </p>
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Course
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Amount
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Payment Method
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                  {payments.map((payment) => (
+                    <tr key={payment._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <img 
+                            src={payment.course?.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=50'}
+                            alt={payment.course?.title}
+                            className="w-12 h-12 rounded-lg object-cover mr-4"
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              {payment.course?.title || 'Course'}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Receipt: {payment.receiptNumber}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-lg font-bold text-gray-900 dark:text-white">
-                        {payment.amount} Birr
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 capitalize">
-                        {payment.paymentMethod}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                      {new Date(payment.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-lg font-bold text-gray-900 dark:text-white">
+                          {payment.amount} Birr
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 capitalize">
+                          {payment.paymentMethod}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                        {new Date(payment.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                          payment.status === 'success' 
+                            ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300'
+                            : payment.status === 'pending'
+                            ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300'
+                            : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300'
+                        }`}>
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          {payment.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleViewReceipt(payment._id)}
+                            className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            title="View Receipt"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDownloadReceipt(payment._id)}
+                            className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                            title="Download Receipt"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-4">
+            {payments.map((payment) => (
+              <div key={payment._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
+                {/* Header with Course Info */}
+                <div className="flex items-start gap-3 mb-4">
+                  <img 
+                    src={payment.course?.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=60'}
+                    alt={payment.course?.title}
+                    className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight mb-1">
+                      {payment.course?.title || 'Course'}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      Receipt: {payment.receiptNumber}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                         payment.status === 'success' 
                           ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300'
                           : payment.status === 'pending'
@@ -766,34 +841,63 @@ const StudentDashboard = () => {
                         <CheckCircle className="h-3 w-3 mr-1" />
                         {payment.status}
                       </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleViewReceipt(payment._id)}
-                          className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                          title="View Receipt"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDownloadReceipt(payment._id)}
-                          className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                          title="Download Receipt"
-                        >
-                          <Download className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-      
+                    </div>
+                  </div>
+                </div>
 
+                {/* Payment Details Grid */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Amount</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{payment.amount} Birr</p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Date</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {new Date(payment.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Payment Method */}
+                <div className="mb-4">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Payment Method</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                      <CreditCard className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">
+                      {payment.paymentMethod}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleViewReceipt(payment._id)}
+                    className="flex-1 flex items-center justify-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 py-2.5 px-4 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                  >
+                    <Eye className="h-4 w-4" />
+                    View Receipt
+                  </button>
+                  <button
+                    onClick={() => handleDownloadReceipt(payment._id)}
+                    className="flex-1 flex items-center justify-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 py-2.5 px-4 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-sm font-medium"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 

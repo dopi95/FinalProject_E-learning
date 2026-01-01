@@ -15,17 +15,26 @@ router.get('/my-courses', auth, async (req, res) => {
       path: 'course',
       populate: {
         path: 'instructor',
-        select: 'name email'
+        select: 'name email profileImage bio department specialization experience'
       }
     })
     .sort({ enrollmentDate: -1 });
 
-    const courses = enrollments.map(enrollment => ({
-      ...enrollment.course.toObject(),
-      enrollmentId: enrollment._id,
-      enrollmentDate: enrollment.enrollmentDate,
-      progress: enrollment.progress,
-      status: enrollment.status
+    const courses = await Promise.all(enrollments.map(async (enrollment) => {
+      // Get enrolled student count for this course
+      const enrolledCount = await Enrollment.countDocuments({
+        course: enrollment.course._id,
+        status: 'active'
+      });
+
+      return {
+        ...enrollment.course.toObject(),
+        enrollmentId: enrollment._id,
+        enrollmentDate: enrollment.enrollmentDate,
+        progress: enrollment.progress,
+        status: enrollment.status,
+        enrolledStudents: enrolledCount
+      };
     }));
 
     res.json({
