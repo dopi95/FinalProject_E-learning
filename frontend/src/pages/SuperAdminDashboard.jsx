@@ -657,18 +657,18 @@ const SuperAdminDashboard = () => {
 
   const renderCourses = () => (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Course Management</h2>
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Course Management</h2>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <button 
             onClick={() => setActiveTab('categories')}
-            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center gap-2"
+            className="w-full sm:w-auto bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center justify-center gap-2 text-sm font-medium"
           >
             Categories
           </button>
           <button 
             onClick={() => setShowAddCourse(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 text-sm font-medium"
           >
             <Plus className="h-4 w-4" />
             Add Course
@@ -697,37 +697,38 @@ const SuperAdminDashboard = () => {
       </div>
 
       {/* Courses Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <div className="relative">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+        <div className="px-4 lg:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <div className="relative w-full sm:w-auto">
                 <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search courses..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700"
+                  className="pl-10 pr-4 py-2 w-full sm:w-64 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
                 />
               </div>
-                <select 
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700"
-                >
-                  <option value="all">All Categories</option>
-                  {categories.map((category) => (
-                    <option key={category._id} value={category.slug}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+              <select 
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-3 py-2 w-full sm:w-auto border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+              >
+                <option value="all">All Categories</option>
+                {categories.map((category) => (
+                  <option key={category._id} value={category.slug}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
         
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -742,55 +743,58 @@ const SuperAdminDashboard = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {courses.map((course) => (
-                <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <img className="h-12 w-12 rounded-lg object-cover mr-4" src={course.image} alt={course.title} />
-                      <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">{course.title}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">{course.description}</div>
+                      <img className="h-12 w-12 rounded-lg object-cover mr-4 flex-shrink-0" src={course.image} alt={course.title} />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{course.title}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{course.category}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 dark:text-white">{course.instructor?.name || 'Unknown Instructor'}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{course.instructor?.email || 'No email'}</div>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900 dark:text-white">{course.instructor?.name || 'Unknown'}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{course.instructor?.email || 'No email'}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <span className="text-sm font-medium text-gray-900 dark:text-white">{course.price} Birr</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-1">
                       <Star className="h-4 w-4 text-yellow-500" />
                       <span className="text-sm text-gray-900 dark:text-white">{course.stars?.length || 0}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <span className="text-sm text-gray-900 dark:text-white">{course.studentCount || 0}</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                     {new Date(course.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
+                  <td className="px-6 py-4">
+                    <div className="flex space-x-1">
                       <button 
                         onClick={() => {
                           setSelectedCourse(course);
                           setShowCourseDetail(true);
                         }}
-                        className="text-blue-600 hover:text-blue-800 p-1 rounded"
+                        className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                        title="View Details"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button 
                         onClick={() => handleEditCourse(course)}
-                        className="text-green-600 hover:text-green-800 p-1 rounded"
+                        className="text-green-600 hover:text-green-800 p-1.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                        title="Edit Course"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button 
                         onClick={() => handleDeleteCourse(course._id)}
-                        className="text-red-600 hover:text-red-800 p-1 rounded"
+                        className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        title="Delete Course"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -800,6 +804,95 @@ const SuperAdminDashboard = () => {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="lg:hidden">
+          {courses.length === 0 ? (
+            <div className="text-center py-12">
+              <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Courses Found</h3>
+              <p className="text-gray-500 dark:text-gray-400">Try adjusting your search or filters.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {courses.map((course) => (
+                <div key={course._id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  {/* Course Header */}
+                  <div className="flex items-start gap-3 mb-3">
+                    <img 
+                      className="h-16 w-16 rounded-xl object-cover flex-shrink-0" 
+                      src={course.image} 
+                      alt={course.title} 
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight mb-1">
+                        {course.title}
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 capitalize">
+                        {course.category}
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        By {course.instructor?.name || 'Unknown'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">{course.price} Birr</p>
+                    </div>
+                  </div>
+
+                  {/* Course Stats */}
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <Star className="h-3 w-3 text-yellow-500" />
+                        <span className="text-xs font-medium text-gray-900 dark:text-white">{course.stars?.length || 0}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Stars</p>
+                    </div>
+                    <div className="text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
+                      <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">{course.studentCount || 0}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Students</p>
+                    </div>
+                    <div className="text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
+                      <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">
+                        {new Date(course.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Created</p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedCourse(course);
+                        setShowCourseDetail(true);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 py-2 px-3 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                    >
+                      <Eye className="h-4 w-4" />
+                      View
+                    </button>
+                    <button
+                      onClick={() => handleEditCourse(course)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 py-2 px-3 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-sm font-medium"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCourse(course._id)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 py-2 px-3 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm font-medium"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1816,17 +1909,17 @@ const SuperAdminDashboard = () => {
   );
 
   const renderContacts = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Contact Messages</h2>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            {contacts.filter(c => c.status === 'pending').length} pending messages
-          </span>
+    <div className="space-y-4 lg:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Contact Messages</h2>
+        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <MessageSquare className="h-4 w-4" />
+          <span>{contacts.filter(c => c.status === 'pending').length} pending messages</span>
         </div>
       </div>
       
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      {/* Desktop Table View */}
+      <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
@@ -1840,8 +1933,8 @@ const SuperAdminDashboard = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {contacts.map((contact) => (
-                <tr key={contact._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr key={contact._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-6 py-4">
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-white">{contact.name}</div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">{contact.email}</div>
@@ -1850,7 +1943,7 @@ const SuperAdminDashboard = () => {
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900 dark:text-white max-w-xs truncate">{contact.subject}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       contact.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
                       contact.status === 'replied' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
@@ -1859,17 +1952,18 @@ const SuperAdminDashboard = () => {
                       {contact.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                     {new Date(contact.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <td className="px-6 py-4">
                     <div className="flex space-x-2">
                       <button 
                         onClick={() => {
                           setSelectedContact(contact);
                           setShowContactDetail(true);
                         }}
-                        className="text-blue-600 hover:text-blue-800 p-1 rounded"
+                        className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                        title="View Details"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
@@ -1879,7 +1973,8 @@ const SuperAdminDashboard = () => {
                             setSelectedContact(contact);
                             setShowReplyModal(true);
                           }}
-                          className="text-green-600 hover:text-green-800 p-1 rounded"
+                          className="text-green-600 hover:text-green-800 p-1.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                          title="Reply"
                         >
                           <Reply className="h-4 w-4" />
                         </button>
@@ -1890,7 +1985,7 @@ const SuperAdminDashboard = () => {
                             setSelectedContact(contact);
                             setShowReplyModal(true);
                           }}
-                          className="text-blue-600 hover:text-blue-800 p-1 rounded"
+                          className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                           title="Reply again"
                         >
                           <Reply className="h-4 w-4" />
@@ -1903,6 +1998,80 @@ const SuperAdminDashboard = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="lg:hidden">
+        {contacts.length === 0 ? (
+          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+            <MessageSquare className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Messages Found</h3>
+            <p className="text-gray-500 dark:text-gray-400">No contact messages received yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {contacts.map((contact) => (
+              <div key={contact._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
+                {/* Contact Header */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
+                      {contact.name}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      {contact.email}
+                    </p>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      contact.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                      contact.status === 'replied' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                      'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
+                    }`}>
+                      {contact.status}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {new Date(contact.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Subject */}
+                <div className="mb-4">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Subject</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{contact.subject}</p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedContact(contact);
+                      setShowContactDetail(true);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 py-2 px-3 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                  >
+                    <Eye className="h-4 w-4" />
+                    View
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedContact(contact);
+                      setShowReplyModal(true);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 py-2 px-3 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-sm font-medium"
+                  >
+                    <Reply className="h-4 w-4" />
+                    Reply
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Contact Detail Modal */}
@@ -2030,17 +2199,17 @@ const SuperAdminDashboard = () => {
   );
 
   const renderReviews = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Review Management</h2>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            {reviews.filter(r => r.status === 'pending').length} pending reviews
-          </span>
+    <div className="space-y-4 lg:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Review Management</h2>
+        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <Star className="h-4 w-4" />
+          <span>{reviews.filter(r => r.status === 'pending').length} pending reviews</span>
         </div>
       </div>
       
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      {/* Desktop Table View */}
+      <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
@@ -2055,10 +2224,10 @@ const SuperAdminDashboard = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {reviews.map((review) => (
-                <tr key={review._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr key={review._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-3 overflow-hidden">
+                      <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-3 overflow-hidden flex-shrink-0">
                         {review.user?.profileImage ? (
                           <img src={review.user.profileImage} alt={review.user.name} className="h-full w-full object-cover" />
                         ) : (
@@ -2067,13 +2236,13 @@ const SuperAdminDashboard = () => {
                           </span>
                         )}
                       </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">{review.user?.name || 'Unknown User'}</div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{review.user?.name || 'Unknown User'}</div>
                         <div className="text-sm text-gray-500 dark:text-gray-400 capitalize">{review.user?.role || 'user'}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <div className="flex items-center">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
@@ -2091,7 +2260,7 @@ const SuperAdminDashboard = () => {
                       {review.message.length > 20 ? `${review.message.substring(0, 20)}...` : review.message}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       review.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
                       review.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
@@ -2100,24 +2269,25 @@ const SuperAdminDashboard = () => {
                       {review.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                     {new Date(review.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
+                  <td className="px-6 py-4">
+                    <div className="flex space-x-1">
                       <button 
                         onClick={() => {
                           setSelectedReview(review);
                           setShowReviewDetail(true);
                         }}
-                        className="text-blue-600 hover:text-blue-800 p-1 rounded"
+                        className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                        title="View Details"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                       {review.status !== 'approved' && (
                         <button 
                           onClick={() => handleReviewAction(review._id, 'approved')}
-                          className="text-green-600 hover:text-green-800 p-1 rounded"
+                          className="text-green-600 hover:text-green-800 p-1.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
                           title="Approve"
                         >
                           <ThumbsUp className="h-4 w-4" />
@@ -2126,7 +2296,7 @@ const SuperAdminDashboard = () => {
                       {review.status !== 'rejected' && (
                         <button 
                           onClick={() => handleReviewAction(review._id, 'rejected')}
-                          className="text-red-600 hover:text-red-800 p-1 rounded"
+                          className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                           title="Reject"
                         >
                           <ThumbsDown className="h-4 w-4" />
@@ -2134,7 +2304,7 @@ const SuperAdminDashboard = () => {
                       )}
                       <button 
                         onClick={() => handleReviewAction(review._id, 'delete')}
-                        className="text-red-600 hover:text-red-800 p-1 rounded"
+                        className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                         title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -2146,6 +2316,113 @@ const SuperAdminDashboard = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="lg:hidden">
+        {reviews.length === 0 ? (
+          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+            <Star className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Reviews Found</h3>
+            <p className="text-gray-500 dark:text-gray-400">No reviews submitted yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {reviews.map((review) => (
+              <div key={review._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
+                {/* Review Header */}
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="h-12 w-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {review.user?.profileImage ? (
+                      <img src={review.user.profileImage} alt={review.user.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                        {review.user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
+                      {review.user?.name || 'Unknown User'}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 capitalize mb-2">
+                      {review.user?.role || 'user'}
+                    </p>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      review.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                      review.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                      'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                    }`}>
+                      {review.status}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {new Date(review.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Rating */}
+                <div className="mb-3">
+                  <div className="flex items-center gap-1 mb-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-4 w-4 ${
+                          star <= review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                        }`}
+                      />
+                    ))}
+                    <span className="ml-1 text-sm text-gray-600 dark:text-gray-400">{review.rating}/5</span>
+                  </div>
+                </div>
+
+                {/* Message Preview */}
+                <div className="mb-4">
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {review.message.length > 60 ? `${review.message.substring(0, 60)}...` : review.message}
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedReview(review);
+                      setShowReviewDetail(true);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 py-2 px-3 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                  >
+                    <Eye className="h-4 w-4" />
+                    View
+                  </button>
+                  {review.status !== 'approved' && (
+                    <button
+                      onClick={() => handleReviewAction(review._id, 'approved')}
+                      className="flex-1 flex items-center justify-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 py-2 px-3 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-sm font-medium"
+                    >
+                      <ThumbsUp className="h-4 w-4" />
+                      Approve
+                    </button>
+                  )}
+                  {review.status !== 'rejected' && (
+                    <button
+                      onClick={() => handleReviewAction(review._id, 'rejected')}
+                      className="flex-1 flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 py-2 px-3 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm font-medium"
+                    >
+                      <ThumbsDown className="h-4 w-4" />
+                      Reject
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Review Detail Modal */}
