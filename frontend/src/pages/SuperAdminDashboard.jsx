@@ -58,6 +58,7 @@ const SuperAdminDashboard = () => {
   const [userEnrollments, setUserEnrollments] = useState([]);
   const [userPayments, setUserPayments] = useState([]);
   const [userCourses, setUserCourses] = useState([]);
+  const [totalPayments, setTotalPayments] = useState(0);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -378,6 +379,17 @@ const SuperAdminDashboard = () => {
       
       const response = await usersAPI.getUsers(params);
       setUsers(response.data.users);
+      
+      // Calculate total payments for students
+      if (selectedRole === 'student') {
+        const paymentsResponse = await paymentAPI.getPayments({
+          course: selectedCourseFilter !== 'all' ? selectedCourseFilter : undefined
+        });
+        const total = paymentsResponse.data.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
+        setTotalPayments(total);
+      } else {
+        setTotalPayments(0);
+      }
     } catch (error) {
       console.error('Error fetching users:', error);
       showNotification('error', 'Error', 'Failed to fetch users');
@@ -1191,7 +1203,7 @@ const SuperAdminDashboard = () => {
                       <img className="h-12 w-12 rounded-lg object-cover mr-4 flex-shrink-0" src={course.image} alt={course.title} />
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{course.title}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{course.category}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{categories.find(cat => cat.slug === course.category)?.name || course.category}</div>
                       </div>
                     </div>
                   </td>
@@ -1272,7 +1284,7 @@ const SuperAdminDashboard = () => {
                         {course.title}
                       </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                        {course.category}
+                        {categories.find(cat => cat.slug === course.category)?.name || course.category}
                       </p>
                       <p className="text-xs text-gray-600 dark:text-gray-400">
                         By {course.instructor?.name || 'Unknown'}
@@ -1544,7 +1556,7 @@ const SuperAdminDashboard = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
-                    <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{selectedCourse.category}</p>
+                    <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{categories.find(cat => cat.slug === selectedCourse.category)?.name || selectedCourse.category}</p>
                   </div>
                 </div>
                 
@@ -1792,7 +1804,7 @@ const SuperAdminDashboard = () => {
       </div>
       
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
           <p className="text-lg lg:text-2xl font-bold text-blue-600">{users.filter(u => u.role === 'student').length}</p>
           <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Students</p>
@@ -1809,6 +1821,12 @@ const SuperAdminDashboard = () => {
           <p className="text-lg lg:text-2xl font-bold text-orange-600">{users.filter(u => u.role === 'superadmin').length}</p>
           <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Super Admins</p>
         </div>
+        {selectedRole === 'student' && (
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
+            <p className="text-lg lg:text-2xl font-bold text-emerald-600">{totalPayments}</p>
+            <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Total Payments (Birr)</p>
+          </div>
+        )}
       </div>
 
       {/* Filters */}

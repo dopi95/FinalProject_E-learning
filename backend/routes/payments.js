@@ -337,4 +337,41 @@ router.get('/my-payments', auth, async (req, res) => {
   }
 });
 
+// Get all payments (Admin only)
+router.get('/', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const { course } = req.query;
+    let query = { status: 'success' };
+    
+    if (course) {
+      query.$or = [
+        { course: course },
+        { courses: { $in: [course] } }
+      ];
+    }
+
+    const payments = await Payment.find(query)
+      .populate('course')
+      .populate('courses')
+      .populate('user')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      payments: payments
+    });
+  } catch (error) {
+    console.error('Admin payments fetch error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error fetching payments',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

@@ -4,13 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { Star, Users, User, ArrowRight, CheckCircle, Heart } from 'lucide-react';
 import LoginRequiredModal from './LoginRequiredModal';
 import RoleBasedModal from './RoleBasedModal';
-import { courseAPI, enrollmentAPI } from '../services/api';
+import { courseAPI, enrollmentAPI, categoryAPI } from '../services/api';
 import { getUserData } from '../utils/userUtils';
 
 const FeaturedCourses = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [enrolledCourses, setEnrolledCourses] = useState(new Set());
   const [user] = useState(getUserData());
@@ -20,10 +21,20 @@ const FeaturedCourses = () => {
 
   useEffect(() => {
     fetchFeaturedCourses();
+    fetchCategories();
     if (user) {
       checkEnrollments();
     }
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await categoryAPI.getCategories();
+      setCategories(response.data.categories);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const checkEnrollments = async () => {
     try {
@@ -129,7 +140,7 @@ const FeaturedCourses = () => {
                     <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{course.price} {t('courses.birr')}</span>
                   </div>
                   <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                    {course.category}
+                    {categories.find(cat => cat.slug === course.category)?.name || course.category}
                   </div>
                 </div>
                 

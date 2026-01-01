@@ -355,7 +355,7 @@ const AllCourses = () => {
                       <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{course.price} {t('courses.birr')}</span>
                     </div>
                     <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                      {course.category}
+                      {categories.find(cat => cat.slug === course.category)?.name || course.category}
                     </div>
                   </div>
                   

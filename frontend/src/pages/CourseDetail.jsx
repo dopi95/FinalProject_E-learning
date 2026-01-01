@@ -8,7 +8,7 @@ import RoleBasedModal from '../components/RoleBasedModal';
 import Toast from '../components/Toast';
 import { ArrowLeft, Star, Users, Clock, PlayCircle, CheckCircle, Globe, Award, User, Heart } from 'lucide-react';
 import { getUserData } from '../utils/userUtils';
-import { courseAPI, enrollmentAPI } from '../services/api';
+import { courseAPI, enrollmentAPI, categoryAPI } from '../services/api';
 
 const CourseDetail = () => {
   const { id } = useParams();
@@ -20,6 +20,7 @@ const CourseDetail = () => {
   const [modalMessage, setModalMessage] = useState('');
   const [user, setUser] = useState(null);
   const [course, setCourse] = useState(null);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
@@ -30,6 +31,7 @@ const CourseDetail = () => {
     const userData = getUserData();
     setUser(userData);
     fetchCourse();
+    fetchCategories();
     if (userData) {
       checkEnrollmentStatus();
     }
@@ -40,6 +42,15 @@ const CourseDetail = () => {
       checkEnrollmentStatus();
     }
   }, [user]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await categoryAPI.getCategories();
+      setCategories(response.data.categories);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchCourse = async () => {
     try {
@@ -201,6 +212,11 @@ const CourseDetail = () => {
                   <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 leading-tight">
                     {course.title}
                   </h1>
+                  <div className="mb-4">
+                    <span className="inline-block bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-full text-sm font-medium">
+                      {categories.find(cat => cat.slug === course.category)?.name || course.category}
+                    </span>
+                  </div>
                   <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 mb-4 sm:mb-6 leading-relaxed">
                     {course.description}
                   </p>
