@@ -459,12 +459,12 @@ const SuperAdminDashboard = () => {
             <div class="diagonal-stamp">PAID</div>
             
             <div class="payment-stamp">
-              <img src="http://localhost:3000/assets/images/${payment.paymentMethod === 'telebirr' ? 'telebirrlogo.png' : 'cbe.png'}" alt="${payment.paymentMethod}">
+              <img src="/assets/images/${payment.paymentMethod === 'telebirr' ? 'telebirrlogo.png' : 'cbe.png'}" alt="${payment.paymentMethod}">
               <p>${payment.paymentMethod === 'telebirr' ? 'Telebirr' : 'CBE'}</p>
             </div>
             
             <div class="header">
-              <img src="http://localhost:3000/assets/images/aaulogo.png" alt="AAU Logo">
+              <img src="/assets/images/aaulogo.png" alt="AAU Logo">
               <h1>AAU E-Learning</h1>
               <p>Addis Ababa University</p>
               <div class="receipt-no">Receipt No: ${payment.receiptNumber}</div>
@@ -572,12 +572,12 @@ const SuperAdminDashboard = () => {
           <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 80px; font-weight: bold; color: rgba(34, 197, 94, 0.3); pointer-events: none; z-index: 10;">PAID</div>
           
           <div style="position: absolute; top: 20px; right: 20px; z-index: 20; text-align: center;">
-            <img src="http://localhost:3000/assets/images/${payment.paymentMethod === 'telebirr' ? 'telebirrlogo.png' : 'cbe.png'}" alt="${payment.paymentMethod}" style="width: 40px; height: 40px; object-fit: contain; margin-bottom: 5px;">
+            <img src="/assets/images/${payment.paymentMethod === 'telebirr' ? 'telebirrlogo.png' : 'cbe.png'}" alt="${payment.paymentMethod}" style="width: 40px; height: 40px; object-fit: contain; margin-bottom: 5px;">
             <p style="font-size: 12px; font-weight: bold; color: #374151; text-transform: uppercase; margin: 0;">${payment.paymentMethod === 'telebirr' ? 'Telebirr' : 'CBE'}</p>
           </div>
           
           <div style="border-bottom: 2px solid #000; padding: 40px; text-align: center;">
-            <img src="http://localhost:3000/assets/images/aaulogo.png" alt="AAU Logo" style="height: 64px; width: auto; margin-bottom: 16px;">
+            <img src="/assets/images/aaulogo.png" alt="AAU Logo" style="height: 64px; width: auto; margin-bottom: 16px;">
             <h1 style="font-size: 24px; font-weight: bold; color: #000; margin: 0 0 4px 0;">AAU E-Learning</h1>
             <p style="color: #374151; margin: 0 0 16px 0;">Addis Ababa University</p>
             <div style="text-align: right; font-size: 14px; color: #6b7280;">Receipt No: ${payment.receiptNumber}</div>
