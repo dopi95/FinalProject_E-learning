@@ -202,4 +202,22 @@ export const usersAPI = {
   deleteUser: (id) => api.delete(`/users/${id}`),
 };
 
+// Subscription API functions
+export const subscriptionAPI = {
+  // Subscribe to newsletter
+  subscribe: (email) => api.post('/subscriptions/subscribe', { email }),
+  
+  // Unsubscribe from newsletter
+  unsubscribe: (email) => api.post('/subscriptions/unsubscribe', { email }),
+  
+  // Get subscription status
+  getStatus: () => api.get('/subscriptions/status'),
+  
+  // Get all subscriptions (Admin only)
+  getAllSubscriptions: () => api.get('/subscriptions/admin/all'),
+  
+  // Send newsletter
+  sendNewsletter: (data) => api.post('/subscriptions/newsletter', data),
+};
+
 export default api;

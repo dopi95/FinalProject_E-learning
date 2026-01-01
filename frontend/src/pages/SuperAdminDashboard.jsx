@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
+import SubscriptionManagement from '../components/SubscriptionManagement';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 
 const SuperAdminDashboard = () => {
@@ -836,10 +837,8 @@ const SuperAdminDashboard = () => {
     { id: 'courses', name: 'Course Management', icon: BookOpen },
     { id: 'contacts', name: 'Contact Messages', icon: MessageSquare },
     { id: 'reviews', name: 'Review Management', icon: Star },
+    { id: 'subscriptions', name: 'Email Subscriptions', icon: Mail },
     { id: 'admins', name: 'Admin Management', icon: Shield },
-    { id: 'system', name: 'System Control', icon: Server },
-    { id: 'security', name: 'Security Center', icon: Lock },
-    { id: 'database', name: 'Database Management', icon: Database },
     { id: 'settings', name: 'Global Settings', icon: Settings },
     { id: 'profile', name: 'My Profile', icon: User }
   ];
@@ -2210,159 +2209,6 @@ const SuperAdminDashboard = () => {
     </div>
   );
 
-  const renderSystem = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">System Control Panel</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">System Actions</h3>
-          <div className="space-y-3">
-            <button className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
-              Restart Application
-            </button>
-            <button className="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700">
-              Clear Cache
-            </button>
-            <button className="w-full bg-yellow-600 text-white py-2 px-4 rounded hover:bg-yellow-700">
-              Maintenance Mode
-            </button>
-            <button className="w-full bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700">
-              Emergency Shutdown
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">System Resources</h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm text-gray-600 dark:text-gray-400">CPU Usage</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">45%</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '45%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Memory Usage</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">67%</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-green-600 h-2 rounded-full" style={{ width: '67%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Disk Usage</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">23%</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-purple-600 h-2 rounded-full" style={{ width: '23%' }}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderSecurity = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Security Center</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Security Alerts</h3>
-          <div className="space-y-3">
-            <div className="flex items-center p-3 bg-red-50 dark:bg-red-900/20 rounded">
-              <AlertTriangle className="h-5 w-5 text-red-600 mr-3" />
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Suspicious Login Activity</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Multiple failed attempts from IP: 192.168.1.100</p>
-              </div>
-            </div>
-            <div className="flex items-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 mr-3" />
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Unusual Access Pattern</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Admin login from new location</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Security Settings</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700 dark:text-gray-300">Force 2FA for Admins</span>
-              <button className="bg-green-600 text-white px-3 py-1 rounded text-sm">Enabled</button>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700 dark:text-gray-300">IP Whitelist</span>
-              <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm">Configure</button>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700 dark:text-gray-300">Session Timeout</span>
-              <input type="number" className="w-20 p-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700" defaultValue="30" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderDatabase = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Database Management</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Database Operations</h3>
-          <div className="space-y-3">
-            <button className="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700">
-              Create Backup
-            </button>
-            <button className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
-              Restore Backup
-            </button>
-            <button className="w-full bg-yellow-600 text-white py-2 px-4 rounded hover:bg-yellow-700">
-              Optimize Database
-            </button>
-            <button className="w-full bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700">
-              View Logs
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Database Statistics</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Total Records</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">45,678</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Database Size</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">2.3 GB</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Last Backup</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">2 hours ago</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Connection Pool</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">8/20 active</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   const renderSettings = () => (
     <div className="space-y-6">
       <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Global Settings</h2>
@@ -3445,11 +3291,9 @@ const SuperAdminDashboard = () => {
       case 'categories': return renderCategories();
       case 'contacts': return renderContacts();
       case 'reviews': return renderReviews();
+      case 'subscriptions': return <SubscriptionManagement />;
       case 'admins': return renderAdmins();
       case 'users': return renderUsers();
-      case 'system': return renderSystem();
-      case 'security': return renderSecurity();
-      case 'database': return renderDatabase();
       case 'settings': return renderSettings();
       case 'profile': return renderProfile();
       default: return renderOverview();

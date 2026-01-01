@@ -72,6 +72,19 @@ class EmailService {
     `;
     return await this.sendEmail(email, subject, htmlContent);
   }
+
+  async sendNewsletter(emails, subject, content) {
+    const results = [];
+    for (const email of emails) {
+      try {
+        const result = await this.sendEmail(email, subject, content);
+        results.push({ email, success: true, result });
+      } catch (error) {
+        results.push({ email, success: false, error: error.message });
+      }
+    }
+    return results;
+  }
 }
 
 module.exports = new EmailService();

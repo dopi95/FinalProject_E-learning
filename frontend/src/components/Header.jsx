@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { Sun, Moon, Menu, X, User, Bell, BellOff } from 'lucide-react';
+import { subscriptionAPI } from '../services/api';
+import LoginRequiredModal from './LoginRequiredModal';
 
 
 const Header = () => {
@@ -12,47 +14,66 @@ const Header = () => {
   const [user, setUser] = useState(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showSubscribeMenu, setShowSubscribeMenu] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     // Check if user is logged in
     const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
     if (userData) {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      // Fetch subscription status from API
+      fetchSubscriptionStatus();
     }
-    
-    // Check subscription status
-    const subscriptionStatus = localStorage.getItem('emailSubscription');
-    setIsSubscribed(subscriptionStatus === 'true');
   }, []);
 
-  const toggleSubscription = () => {
-    const newStatus = !isSubscribed;
-    setIsSubscribed(newStatus);
-    localStorage.setItem('emailSubscription', newStatus.toString());
-    setShowSubscribeMenu(false);
-    
-    // Show notification
-    const message = newStatus ? 'Subscribed successfully!' : 'Unsubscribed successfully!';
-    
-    // Create and show toast notification
+  const fetchSubscriptionStatus = async () => {
+    try {
+      const response = await subscriptionAPI.getStatus();
+      setIsSubscribed(response.data.isSubscribed);
+    } catch (error) {
+      console.error('Error fetching subscription status:', error);
+    }
+  };
+
+  const toggleSubscription = async () => {
+    if (!user) {
+      setShowLoginModal(true);
+      setShowSubscribeMenu(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      if (isSubscribed) {
+        await subscriptionAPI.unsubscribe(user.email);
+        setIsSubscribed(false);
+        showToast('Unsubscribed successfully!', 'orange');
+      } else {
+        await subscriptionAPI.subscribe(user.email);
+        setIsSubscribed(true);
+        showToast('Subscribed successfully!', 'green');
+      }
+      setShowSubscribeMenu(false);
+    } catch (error) {
+      console.error('Subscription error:', error);
+      showToast(error.response?.data?.message || 'Something went wrong', 'red');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showToast = (message, color) => {
     const toast = document.createElement('div');
-    toast.className = `fixed top-24 right-4 z-50 px-4 py-2 rounded-lg text-white font-medium transition-all duration-300 transform translate-x-full ${
-      newStatus ? 'bg-green-500' : 'bg-orange-500'
-    }`;
+    toast.className = `fixed top-24 right-4 z-50 px-4 py-2 rounded-lg text-white font-medium transition-all duration-300 transform translate-x-full bg-${color}-500`;
     toast.textContent = message;
     document.body.appendChild(toast);
     
-    // Animate in
-    setTimeout(() => {
-      toast.classList.remove('translate-x-full');
-    }, 100);
-    
-    // Animate out and remove
+    setTimeout(() => toast.classList.remove('translate-x-full'), 100);
     setTimeout(() => {
       toast.classList.add('translate-x-full');
-      setTimeout(() => {
-        document.body.removeChild(toast);
-      }, 300);
+      setTimeout(() => document.body.removeChild(toast), 300);
     }, 2000);
   };
 
@@ -148,9 +169,10 @@ const Header = () => {
                     <div className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 z-50">
                       <button
                         onClick={toggleSubscription}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded whitespace-nowrap"
+                        disabled={loading}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded whitespace-nowrap disabled:opacity-50"
                       >
-                        {isSubscribed ? 'Unsubscribe' : 'Subscribe'}
+                        {loading ? 'Loading...' : (isSubscribed ? 'Unsubscribe' : 'Subscribe')}
                       </button>
                     </div>
                   )}
@@ -177,12 +199,25 @@ const Header = () => {
                     <div className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 z-50">
                       <button
                         onClick={toggleSubscription}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded whitespace-nowrap"
+                        disabled={loading}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded whitespace-nowrap disabled:opacity-50"
                       >
-                        {isSubscribed ? 'Unsubscribe' : 'Subscribe'}
+                        {loading ? 'Loading...' : (isSubscribed ? 'Unsubscribe' : 'Subscribe')}
                       </button>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Show subscription for non-logged in users */}
+              {!user && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowLoginModal(true)}
+                    className="relative p-3 rounded-xl text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 group"
+                  >
+                    <BellOff className="h-5 w-5 transform group-hover:scale-110 transition-transform duration-300" />
+                  </button>
                 </div>
               )}
 
@@ -330,6 +365,20 @@ const Header = () => {
 
       {/* Spacer for fixed header */}
       <div className="h-20"></div>
+
+      {/* Login Required Modal */}
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLogin={() => {
+          setShowLoginModal(false);
+          window.location.href = '/login';
+        }}
+        onRegister={() => {
+          setShowLoginModal(false);
+          window.location.href = '/register';
+        }}
+      />
     </>
   );
 };

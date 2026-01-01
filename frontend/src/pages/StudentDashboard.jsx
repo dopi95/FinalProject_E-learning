@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star } from 'lucide-react';
-import { profileAPI, enrollmentAPI, paymentAPI } from '../services/api';
+import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star, Globe } from 'lucide-react';
+import { profileAPI, enrollmentAPI, paymentAPI, subscriptionAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
+import { useTranslation } from 'react-i18next';
 
 const StudentDashboard = () => {
+  const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -114,34 +116,37 @@ const StudentDashboard = () => {
     }
   };
 
-  const toggleSubscription = () => {
-    const newStatus = !isSubscribed;
-    setIsSubscribed(newStatus);
-    localStorage.setItem('emailSubscription', newStatus.toString());
-    setShowSubscribeMenu(false);
-    
-    // Show notification
-    const message = newStatus ? 'Subscribed successfully!' : 'Unsubscribed successfully!';
-    
-    // Create and show toast notification
+  const toggleSubscription = async () => {
+    try {
+      setLoading(true);
+      if (isSubscribed) {
+        await subscriptionAPI.unsubscribe(user.email);
+        setIsSubscribed(false);
+        showToast('Unsubscribed successfully!', 'orange');
+      } else {
+        await subscriptionAPI.subscribe(user.email);
+        setIsSubscribed(true);
+        showToast('Subscribed successfully!', 'green');
+      }
+      setShowSubscribeMenu(false);
+    } catch (error) {
+      console.error('Subscription error:', error);
+      showToast(error.response?.data?.message || 'Something went wrong', 'red');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showToast = (message, color) => {
     const toast = document.createElement('div');
-    toast.className = `fixed top-24 right-4 z-50 px-4 py-2 rounded-lg text-white font-medium transition-all duration-300 transform translate-x-full ${
-      newStatus ? 'bg-green-500' : 'bg-orange-500'
-    }`;
+    toast.className = `fixed top-24 right-4 z-50 px-4 py-2 rounded-lg text-white font-medium transition-all duration-300 transform translate-x-full bg-${color}-500`;
     toast.textContent = message;
     document.body.appendChild(toast);
     
-    // Animate in
-    setTimeout(() => {
-      toast.classList.remove('translate-x-full');
-    }, 100);
-    
-    // Animate out and remove
+    setTimeout(() => toast.classList.remove('translate-x-full'), 100);
     setTimeout(() => {
       toast.classList.add('translate-x-full');
-      setTimeout(() => {
-        document.body.removeChild(toast);
-      }, 300);
+      setTimeout(() => document.body.removeChild(toast), 300);
     }, 2000);
   };
 
@@ -485,9 +490,19 @@ const StudentDashboard = () => {
       }
     }
     
-    // Check subscription status
-    const subscriptionStatus = localStorage.getItem('emailSubscription');
-    setIsSubscribed(subscriptionStatus === 'true');
+    // Check subscription status from API
+    const fetchSubscriptionStatus = async () => {
+      try {
+        const response = await subscriptionAPI.getStatus();
+        setIsSubscribed(response.data.isSubscribed);
+      } catch (error) {
+        console.error('Error fetching subscription status:', error);
+      }
+    };
+    
+    if (userData) {
+      fetchSubscriptionStatus();
+    }
     
     // Fetch fresh user data from API
     fetchUserProfile();
