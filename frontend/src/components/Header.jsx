@@ -94,7 +94,17 @@ const Header = () => {
 
   const showToast = (message, color) => {
     const toast = document.createElement('div');
-    toast.className = `fixed top-24 right-4 z-50 px-4 py-2 rounded-lg text-white font-medium transition-all duration-300 transform translate-x-full bg-${color}-500`;
+    toast.className = `fixed top-24 right-4 z-50 px-4 py-2 rounded-lg text-white font-medium transition-all duration-300 transform translate-x-full`;
+    
+    // Set background color based on the color parameter
+    if (color === 'green') {
+      toast.style.backgroundColor = '#10b981'; // green-500
+    } else if (color === 'red' || color === 'orange') {
+      toast.style.backgroundColor = '#ef4444'; // red-500
+    } else {
+      toast.style.backgroundColor = '#3b82f6'; // blue-500
+    }
+    
     toast.textContent = message;
     document.body.appendChild(toast);
     

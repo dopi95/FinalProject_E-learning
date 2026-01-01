@@ -168,20 +168,45 @@ const InstructorDashboard = () => {
         await subscriptionAPI.unsubscribe(user.email);
         setIsSubscribed(false);
         playSound('unsubscribe');
-        showNotification('success', 'Unsubscribed!', 'You have been unsubscribed from email notifications');
+        showToast('Unsubscribed successfully!', 'unsubscribe');
       } else {
         await subscriptionAPI.subscribe(user.email);
         setIsSubscribed(true);
         playSound('subscribe');
-        showNotification('success', 'Subscribed!', 'You will now receive email notifications');
+        showToast('Subscribed successfully!', 'success');
       }
       setShowSubscribeMenu(false);
     } catch (error) {
       console.error('Subscription error:', error);
-      showNotification('error', 'Error', error.response?.data?.message || 'Something went wrong');
+      showToast(error.response?.data?.message || 'Something went wrong', 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const showToast = (message, type = 'success') => {
+    const toast = document.createElement('div');
+    toast.className = `fixed top-24 right-4 z-50 px-4 py-2 rounded-lg text-white font-medium transition-all duration-300 transform translate-x-full`;
+    
+    // Set background color based on the type parameter
+    if (type === 'success') {
+      toast.style.backgroundColor = '#10b981'; // green-500
+    } else if (type === 'error' || type === 'unsubscribe') {
+      toast.style.backgroundColor = '#ef4444'; // red-500
+    } else if (type === 'warning') {
+      toast.style.backgroundColor = '#f59e0b'; // amber-500
+    } else {
+      toast.style.backgroundColor = '#3b82f6'; // blue-500
+    }
+    
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+    setTimeout(() => {
+      toast.classList.add('translate-x-full');
+      setTimeout(() => document.body.removeChild(toast), 300);
+    }, 2000);
   };
 
   const fetchInstructorStudents = async () => {
@@ -1685,7 +1710,10 @@ const InstructorDashboard = () => {
         {/* Logo/Title */}
         <div className="flex items-center justify-between h-16 lg:h-20 px-4 lg:px-6 bg-gradient-to-r from-blue-600 to-indigo-600 border-b border-blue-500 flex-shrink-0">
           <button 
-            onClick={() => setActiveTab('profile')}
+            onClick={() => {
+              setActiveTab('profile');
+              setSidebarOpen(false);
+            }}
             className="flex items-center hover:bg-white/10 rounded-lg p-2 transition-colors cursor-pointer w-full"
           >
             <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white/20 rounded-full flex items-center justify-center mr-2 lg:mr-3 overflow-hidden">
@@ -1752,8 +1780,8 @@ const InstructorDashboard = () => {
             
             {/* Additional Navigation Items */}
             <div className="mt-6 lg:mt-100 pt-3 lg:pt-4">
-              {/* Email Subscription Bell - Desktop */}
-              <div className="relative mb-1">
+              {/* Email Subscription Bell */}
+              <div className="relative mb-2">
                 <button
                   onClick={() => setShowSubscribeMenu(!showSubscribeMenu)}
                   className="w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all duration-200"
@@ -1769,7 +1797,7 @@ const InstructorDashboard = () => {
                   )}
                 </button>
                 {showSubscribeMenu && (
-                  <div className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 z-50">
+                  <div className="absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 z-50">
                     <button
                       onClick={toggleSubscription}
                       disabled={loading}

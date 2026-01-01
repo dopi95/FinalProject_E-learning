@@ -3498,7 +3498,10 @@ const SuperAdminDashboard = () => {
         {/* Logo/Title */}
         <div className="flex items-center justify-between h-16 lg:h-20 px-4 lg:px-6 bg-gradient-to-r from-purple-600 to-indigo-600 border-b border-purple-500 flex-shrink-0">
           <button 
-            onClick={() => setActiveTab('profile')}
+            onClick={() => {
+              setActiveTab('profile');
+              setSidebarOpen(false);
+            }}
             className="flex items-center hover:bg-white/10 rounded-lg p-2 transition-colors cursor-pointer w-full"
           >
             <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white/20 rounded-full flex items-center justify-center mr-2 lg:mr-3 overflow-hidden">

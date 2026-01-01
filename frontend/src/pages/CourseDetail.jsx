@@ -115,8 +115,6 @@ const CourseDetail = () => {
     console.log('User:', user); // Debug log
     console.log('Course ID:', course?._id); // Debug log
     
-    showToast('Processing enrollment...', 'info');
-    
     if (!isLoggedIn) {
       setModalMessage('Please login to enroll in courses');
       setShowLoginModal(true);
