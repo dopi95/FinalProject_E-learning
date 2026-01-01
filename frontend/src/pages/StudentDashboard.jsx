@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star, Globe, Heart } from 'lucide-react';
+import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star, Globe, Heart, Settings } from 'lucide-react';
 import { profileAPI, enrollmentAPI, paymentAPI, subscriptionAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
@@ -23,6 +23,7 @@ const StudentDashboard = () => {
   const [selectedInstructor, setSelectedInstructor] = useState(null);
   const [showInstructorModal, setShowInstructorModal] = useState(false);
   const [showCoursesSubmenu, setShowCoursesSubmenu] = useState(false);
+  const [showCourseResourcesSubmenu, setShowCourseResourcesSubmenu] = useState(false);
   const [grades, setGrades] = useState([]);
   const [gradesLoading, setGradesLoading] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState(null);
@@ -30,6 +31,12 @@ const StudentDashboard = () => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showSubscribeMenu, setShowSubscribeMenu] = useState(false);
   const [showLikedOnly, setShowLikedOnly] = useState(false);
+  const [notifications, setNotifications] = useState([
+    { id: 1, title: 'New Assignment Posted', message: 'Mathematics - Due in 3 days', time: '2 hours ago', read: false },
+    { id: 2, title: 'Grade Published', message: 'Physics Quiz - 92%', time: '1 day ago', read: false },
+    { id: 3, title: 'Schedule Updated', message: 'Chemistry Lab - Tomorrow 2:00 PM', time: '2 days ago', read: true }
+  ]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -117,7 +124,7 @@ const StudentDashboard = () => {
     }
   };
 
-  const playSound = (type) => {
+  const playNotificationSound = () => {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
@@ -125,22 +132,30 @@ const StudentDashboard = () => {
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
     
-    if (type === 'subscribe') {
-      oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
-      oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
-      oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2);
-    } else {
-      oscillator.frequency.setValueAtTime(784, audioContext.currentTime);
-      oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
-      oscillator.frequency.setValueAtTime(523, audioContext.currentTime + 0.2);
-    }
+    // Perfect notification sound: C5 -> E5 -> G5 (major chord)
+    oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+    oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+    oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
     
     oscillator.type = 'sine';
-    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
     
     oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.3);
+    oscillator.stop(audioContext.currentTime + 0.4);
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const removeNotification = (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const handleNotificationClick = () => {
+    setShowNotifications(!showNotifications);
+    if (!showNotifications) {
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    }
   };
 
   const toggleSubscription = async () => {
@@ -149,12 +164,10 @@ const StudentDashboard = () => {
       if (isSubscribed) {
         await subscriptionAPI.unsubscribe(user.email);
         setIsSubscribed(false);
-        playSound('unsubscribe');
         showToast('Unsubscribed successfully!', 'orange');
       } else {
         await subscriptionAPI.subscribe(user.email);
         setIsSubscribed(true);
-        playSound('subscribe');
         showToast('Subscribed successfully!', 'green');
       }
       setShowSubscribeMenu(false);
@@ -504,7 +517,6 @@ const StudentDashboard = () => {
   const fetchGrades = async () => {
     try {
       setGradesLoading(true);
-      // Mock grades data - replace with actual API call
       const mockGrades = [
         {
           _id: '1',
@@ -520,21 +532,6 @@ const StudentDashboard = () => {
             { name: 'Midterm Exam', mark: 88 },
             { name: 'Assignment 1', mark: 92 }
           ]
-        },
-        {
-          _id: '2',
-          course: {
-            _id: 'course2',
-            title: 'Physics Laboratory',
-            instructor: { name: 'Dr. Sarah Johnson' }
-          },
-          enrollmentDate: '2024-01-20',
-          gradeLetter: 'B+',
-          assessments: [
-            { name: 'Lab Report 1', mark: 85 },
-            { name: 'Quiz 1', mark: 82 },
-            { name: 'Final Project', mark: 87 }
-          ]
         }
       ];
       setGrades(mockGrades);
@@ -545,6 +542,23 @@ const StudentDashboard = () => {
       setGradesLoading(false);
     }
   };
+
+  // Simulate new notification with sound
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const newNotification = {
+        id: Date.now(),
+        title: 'New Course Available',
+        message: 'Advanced Programming - Enroll now!',
+        time: 'Just now',
+        read: false
+      };
+      setNotifications(prev => [newNotification, ...prev]);
+      playNotificationSound();
+    }, 10000);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     // Check for tab parameter in URL
@@ -677,11 +691,9 @@ const StudentDashboard = () => {
     { id: 'overview', name: 'Overview', icon: BookOpen },
     { id: 'browse-courses', name: 'Browse Courses', icon: BookOpen },
     { id: 'courses', name: 'My Courses', icon: BookOpen, hasSubmenu: true },
-    { id: 'course-details', name: 'Course Materials', icon: FileText },
-    { id: 'assignments', name: 'Assignments', icon: FileText },
+    { id: 'course-resources', name: 'Course Resources', icon: FileText, hasSubmenu: true },
     { id: 'schedule', name: 'Schedule', icon: Calendar },
     { id: 'progress', name: 'Progress', icon: TrendingUp },
-    { id: 'certificates', name: 'Certificates', icon: Award },
     { id: 'payments', name: 'Payments', icon: CreditCard },
     { id: 'review', name: 'Leave Review', icon: Star },
     { id: 'profile', name: 'My Profile', icon: User }
@@ -689,86 +701,259 @@ const StudentDashboard = () => {
 
   const renderOverview = () => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+      {/* Dashboard Header */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
-            <BookOpen className="h-8 w-8 text-blue-600" />
-            <div className="ml-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total My Courses</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{enrolledCourses.length}</p>
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl mr-4">
+              <BookOpen className="h-8 w-8 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Student Dashboard</h1>
+              <p className="text-gray-600 dark:text-gray-400">Welcome back{user ? `, ${user.name}` : ''}, track your learning progress</p>
+            </div>
+          </div>
+          
+          {/* Notifications - Desktop */}
+          <div className="relative hidden lg:block">
+            <button
+              onClick={handleNotificationClick}
+              className="flex items-center px-3 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              <div className="relative">
+                <Bell className="h-4 w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-400" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-3 w-3 lg:h-4 lg:w-4 flex items-center justify-center text-xs">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              <span className="ml-2 text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300">Notifications</span>
+            </button>
+            
+            {showNotifications && (
+              <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-96 overflow-y-auto">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
+                </div>
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                      No notifications
+                    </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div key={notif.id} className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                        !notif.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                      }`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                            !notif.read ? 'bg-blue-500' : 'bg-gray-300'
+                          }`}></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              {notif.title}
+                            </p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                              {notif.message}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                              {notif.time}
+                            </p>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeNotification(notif.id);
+                            }}
+                            className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full transition-colors"
+                            title="Remove notification"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Notifications - Mobile */}
+        <div className="lg:hidden">
+          <div className="relative">
+            <button
+              onClick={handleNotificationClick}
+              className="w-full flex items-center justify-center px-4 py-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              <div className="relative">
+                <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Notifications</span>
+            </button>
+            
+            {showNotifications && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-96 overflow-y-auto">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
+                </div>
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                      No notifications
+                    </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div key={notif.id} className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                        !notif.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                      }`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                            !notif.read ? 'bg-blue-500' : 'bg-gray-300'
+                          }`}></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              {notif.title}
+                            </p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                              {notif.message}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                              {notif.time}
+                            </p>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeNotification(notif.id);
+                            }}
+                            className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full transition-colors"
+                            title="Remove notification"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-white dark:bg-gray-800 p-4 lg:p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 transform hover:scale-105 transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total My Courses</p>
+              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{enrolledCourses.length}</p>
+              <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Enrolled courses</p>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl">
+              <BookOpen className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <Award className="h-8 w-8 text-green-600" />
-            <div className="ml-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">3</p>
+        
+        <div className="bg-white dark:bg-gray-800 p-4 lg:p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 transform hover:scale-105 transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Completed</p>
+              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">3</p>
+              <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Courses finished</p>
             </div>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <TrendingUp className="h-8 w-8 text-purple-600" />
-            <div className="ml-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Average Grade</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">85%</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <Calendar className="h-8 w-8 text-orange-600" />
-            <div className="ml-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Upcoming</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">4</p>
+            <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-xl">
+              <Award className="h-6 w-6 lg:h-8 lg:w-8 text-green-600" />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Recent Notifications</h3>
-          <div className="space-y-3">
-            <div className="flex items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
-              <Bell className="h-5 w-5 text-blue-600 mr-3" />
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">New assignment posted</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Mathematics - Due in 3 days</p>
-              </div>
+      {/* Recent Notifications */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
+        <div className="flex items-center mb-4 lg:mb-6">
+          <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg mr-3">
+            <Bell className="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
+          </div>
+          <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">Recent Notifications</h3>
+        </div>
+        <div className="space-y-3 lg:space-y-4">
+          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-l-4 border-blue-500">
+            <Bell className="h-5 w-5 text-blue-600 mr-3" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">New assignment posted</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Mathematics - Due in 3 days</p>
             </div>
-            <div className="flex items-center p-3 bg-green-50 dark:bg-green-900/20 rounded">
-              <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Grade published</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Physics Quiz - 92%</p>
-              </div>
+          </div>
+          
+          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border-l-4 border-green-500">
+            <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Grade published</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Physics Quiz - 92%</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border-l-4 border-purple-500">
+            <Calendar className="h-5 w-5 text-purple-600 mr-3" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Schedule updated</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Chemistry Lab - Tomorrow 2:00 PM</p>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Upcoming Live Sessions</h3>
-          <div className="space-y-3">
-            <div className="flex items-center p-3 border rounded">
-              <Video className="h-5 w-5 text-red-600 mr-3" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Advanced Mathematics</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Today, 2:00 PM</p>
-              </div>
-              <button className="text-blue-600 hover:text-blue-800 text-sm">Join</button>
-            </div>
-            <div className="flex items-center p-3 border rounded">
-              <Video className="h-5 w-5 text-red-600 mr-3" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Physics Lab</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Tomorrow, 10:00 AM</p>
-              </div>
-              <button className="text-blue-600 hover:text-blue-800 text-sm">Join</button>
-            </div>
+      {/* Quick Links */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
+        <div className="flex items-center mb-4 lg:mb-6">
+          <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg mr-3">
+            <Settings className="h-5 w-5 lg:h-6 lg:w-6 text-purple-600" />
           </div>
+          <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">Quick Links</h3>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <button 
+            onClick={() => setActiveTab('assignments')}
+            className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 transition-all duration-200 group border border-blue-200 dark:border-blue-700"
+          >
+            <FileText className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600 mb-2 group-hover:scale-110 transition-transform" />
+            <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Assignments</span>
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab('course-materials')}
+            className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30 transition-all duration-200 group border border-green-200 dark:border-green-700"
+          >
+            <BookOpen className="h-6 w-6 lg:h-8 lg:w-8 text-green-600 mb-2 group-hover:scale-110 transition-transform" />
+            <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Course Materials</span>
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab('exams')}
+            className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 transition-all duration-200 group border border-purple-200 dark:border-purple-700"
+          >
+            <CheckCircle className="h-6 w-6 lg:h-8 lg:w-8 text-purple-600 mb-2 group-hover:scale-110 transition-transform" />
+            <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Exams</span>
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab('schedule')}
+            className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl hover:from-orange-100 hover:to-red-100 dark:hover:from-orange-900/30 dark:hover:to-red-900/30 transition-all duration-200 group border border-orange-200 dark:border-orange-700"
+          >
+            <Calendar className="h-6 w-6 lg:h-8 lg:w-8 text-orange-600 mb-2 group-hover:scale-110 transition-transform" />
+            <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Schedule</span>
+          </button>
         </div>
       </div>
     </div>
@@ -886,7 +1071,7 @@ const StudentDashboard = () => {
                 <button 
                   onClick={() => {
                     setSelectedCourse(course);
-                    setActiveTab('course-details');
+                    setActiveTab('course-materials');
                   }}
                   className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
                 >
@@ -1799,18 +1984,210 @@ const renderPayments = () => (
     </div>
   );
 
+  const renderExams = () => (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Exams</h2>
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+          <CheckCircle className="h-4 w-4" />
+          <span>{enrolledCourses.length} courses available</span>
+        </div>
+      </div>
+      
+      {coursesLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : enrolledCourses.length === 0 ? (
+        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+          <CheckCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Courses Available</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">You need to enroll in courses to access exams.</p>
+          <button 
+            onClick={() => window.location.href = '/courses'}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Browse Courses
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Course
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Instructor
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Enrolled Date
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                {enrolledCourses.map((course) => (
+                  <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <img 
+                          src={course.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=50'}
+                          alt={course.title}
+                          className="w-12 h-12 rounded-lg object-cover mr-4"
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {course.title}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {course.category}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 rounded-full mr-3 overflow-hidden">
+                          {course.instructor?.profileImage ? (
+                            <img 
+                              src={course.instructor.profileImage} 
+                              alt={course.instructor.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center">
+                              <span className="text-white text-xs font-semibold">
+                                {course.instructor?.name ? course.instructor.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'IN'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {course.instructor?.name || 'Instructor'}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                      {new Date().toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Active
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => {
+                          // Handle start exam for this course
+                          alert(`Start Exam for ${course.title}`);
+                        }}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                      >
+                        Start Exam
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-4">
+            {enrolledCourses.map((course) => (
+              <div key={course._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
+                {/* Course Header */}
+                <div className="flex items-start gap-3 mb-4">
+                  <img 
+                    src={course.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=60'}
+                    alt={course.title}
+                    className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight mb-1">
+                      {course.title}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      {course.category}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Active
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Instructor Info */}
+                <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                  <div className="w-10 h-10 rounded-full overflow-hidden">
+                    {course.instructor?.profileImage ? (
+                      <img 
+                        src={course.instructor.profileImage} 
+                        alt={course.instructor.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center">
+                        <span className="text-white text-sm font-semibold">
+                          {course.instructor?.name ? course.instructor.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'IN'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {course.instructor?.name || 'Instructor'}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Enrolled: {new Date().toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                <button
+                  onClick={() => {
+                    alert(`Start Exam for ${course.title}`);
+                  }}
+                  className="w-full bg-green-600 text-white py-3 px-4 rounded-xl hover:bg-green-700 transition-colors text-sm font-medium"
+                >
+                  Start Exam
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
   const renderContent = () => {
     switch (activeTab) {
       case 'overview': return renderOverview();
       case 'courses': return renderCourses();
       case 'enrolled-courses': return renderCourses();
       case 'view-grades': return renderGrades();
-      case 'course-details': return renderCourseDetails();
+      case 'course-materials': return renderCourseDetails();
       case 'assignments': return renderAssignments();
+      case 'certificates': return renderCertificates();
+      case 'exams': return renderExams();
       case 'payments': return renderPayments();
       case 'schedule': return renderSchedule();
       case 'progress': return renderProgress();
-      case 'certificates': return renderCertificates();
       case 'review': return <div className="p-4"><iframe src="/leave-review" className="w-full h-screen border-0 rounded-lg" title="Leave Review"></iframe></div>;
       case 'profile': return renderProfile();
       default: return renderOverview();
@@ -1960,37 +2337,47 @@ const renderPayments = () => (
                     onClick={() => {
                       if (tab.id === 'browse-courses') {
                         window.location.href = '/courses';
-                      } else if (tab.hasSubmenu) {
+                      } else if (tab.id === 'courses' && tab.hasSubmenu) {
                         setShowCoursesSubmenu(!showCoursesSubmenu);
+                      } else if (tab.id === 'course-resources' && tab.hasSubmenu) {
+                        setShowCourseResourcesSubmenu(!showCourseResourcesSubmenu);
                       } else {
                         setActiveTab(tab.id);
                         setSidebarOpen(false);
                       }
                     }}
                     className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 group ${
-                      activeTab === tab.id || (tab.hasSubmenu && (activeTab === 'enrolled-courses' || activeTab === 'view-grades'))
+                      activeTab === tab.id || 
+                      (tab.id === 'courses' && (activeTab === 'enrolled-courses' || activeTab === 'view-grades')) ||
+                      (tab.id === 'course-resources' && (activeTab === 'course-materials' || activeTab === 'assignments' || activeTab === 'certificates' || activeTab === 'exams'))
                         ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg'
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   >
                     <Icon className={`h-4 w-4 mr-2 lg:mr-3 flex-shrink-0 ${
-                      activeTab === tab.id || (tab.hasSubmenu && (activeTab === 'enrolled-courses' || activeTab === 'view-grades')) ? 'text-white' : 'text-gray-500 dark:text-gray-400'
+                      activeTab === tab.id || 
+                      (tab.id === 'courses' && (activeTab === 'enrolled-courses' || activeTab === 'view-grades')) ||
+                      (tab.id === 'course-resources' && (activeTab === 'course-materials' || activeTab === 'assignments' || activeTab === 'certificates' || activeTab === 'exams'))
+                        ? 'text-white' : 'text-gray-500 dark:text-gray-400'
                     }`} />
                     <span className="font-medium truncate">{tab.name}</span>
                     {tab.hasSubmenu && (
                       <svg className={`ml-auto h-4 w-4 transition-transform ${
-                        showCoursesSubmenu ? 'rotate-180' : ''
+                        (tab.id === 'courses' && showCoursesSubmenu) || (tab.id === 'course-resources' && showCourseResourcesSubmenu) ? 'rotate-180' : ''
                       }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     )}
-                    {(activeTab === tab.id || (tab.hasSubmenu && (activeTab === 'enrolled-courses' || activeTab === 'view-grades'))) && (
+                    {(activeTab === tab.id || 
+                      (tab.id === 'courses' && (activeTab === 'enrolled-courses' || activeTab === 'view-grades')) ||
+                      (tab.id === 'course-resources' && (activeTab === 'course-materials' || activeTab === 'assignments' || activeTab === 'certificates' || activeTab === 'exams'))
+                    ) && (
                       <div className="ml-auto w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
                     )}
                   </button>
                   
                   {/* Submenu for My Courses */}
-                  {tab.hasSubmenu && showCoursesSubmenu && (
+                  {tab.id === 'courses' && tab.hasSubmenu && showCoursesSubmenu && (
                     <div className="ml-6 mt-1 space-y-1">
                       <button
                         onClick={() => {
@@ -2021,6 +2408,72 @@ const renderPayments = () => (
                       >
                         <Award className="h-3 w-3 mr-2 flex-shrink-0" />
                         <span className="font-medium truncate">View Grades</span>
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Submenu for Course Resources */}
+                  {tab.id === 'course-resources' && tab.hasSubmenu && showCourseResourcesSubmenu && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      <button
+                        onClick={() => {
+                          setActiveTab('course-materials');
+                          setShowCourseResourcesSubmenu(false);
+                          setSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 ${
+                          activeTab === 'course-materials'
+                            ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <FileText className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <span className="font-medium truncate">Course Materials</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setActiveTab('assignments');
+                          setShowCourseResourcesSubmenu(false);
+                          setSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 ${
+                          activeTab === 'assignments'
+                            ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <FileText className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <span className="font-medium truncate">Assignments</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setActiveTab('certificates');
+                          setShowCourseResourcesSubmenu(false);
+                          setSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 ${
+                          activeTab === 'certificates'
+                            ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <Award className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <span className="font-medium truncate">Certificates</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setActiveTab('exams');
+                          setShowCourseResourcesSubmenu(false);
+                          setSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 ${
+                          activeTab === 'exams'
+                            ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <CheckCircle className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <span className="font-medium truncate">Exams</span>
                       </button>
                     </div>
                   )}
@@ -2099,6 +2552,13 @@ const renderPayments = () => (
           {renderContent()}
         </div>
       </div>
+      {/* Click outside to close notifications */}
+      {showNotifications && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowNotifications(false)}
+        ></div>
+      )}
     </div>
   );
 };

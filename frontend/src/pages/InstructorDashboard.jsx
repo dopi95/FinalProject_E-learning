@@ -22,6 +22,7 @@ const InstructorDashboard = () => {
   const [selectedStudentCourse, setSelectedStudentCourse] = useState(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showSubscribeMenu, setShowSubscribeMenu] = useState(false);
+  const [showCourseResourcesSubmenu, setShowCourseResourcesSubmenu] = useState(false);
 
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courses, setCourses] = useState([]);
@@ -325,9 +326,7 @@ const InstructorDashboard = () => {
     { id: 'overview', name: 'Overview', icon: GraduationCap },
     { id: 'students', name: 'Students', icon: Users },
     { id: 'courses', name: 'My Courses', icon: BookOpen },
-    { id: 'materials', name: 'Materials', icon: Upload },
-    { id: 'assignments', name: 'Assignments', icon: FileText },
-    { id: 'quizzes', name: 'Quizzes', icon: CheckCircle },
+    { id: 'course-resources', name: 'Course Resources', icon: FileText, hasSubmenu: true },
     { id: 'schedule', name: 'Schedule', icon: Calendar },
     { id: 'analytics', name: 'Analytics', icon: BarChart3 },
     { id: 'review', name: 'Leave Review', icon: Star },
@@ -1639,34 +1638,79 @@ const InstructorDashboard = () => {
       </div>
     </div>
   );
-  const renderAnalytics = () => (
+  const renderExams = () => (
     <div className="space-y-6">
-      <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Analytics & Reports</h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 lg:p-6">
-          <h3 className="text-base lg:text-lg font-semibold mb-4 text-gray-900 dark:text-white">Course Performance</h3>
-          <div className="space-y-4">
-            {['Mathematics', 'Physics', 'Chemistry'].map((subject, index) => (
-              <div key={subject}>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">{subject}</span>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{88 - index * 3}%</span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${88 - index * 3}%` }}></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 lg:p-6">
-          <h3 className="text-base lg:text-lg font-semibold mb-4 text-gray-900 dark:text-white">Student Engagement</h3>
-          <div className="text-center">
-            <div className="text-3xl lg:text-4xl font-bold text-green-600 mb-2">87%</div>
-            <p className="text-gray-600 dark:text-gray-400">Average Attendance</p>
-          </div>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Exams</h2>
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <CheckCircle className="h-4 w-4" />
+          <span>{courses.length} courses available</span>
         </div>
       </div>
+      
+      {courses.length === 0 ? (
+        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+          <CheckCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Courses Available</h3>
+          <p className="text-gray-500 dark:text-gray-400">You need courses to create exams.</p>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Course</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Students</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Category</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+              {courses.map((course) => (
+                <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center">
+                      <img 
+                        src={course.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=50'}
+                        alt={course.title}
+                        className="w-12 h-12 rounded-lg object-cover mr-4"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{course.title}</p>
+                        <p className="text-xs text-gray-500">Created {new Date(course.createdAt).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center">
+                      <Users className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{course.students?.length || 0}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">{course.category}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <CheckCircle className="h-3 w-3 mr-1 inline" />
+                      Active
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => alert(`Create Exam for ${course.title}`)}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium"
+                    >
+                      Create Exam
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 
