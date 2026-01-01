@@ -134,16 +134,44 @@ const InstructorDashboard = () => {
     }
   };
 
+  const playSound = (type) => {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    if (type === 'subscribe') {
+      oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
+      oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2);
+    } else {
+      oscillator.frequency.setValueAtTime(784, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
+      oscillator.frequency.setValueAtTime(523, audioContext.currentTime + 0.2);
+    }
+    
+    oscillator.type = 'sine';
+    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  };
+
   const toggleSubscription = async () => {
     try {
       setLoading(true);
       if (isSubscribed) {
         await subscriptionAPI.unsubscribe(user.email);
         setIsSubscribed(false);
+        playSound('unsubscribe');
         showNotification('success', 'Unsubscribed!', 'You have been unsubscribed from email notifications');
       } else {
         await subscriptionAPI.subscribe(user.email);
         setIsSubscribed(true);
+        playSound('subscribe');
         showNotification('success', 'Subscribed!', 'You will now receive email notifications');
       }
       setShowSubscribeMenu(false);
