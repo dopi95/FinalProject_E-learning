@@ -1853,7 +1853,7 @@ const StudentDashboard = () => {
                   )}
                 </div>
               );
-            })}}
+            })}
             
             {/* Separator */}
             <div className="border-t border-gray-200 dark:border-gray-700 my-2 mt-100"></div>
