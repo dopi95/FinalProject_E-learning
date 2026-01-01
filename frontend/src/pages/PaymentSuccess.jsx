@@ -52,12 +52,14 @@ const PaymentSuccess = () => {
   };
 
   const downloadReceipt = () => {
+    if (!payment || !receiptRef.current) return;
+    
     const element = receiptRef.current;
     const opt = {
-      margin: 1,
+      margin: 0.5,
       filename: `receipt-${payment.receiptNumber}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
+      html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
 

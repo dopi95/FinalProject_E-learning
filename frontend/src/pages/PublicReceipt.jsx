@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Download, CheckCircle } from 'lucide-react';
+import html2pdf from 'html2pdf.js';
 import { paymentAPI } from '../services/api';
 
 const PublicReceipt = () => {
@@ -8,6 +9,7 @@ const PublicReceipt = () => {
   const [receipt, setReceipt] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const receiptRef = useRef();
 
   useEffect(() => {
     const fetchReceipt = async () => {
@@ -30,151 +32,19 @@ const PublicReceipt = () => {
     fetchReceipt();
   }, [searchParams]);
 
-  const downloadPDF = async () => {
-    if (!receipt) return;
+  const downloadPDF = () => {
+    if (!receipt || !receiptRef.current) return;
 
-    const receiptHTML = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Payment Receipt - ${receipt.receiptNumber}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: white; }
-          .receipt { max-width: 800px; margin: 0 auto; background: white; position: relative; }
-          .diagonal-stamp { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 80px; font-weight: bold; color: rgba(34, 197, 94, 0.3); pointer-events: none; z-index: 10; }
-          .payment-stamp { position: absolute; top: 20px; right: 20px; z-index: 20; text-align: center; }
-          .payment-stamp img { width: 40px; height: 40px; object-fit: contain; margin-bottom: 5px; }
-          .payment-stamp p { font-size: 12px; font-weight: bold; color: #374151; text-transform: uppercase; margin: 0; }
-          .header { border-bottom: 2px solid #000; padding: 40px; text-align: center; }
-          .header img { height: 64px; width: auto; margin-bottom: 16px; }
-          .header h1 { font-size: 24px; font-weight: bold; color: #000; margin: 0 0 4px 0; }
-          .header p { color: #374151; margin: 0 0 16px 0; }
-          .receipt-no { text-align: right; font-size: 14px; color: #6b7280; }
-          .body { padding: 40px; }
-          .section { margin-bottom: 40px; }
-          .section h3 { font-size: 18px; font-weight: bold; color: #000; margin-bottom: 16px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px; }
-          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
-          .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
-          .info-row span:first-child { color: #6b7280; }
-          .info-row span:last-child { color: #000; font-weight: 500; }
-          .course-details { background: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 40px; }
-          .course-header { display: flex; justify-content: space-between; align-items: flex-start; }
-          .course-info h4 { font-size: 18px; font-weight: bold; color: #000; margin: 0 0 8px 0; }
-          .course-info p { color: #6b7280; margin: 0 0 8px 0; }
-          .course-price { text-align: right; }
-          .course-price .amount { font-size: 24px; font-weight: bold; color: #000; }
-          .course-price .type { font-size: 14px; color: #6b7280; }
-          .summary { background: #f9fafb; padding: 24px; border-radius: 8px; }
-          .summary-row { display: flex; justify-content: space-between; margin-bottom: 16px; }
-          .summary-row.total { border-top: 1px solid #d1d5db; padding-top: 16px; font-weight: bold; }
-          .summary-row.total .amount { font-size: 24px; }
-          .footer { border-top: 1px solid #d1d5db; padding-top: 40px; margin-top: 40px; text-align: center; font-size: 14px; color: #6b7280; }
-        </style>
-      </head>
-      <body>
-        <div class="receipt">
-          <div class="diagonal-stamp">PAID</div>
-          
-          <div class="payment-stamp">
-            <img src="${window.location.origin}/assets/images/${receipt.paymentMethod === 'telebirr' ? 'telebirrlogo.png' : 'cbe.png'}" alt="${receipt.paymentMethod}">
-            <p>${receipt.paymentMethod === 'telebirr' ? 'Telebirr' : 'CBE'}</p>
-          </div>
-          
-          <div class="header">
-            <img src="${window.location.origin}/assets/images/aaulogo.png" alt="AAU Logo">
-            <h1>AAU E-Learning</h1>
-            <p>Addis Ababa University</p>
-            <div class="receipt-no">Receipt No: ${receipt.receiptNumber}</div>
-          </div>
-          
-          <div class="body">
-            <div class="info-grid">
-              <div class="section">
-                <h3>Student Information</h3>
-                <div class="info-row">
-                  <span>Name:</span>
-                  <span>${receipt.user.name}</span>
-                </div>
-                <div class="info-row">
-                  <span>Email:</span>
-                  <span>${receipt.user.email}</span>
-                </div>
-                <div class="info-row">
-                  <span>Student ID:</span>
-                  <span>${receipt.user.systemId || receipt.user._id.slice(-8).toUpperCase()}</span>
-                </div>
-              </div>
-              
-              <div class="section">
-                <h3>Payment Information</h3>
-                <div class="info-row">
-                  <span>Date:</span>
-                  <span>${new Date(receipt.createdAt).toLocaleDateString()}</span>
-                </div>
-                <div class="info-row">
-                  <span>Method:</span>
-                  <span style="text-transform: capitalize;">${receipt.paymentMethod}</span>
-                </div>
-                <div class="info-row">
-                  <span>Transaction ID:</span>
-                  <span>${receipt.transactionId}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="section">
-              <h3>Course Details</h3>
-              <div class="course-details">
-                <div class="course-header">
-                  <div class="course-info">
-                    <h4>${receipt.course.title}</h4>
-                    <p>Instructor: ${receipt.course.instructor?.name || 'Instructor'}</p>
-                    <p style="font-size: 14px; color: #6b7280;">Certificate of Completion Included</p>
-                  </div>
-                  <div class="course-price">
-                    <div class="amount">${receipt.amount} ETB</div>
-                    <div class="type">One-time payment</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div class="summary">
-              <div class="summary-row">
-                <span>Subtotal:</span>
-                <span>${receipt.amount} ETB</span>
-              </div>
-              <div class="summary-row">
-                <span>Tax:</span>
-                <span>0.00 ETB</span>
-              </div>
-              <div class="summary-row total">
-                <span style="font-size: 20px;">Total Paid:</span>
-                <span class="amount">${receipt.amount} ETB</span>
-              </div>
-            </div>
-            
-            <div class="footer">
-              <p>Thank you for choosing AAU E-Learning Platform!</p>
-              <p>For support, contact us at support@aau-elearning.edu.et</p>
-              <p style="margin-top: 16px; font-size: 12px;">This is an official receipt generated on ${new Date().toLocaleString()}</p>
-            </div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+    const element = receiptRef.current;
+    const opt = {
+      margin: 0.5,
+      filename: `receipt-${receipt.receiptNumber}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
 
-    const blob = new Blob([receiptHTML], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `receipt-${receipt.receiptNumber}.html`;
-    link.click();
-    
-    URL.revokeObjectURL(url);
+    html2pdf().set(opt).from(element).save();
   };
 
   if (loading) {
@@ -199,7 +69,7 @@ const PublicReceipt = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden relative">
+        <div ref={receiptRef} className="bg-white rounded-2xl shadow-2xl overflow-hidden relative">
           {/* Diagonal PAID stamp */}
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-45 text-8xl font-bold text-green-500/30 pointer-events-none z-10">
             PAID

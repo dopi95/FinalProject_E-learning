@@ -3,7 +3,8 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CreditCard, ArrowLeft, CheckCircle } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { courseAPI, paymentAPI } from '../services/api';
+import BulkPaymentModal from '../components/BulkPaymentModal';
+import { courseAPI } from '../services/api';
 import { getUserData } from '../utils/userUtils';
 
 const BulkPaymentPage = () => {
@@ -12,7 +13,7 @@ const BulkPaymentPage = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState('telebirr');
-  const [processing, setProcessing] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const user = getUserData();
 
   useEffect(() => {
@@ -48,25 +49,12 @@ const BulkPaymentPage = () => {
     return courses.reduce((total, course) => total + course.price, 0);
   };
 
-  const handlePayment = async () => {
-    try {
-      setProcessing(true);
-      const response = await paymentAPI.initializeBulkPayment({
-        courseIds: courses.map(c => c._id),
-        paymentMethod
-      });
-
-      if (response.data.success) {
-        // Instead of redirecting to external URL, redirect to success page directly
-        const txRef = response.data.data.tx_ref;
-        navigate(`/payment/success?tx_ref=${txRef}&status=success`);
-      }
-    } catch (error) {
-      console.error('Payment initialization error:', error);
-      alert('Payment initialization failed. Please try again.');
-    } finally {
-      setProcessing(false);
+  const handlePayment = () => {
+    if (!paymentMethod) {
+      alert('Please select a payment method');
+      return;
     }
+    setShowPaymentModal(true);
   };
 
   if (loading) {
@@ -198,15 +186,21 @@ const BulkPaymentPage = () => {
             {/* Payment Button */}
             <button
               onClick={handlePayment}
-              disabled={processing}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-6 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-6 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-3"
             >
               <CreditCard className="h-6 w-6" />
-              {processing ? 'Processing...' : `Pay ${getTotalPrice()} ETB`}
+              Pay {getTotalPrice()} ETB
             </button>
           </div>
         </div>
       </main>
+
+      <BulkPaymentModal
+        isVisible={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        paymentMethod={paymentMethod}
+        courseIds={courses.map(c => c._id)}
+      />
 
       <Footer />
     </div>
