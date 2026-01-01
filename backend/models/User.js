@@ -127,15 +127,16 @@ userSchema.pre('save', async function(next) {
     const year = new Date().getFullYear().toString().slice(-2);
     const prefix = this.role === 'student' ? 'AAU' : 'INS';
     
-    // Find the last user with the same role and year
+    // Find the highest existing number for this role across all years
     const lastUser = await this.constructor.findOne({
       role: this.role,
-      systemId: new RegExp(`^${prefix}/\\d{4}/${year}$`)
+      systemId: { $exists: true, $ne: null }
     }).sort({ systemId: -1 });
     
     let nextNumber = 1;
     if (lastUser && lastUser.systemId) {
-      const match = lastUser.systemId.match(new RegExp(`^${prefix}/(\\d{4})/${year}$`));
+      // Extract number from systemId (e.g., "AAU/0001/24" -> 1)
+      const match = lastUser.systemId.match(/\/(\d{4})\//); 
       if (match) {
         nextNumber = parseInt(match[1]) + 1;
       }
