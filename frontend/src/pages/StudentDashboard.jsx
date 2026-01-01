@@ -520,7 +520,11 @@ const StudentDashboard = () => {
       showNotification('success', 'Password Changed!', 'Your password has been updated successfully');
     } catch (error) {
       console.error('Password change error:', error);
-      showNotification('error', 'Password Change Failed', error.response?.data?.message || 'Failed to change password');
+      if (error.response?.status === 400 && error.response?.data?.message?.includes('current password')) {
+        showNotification('error', 'Incorrect Current Password', 'The current password you entered is not correct. You cannot change the password.');
+      } else {
+        showNotification('error', 'Password Change Failed', 'Current password is not correct. Please verify your current password and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -1514,6 +1518,8 @@ const StudentDashboard = () => {
                     type={showCurrentPassword ? 'text' : 'password'} 
                     value={passwordForm.currentPassword}
                     onChange={(e) => handlePasswordFormChange('currentPassword', e.target.value)}
+                    placeholder="Enter your current password"
+                    autoComplete="off"
                     className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white" 
                   />
                   <button
@@ -1532,7 +1538,12 @@ const StudentDashboard = () => {
                     type={showNewPassword ? 'text' : 'password'} 
                     value={passwordForm.newPassword}
                     onChange={(e) => handlePasswordFormChange('newPassword', e.target.value)}
-                    className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white" 
+                    autoComplete="off"
+                    className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 dark:bg-gray-700 dark:text-white ${
+                      passwordForm.newPassword && passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
                   />
                   <button
                     type="button"
@@ -1550,7 +1561,12 @@ const StudentDashboard = () => {
                     type={showConfirmPassword ? 'text' : 'password'} 
                     value={passwordForm.confirmPassword}
                     onChange={(e) => handlePasswordFormChange('confirmPassword', e.target.value)}
-                    className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white" 
+                    autoComplete="off"
+                    className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 dark:bg-gray-700 dark:text-white ${
+                      passwordForm.newPassword && passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
                   />
                   <button
                     type="button"
@@ -1560,6 +1576,9 @@ const StudentDashboard = () => {
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {passwordForm.newPassword && passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword && (
+                  <p className="text-red-500 text-sm mt-1">Passwords do not match</p>
+                )}
               </div>
               <div className="flex gap-3">
                 <button 

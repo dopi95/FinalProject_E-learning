@@ -13,7 +13,7 @@ import VerifyEmail from './pages/VerifyEmail.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import VerifyOTP from './pages/VerifyOTP.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
-import AdminDashboard from './pages/AdminDashboard.jsx';
+
 import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
 import InstructorDashboard from './pages/InstructorDashboard.jsx';
 import StudentDashboard from './pages/StudentDashboard.jsx';
@@ -42,7 +42,7 @@ const AppContent = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verify-otp" element={<VerifyOTP />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+
         <Route path="/super-admin-dashboard" element={<SuperAdminDashboard />} />
         <Route path="/instructor-dashboard" element={<InstructorDashboard />} />
         <Route path="/student-dashboard" element={<StudentDashboard />} />
