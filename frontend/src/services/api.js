@@ -184,6 +184,13 @@ export const enrollmentAPI = {
 };
 
 // Users API functions
+export const instructorAPI = {
+  getStudents: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return api.get(`/instructors/students${queryString ? `?${queryString}` : ''}`);
+  }
+};
+
 export const usersAPI = {
   // Get all users with filtering
   getUsers: (params = {}) => api.get('/users', { params }),

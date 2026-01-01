@@ -71,6 +71,9 @@ app.use('/api/enrollments', require('./routes/enrollments'));
 // Users routes
 app.use('/api/users', require('./routes/users'));
 
+// Instructor routes
+app.use('/api/instructors', require('./routes/instructors'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

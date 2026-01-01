@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, Home, User, Camera, X, Eye, EyeOff, Star } from 'lucide-react';
-import { profileAPI, courseAPI } from '../services/api';
+import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, Home, User, Camera, X, Eye, EyeOff, Star, Search } from 'lucide-react';
+import { profileAPI, courseAPI, instructorAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 
@@ -9,6 +9,16 @@ const InstructorDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [students, setStudents] = useState([]);
+  const [instructorCourses, setInstructorCourses] = useState([]);
+  const [selectedCourseFilter, setSelectedCourseFilter] = useState('all');
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStudentForGrading, setSelectedStudentForGrading] = useState(null);
+  const [gradeFields, setGradeFields] = useState([{ name: '', mark: '' }]);
+  const [gradeLetter, setGradeLetter] = useState('');
+  const [selectedStudentCourse, setSelectedStudentCourse] = useState(null);
+
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courses, setCourses] = useState([]);
 
@@ -105,7 +115,36 @@ const InstructorDashboard = () => {
     }
     fetchUserProfile();
     fetchInstructorCourses();
+    fetchInstructorStudents();
   }, []);
+
+  const fetchInstructorStudents = async () => {
+    try {
+      setStudentsLoading(true);
+      const params = {};
+      if (selectedCourseFilter !== 'all') params.course = selectedCourseFilter;
+      
+      const response = await instructorAPI.getStudents(params);
+      setStudents(response.data.students);
+      setInstructorCourses(response.data.courses);
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      showNotification('error', 'Error', 'Failed to fetch students');
+    } finally {
+      setStudentsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInstructorStudents();
+  }, [selectedCourseFilter]);
+
+  const filteredStudents = students.filter(student => {
+    if (!searchTerm) return true;
+    return student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           (student.systemId && student.systemId.toLowerCase().includes(searchTerm.toLowerCase()));
+  });
 
   const fetchInstructorCourses = async () => {
     try {
@@ -189,12 +228,12 @@ const InstructorDashboard = () => {
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: GraduationCap },
+    { id: 'students', name: 'Students', icon: Users },
     { id: 'courses', name: 'My Courses', icon: BookOpen },
     { id: 'materials', name: 'Materials', icon: Upload },
     { id: 'assignments', name: 'Assignments', icon: FileText },
     { id: 'quizzes', name: 'Quizzes', icon: CheckCircle },
     { id: 'schedule', name: 'Schedule', icon: Calendar },
-    { id: 'students', name: 'Students', icon: Users },
     { id: 'analytics', name: 'Analytics', icon: BarChart3 },
     { id: 'review', name: 'Leave Review', icon: Star },
     { id: 'profile', name: 'My Profile', icon: User }
@@ -599,45 +638,463 @@ const InstructorDashboard = () => {
   );
 
   const renderStudents = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Student Management</h2>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <div className="px-4 lg:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <input
-              type="text"
-              placeholder="Search students..."
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm lg:text-base"
-            />
-            <select className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm lg:text-base">
-              <option>All Courses</option>
-              <option>Mathematics</option>
-              <option>Physics</option>
-            </select>
-          </div>
-        </div>
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {[1, 2, 3, 4, 5].map((student) => (
-            <div key={student} className="p-4 lg:p-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-              <div className="flex items-center">
-                <div className="h-10 w-10 bg-gray-300 dark:bg-gray-600 rounded-full mr-4"></div>
-                <div>
-                  <h3 className="text-base lg:text-lg font-medium text-gray-900 dark:text-white">Student {student}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">student{student}@example.com</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Enrolled: 3 courses</p>
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 gap-2 sm:gap-0">
-                <div className="text-left sm:text-right">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">Attendance: {90 + student}%</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Avg Grade: {85 + student}%</p>
-                </div>
-                <button className="text-blue-600 hover:text-blue-800 text-sm">View Profile</button>
-              </div>
-            </div>
-          ))}
+    <div className="space-y-4 lg:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">My Students</h2>
+        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <Users className="h-4 w-4" />
+          <span>{filteredStudents.length} students found</span>
         </div>
       </div>
+      
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
+          <p className="text-lg lg:text-2xl font-bold text-blue-600">{students.length}</p>
+          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Total Students</p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
+          <p className="text-lg lg:text-2xl font-bold text-green-600">{instructorCourses.length}</p>
+          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">My Courses</p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
+          <p className="text-lg lg:text-2xl font-bold text-purple-600">
+            {students.reduce((sum, student) => sum + student.totalCourses, 0)}
+          </p>
+          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Total Enrollments</p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
+          <p className="text-lg lg:text-2xl font-bold text-orange-600">
+            {students.length > 0 ? Math.round(students.reduce((sum, student) => {
+              const avgAttendance = student.courses.reduce((acc, course) => acc + course.attendance, 0) / student.courses.length;
+              return sum + avgAttendance;
+            }, 0) / students.length) : 0}%
+          </p>
+          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Avg Attendance</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="relative">
+            <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by name, email, or ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+            />
+          </div>
+          <select 
+            value={selectedCourseFilter}
+            onChange={(e) => setSelectedCourseFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+          >
+            <option value="all">All My Courses</option>
+            {instructorCourses.map((course) => (
+              <option key={course._id} value={course._id}>
+                {course.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {studentsLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Enrolled Courses</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      {selectedCourseFilter === 'all' ? 'Avg Attendance' : `Attendance on ${instructorCourses.find(c => c._id === selectedCourseFilter)?.title || 'Course'}`}
+                    </th>
+                    {selectedCourseFilter !== 'all' && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {filteredStudents.map((student) => {
+                    const avgAttendance = student.courses.length > 0 
+                      ? Math.round(student.courses.reduce((sum, course) => sum + course.attendance, 0) / student.courses.length)
+                      : 0;
+                    
+                    return (
+                      <tr key={student._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-3 overflow-hidden flex-shrink-0">
+                              {student.profileImage ? (
+                                <img src={student.profileImage} alt={student.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                  {student.name?.charAt(0)?.toUpperCase() || 'S'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{student.name}</div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{student.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                          {student.systemId || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                          {student.totalCourses}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-2">
+                              <div 
+                                className={`h-2 rounded-full ${
+                                  avgAttendance >= 80 ? 'bg-green-500' :
+                                  avgAttendance >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                }`}
+                                style={{ width: `${avgAttendance}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">{avgAttendance}%</span>
+                          </div>
+                        </td>
+                        {selectedCourseFilter !== 'all' && (
+                          <td className="px-6 py-4">
+                            <button
+                              onClick={() => setSelectedStudentForGrading(student)}
+                              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                            >
+                              Submit Grade
+                            </button>
+                          </td>
+                        )}
+
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden">
+            {filteredStudents.length === 0 ? (
+              <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+                <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Students Found</h3>
+                <p className="text-gray-500 dark:text-gray-400">Try adjusting your search or filters.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredStudents.map((student) => {
+                  const avgAttendance = student.courses.length > 0 
+                    ? Math.round(student.courses.reduce((sum, course) => sum + course.attendance, 0) / student.courses.length)
+                    : 0;
+                  
+                  return (
+                    <div key={student._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
+                      {/* Student Header */}
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="h-12 w-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {student.profileImage ? (
+                            <img src={student.profileImage} alt={student.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                              {student.name?.charAt(0)?.toUpperCase() || 'S'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
+                            {student.name}
+                          </h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                            {student.email}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            ID: {student.systemId || 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Stats */}
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">{student.totalCourses}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Courses</p>
+                        </div>
+                        <div className="text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
+                          <div className="flex items-center justify-center gap-2 mb-1">
+                            <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                              <div 
+                                className={`h-2 rounded-full ${
+                                  avgAttendance >= 80 ? 'bg-green-500' :
+                                  avgAttendance >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                }`}
+                                style={{ width: `${avgAttendance}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-xs font-medium text-gray-900 dark:text-white">{avgAttendance}%</span>
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {selectedCourseFilter === 'all' ? 'Attendance' : `Attendance on ${instructorCourses.find(c => c._id === selectedCourseFilter)?.title || 'Course'}`}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Course Buttons */}
+                      <div className="flex flex-wrap gap-2">
+                        {selectedCourseFilter === 'all' ? (
+                          student.courses.map((course) => (
+                            <button
+                              key={course._id}
+                              onClick={() => setSelectedStudentCourse({ student, course })}
+                              className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                            >
+                              {course.title}
+                            </button>
+                          ))
+                        ) : (
+                          <button
+                            onClick={() => setSelectedStudentForGrading(student)}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm"
+                          >
+                            Submit Grade
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Grade Submission Modal */}
+      {selectedStudentForGrading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Submit Grade</h3>
+                <button
+                  onClick={() => {
+                    setSelectedStudentForGrading(null);
+                    setGradeFields([{ name: '', mark: '' }]);
+                    setGradeLetter('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="h-16 w-16 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mx-auto mb-3">
+                    {selectedStudentForGrading.profileImage ? (
+                      <img src={selectedStudentForGrading.profileImage} alt={selectedStudentForGrading.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-lg font-bold text-gray-600 dark:text-gray-300">
+                        {selectedStudentForGrading.name?.charAt(0)?.toUpperCase() || 'S'}
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {selectedStudentForGrading.name}
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {instructorCourses.find(c => c._id === selectedCourseFilter)?.title || 'Course'}
+                  </p>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Grade Fields</label>
+                    {gradeFields.map((field, index) => (
+                      <div key={index} className="flex gap-2 mb-2">
+                        <input
+                          type="text"
+                          placeholder="Field name (e.g., Quiz 1)"
+                          value={field.name}
+                          onChange={(e) => {
+                            const newFields = [...gradeFields];
+                            newFields[index].name = e.target.value;
+                            setGradeFields(newFields);
+                          }}
+                          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                        />
+                        <input
+                          type="number"
+                          placeholder="Mark"
+                          value={field.mark}
+                          onChange={(e) => {
+                            const newFields = [...gradeFields];
+                            newFields[index].mark = e.target.value;
+                            setGradeFields(newFields);
+                          }}
+                          className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                        />
+                        {gradeFields.length > 1 && (
+                          <button
+                            onClick={() => {
+                              const newFields = gradeFields.filter((_, i) => i !== index);
+                              setGradeFields(newFields);
+                            }}
+                            className="px-2 py-2 text-red-600 hover:bg-red-50 rounded"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => setGradeFields([...gradeFields, { name: '', mark: '' }])}
+                      className="text-blue-600 text-sm hover:underline"
+                    >
+                      + Add Field
+                    </button>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Grade Letter</label>
+                    <select
+                      value={gradeLetter}
+                      onChange={(e) => setGradeLetter(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                    >
+                      <option value="">Select Grade</option>
+                      <option value="A+">A+</option>
+                      <option value="A">A</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B">B</option>
+                      <option value="B-">B-</option>
+                      <option value="C+">C+</option>
+                      <option value="C">C</option>
+                      <option value="C-">C-</option>
+                      <option value="D">D</option>
+                      <option value="F">F</option>
+                    </select>
+                  </div>
+                  
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={() => {
+                        console.log('Submitting grade:', {
+                          student: selectedStudentForGrading,
+                          course: selectedCourseFilter,
+                          fields: gradeFields,
+                          gradeLetter
+                        });
+                        setSelectedStudentForGrading(null);
+                        setGradeFields([{ name: '', mark: '' }]);
+                        setGradeLetter('');
+                        showNotification('success', 'Grade Submitted', 'Grade has been submitted successfully');
+                      }}
+                      className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 text-sm"
+                    >
+                      Submit
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedStudentForGrading(null);
+                        setGradeFields([{ name: '', mark: '' }]);
+                        setGradeLetter('');
+                      }}
+                      className="flex-1 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Course Attendance Modal */}
+      {selectedStudentCourse && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Course Attendance</h3>
+                <button
+                  onClick={() => setSelectedStudentCourse(null)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="h-16 w-16 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mx-auto mb-3">
+                    {selectedStudentCourse.student.profileImage ? (
+                      <img src={selectedStudentCourse.student.profileImage} alt={selectedStudentCourse.student.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-lg font-bold text-gray-600 dark:text-gray-300">
+                        {selectedStudentCourse.student.name?.charAt(0)?.toUpperCase() || 'S'}
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {selectedStudentCourse.student.name}
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {selectedStudentCourse.course.title}
+                  </p>
+                </div>
+                
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+                  <div className="text-center mb-4">
+                    <div className={`text-4xl font-bold mb-2 ${
+                      selectedStudentCourse.course.attendance >= 80 ? 'text-green-600' :
+                      selectedStudentCourse.course.attendance >= 60 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {selectedStudentCourse.course.attendance}%
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Attendance Rate</p>
+                  </div>
+                  
+                  <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-3">
+                    <div 
+                      className={`h-3 rounded-full transition-all duration-300 ${
+                        selectedStudentCourse.course.attendance >= 80 ? 'bg-green-500' :
+                        selectedStudentCourse.course.attendance >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${selectedStudentCourse.course.attendance}%` }}
+                    ></div>
+                  </div>
+                  
+                  <div className="mt-4 text-center">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Enrolled: {new Date(selectedStudentCourse.course.enrollmentDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
