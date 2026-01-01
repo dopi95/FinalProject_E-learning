@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
-import { Sun, Moon, Menu, X, User } from 'lucide-react';
+import { Sun, Moon, Menu, X, User, Bell, BellOff } from 'lucide-react';
 
 
 const Header = () => {
@@ -10,6 +10,8 @@ const Header = () => {
   const { isDark, toggleTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [showSubscribeMenu, setShowSubscribeMenu] = useState(false);
 
   useEffect(() => {
     // Check if user is logged in
@@ -17,7 +19,42 @@ const Header = () => {
     if (userData) {
       setUser(JSON.parse(userData));
     }
+    
+    // Check subscription status
+    const subscriptionStatus = localStorage.getItem('emailSubscription');
+    setIsSubscribed(subscriptionStatus === 'true');
   }, []);
+
+  const toggleSubscription = () => {
+    const newStatus = !isSubscribed;
+    setIsSubscribed(newStatus);
+    localStorage.setItem('emailSubscription', newStatus.toString());
+    setShowSubscribeMenu(false);
+    
+    // Show notification
+    const message = newStatus ? 'Subscribed successfully!' : 'Unsubscribed successfully!';
+    
+    // Create and show toast notification
+    const toast = document.createElement('div');
+    toast.className = `fixed top-24 right-4 z-50 px-4 py-2 rounded-lg text-white font-medium transition-all duration-300 transform translate-x-full ${
+      newStatus ? 'bg-green-500' : 'bg-orange-500'
+    }`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+      toast.classList.remove('translate-x-full');
+    }, 100);
+    
+    // Animate out and remove
+    setTimeout(() => {
+      toast.classList.add('translate-x-full');
+      setTimeout(() => {
+        document.body.removeChild(toast);
+      }, 300);
+    }, 2000);
+  };
 
   const getDashboardRoute = () => {
     if (!user) return '/login';
@@ -91,6 +128,64 @@ const Header = () => {
 
             {/* Controls */}
             <div className="flex items-center space-x-3">
+              {/* Email Subscription Bell - Mobile */}
+              {user && (user.role === 'student' || user.role === 'instructor') && (
+                <div className="lg:hidden relative">
+                  <button
+                    onClick={() => setShowSubscribeMenu(!showSubscribeMenu)}
+                    className="relative p-3 rounded-xl text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 group"
+                  >
+                    {isSubscribed ? (
+                      <Bell className="h-5 w-5 transform group-hover:scale-110 transition-transform duration-300" />
+                    ) : (
+                      <BellOff className="h-5 w-5 transform group-hover:scale-110 transition-transform duration-300" />
+                    )}
+                    {isSubscribed && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    )}
+                  </button>
+                  {showSubscribeMenu && (
+                    <div className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 z-50">
+                      <button
+                        onClick={toggleSubscription}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded whitespace-nowrap"
+                      >
+                        {isSubscribed ? 'Unsubscribe' : 'Subscribe'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Email Subscription Bell - Desktop */}
+              {user && (user.role === 'student' || user.role === 'instructor') && (
+                <div className="hidden lg:block relative">
+                  <button
+                    onClick={() => setShowSubscribeMenu(!showSubscribeMenu)}
+                    className="relative p-3 rounded-xl text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 group"
+                  >
+                    {isSubscribed ? (
+                      <Bell className="h-5 w-5 transform group-hover:scale-110 transition-transform duration-300" />
+                    ) : (
+                      <BellOff className="h-5 w-5 transform group-hover:scale-110 transition-transform duration-300" />
+                    )}
+                    {isSubscribed && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    )}
+                  </button>
+                  {showSubscribeMenu && (
+                    <div className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 z-50">
+                      <button
+                        onClick={toggleSubscription}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded whitespace-nowrap"
+                      >
+                        {isSubscribed ? 'Unsubscribe' : 'Subscribe'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Theme Toggle - Desktop Only */}
               <button
                 onClick={toggleTheme}
@@ -148,6 +243,14 @@ const Header = () => {
           </div>
         </div>
       </header>
+
+      {/* Click outside to close subscription menu */}
+      {showSubscribeMenu && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowSubscribeMenu(false)}
+        ></div>
+      )}
 
       {/* Mobile Menu Overlay */}
       <div className={`fixed inset-0 z-40 lg:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, Home, User, Camera, X, Eye, EyeOff, Star, Search } from 'lucide-react';
+import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe } from 'lucide-react';
 import { profileAPI, courseAPI, instructorAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
+import { useTranslation } from 'react-i18next';
 
 const InstructorDashboard = () => {
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
@@ -1602,6 +1604,14 @@ const InstructorDashboard = () => {
       <div className={`fixed inset-y-0 left-0 z-50 w-64 lg:w-72 bg-white dark:bg-gray-800 shadow-2xl border-r border-gray-200 dark:border-gray-700 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 ease-in-out lg:translate-x-0 lg:fixed lg:inset-y-0 flex flex-col overflow-hidden`}>
         {/* Logo/Title */}
         <div className="flex items-center justify-between h-16 lg:h-20 px-4 lg:px-6 bg-gradient-to-r from-blue-600 to-indigo-600 border-b border-blue-500 flex-shrink-0">
+          {/* Language Toggle */}
+          <button
+            onClick={() => i18n.changeLanguage(i18n.language === 'en' ? 'am' : 'en')}
+            className="lg:hidden text-white/80 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-1"
+          >
+            <Globe className="h-4 w-4" />
+            <span className="text-xs font-medium">{i18n.language === 'en' ? 'አማ' : 'EN'}</span>
+          </button>
           <button 
             onClick={() => setActiveTab('profile')}
             className="flex items-center hover:bg-white/10 rounded-lg p-2 transition-colors cursor-pointer w-full"
@@ -1670,6 +1680,14 @@ const InstructorDashboard = () => {
             
             {/* Additional Navigation Items */}
             <div className="mt-6 lg:mt-100 pt-3 lg:pt-4">
+              {/* Language Toggle for Desktop */}
+              <button
+                onClick={() => i18n.changeLanguage(i18n.language === 'en' ? 'am' : 'en')}
+                className="hidden lg:flex w-full items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all duration-200 mb-1"
+              >
+                <Globe className="h-4 w-4 mr-2 lg:mr-3 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                <span className="font-medium truncate">{i18n.language === 'en' ? 'Switch to Amharic' : 'Switch to English'}</span>
+              </button>
               <button
                 onClick={handleBackToWebsite}
                 className="w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all duration-200"

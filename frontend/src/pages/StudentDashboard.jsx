@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star } from 'lucide-react';
+import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star } from 'lucide-react';
 import { profileAPI, enrollmentAPI, paymentAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
@@ -25,6 +25,8 @@ const StudentDashboard = () => {
   const [gradesLoading, setGradesLoading] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState(null);
   const [showGradeDetail, setShowGradeDetail] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [showSubscribeMenu, setShowSubscribeMenu] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -110,6 +112,37 @@ const StudentDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleSubscription = () => {
+    const newStatus = !isSubscribed;
+    setIsSubscribed(newStatus);
+    localStorage.setItem('emailSubscription', newStatus.toString());
+    setShowSubscribeMenu(false);
+    
+    // Show notification
+    const message = newStatus ? 'Subscribed successfully!' : 'Unsubscribed successfully!';
+    
+    // Create and show toast notification
+    const toast = document.createElement('div');
+    toast.className = `fixed top-24 right-4 z-50 px-4 py-2 rounded-lg text-white font-medium transition-all duration-300 transform translate-x-full ${
+      newStatus ? 'bg-green-500' : 'bg-orange-500'
+    }`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+      toast.classList.remove('translate-x-full');
+    }, 100);
+    
+    // Animate out and remove
+    setTimeout(() => {
+      toast.classList.add('translate-x-full');
+      setTimeout(() => {
+        document.body.removeChild(toast);
+      }, 300);
+    }, 2000);
   };
 
   const fetchPayments = async () => {
@@ -451,6 +484,10 @@ const StudentDashboard = () => {
         setProfileImage(userData.profileImage);
       }
     }
+    
+    // Check subscription status
+    const subscriptionStatus = localStorage.getItem('emailSubscription');
+    setIsSubscribed(subscriptionStatus === 'true');
     
     // Fetch fresh user data from API
     fetchUserProfile();
@@ -1761,6 +1798,35 @@ const StudentDashboard = () => {
       <div className={`fixed inset-y-0 left-0 z-50 w-64 lg:w-72 bg-white dark:bg-gray-800 shadow-2xl border-r border-gray-200 dark:border-gray-700 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 ease-in-out lg:translate-x-0 lg:fixed lg:inset-y-0 flex flex-col overflow-hidden`}>
         {/* Logo/Title */}
         <div className="flex items-center justify-between h-16 lg:h-20 px-4 lg:px-6 bg-gradient-to-r from-blue-600 to-indigo-600 border-b border-blue-500 flex-shrink-0">
+          {/* Email Subscription Bell */}
+          {user && user.role === 'student' && (
+            <div className="relative">
+              <button
+                onClick={() => setShowSubscribeMenu(!showSubscribeMenu)}
+                className="relative p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition-all duration-300 group"
+              >
+                {isSubscribed ? (
+                  <Bell className="h-5 w-5 transform group-hover:scale-110 transition-transform duration-300" />
+                ) : (
+                  <BellOff className="h-5 w-5 transform group-hover:scale-110 transition-transform duration-300" />
+                )}
+                {isSubscribed && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                )}
+              </button>
+              {showSubscribeMenu && (
+                <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 z-50">
+                  <button
+                    onClick={toggleSubscription}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded whitespace-nowrap"
+                  >
+                    {isSubscribed ? 'Unsubscribe' : 'Subscribe'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <button 
             onClick={() => setActiveTab('profile')}
             className="flex items-center hover:bg-white/10 rounded-lg p-2 transition-colors cursor-pointer w-full"
