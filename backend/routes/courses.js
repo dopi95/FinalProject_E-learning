@@ -147,14 +147,19 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       const emailService = require('../utils/emailService');
       const Subscription = require('../models/Subscription');
       
-      // Get all subscribers
-      const subscriptions = await Subscription.find({ isActive: true });
-      const subscriberEmails = subscriptions.map(sub => sub.email);
+      // Get student subscribers only
+      const subscriptions = await Subscription.find({ isActive: true }).populate('user');
+      const studentSubscriberEmails = subscriptions
+        .filter(sub => {
+          // Include if user is a student or if no user linked (newsletter subscribers)
+          return !sub.user || sub.user.role === 'student';
+        })
+        .map(sub => sub.email);
       
-      // Send course creation notification to all subscribers
-      if (subscriberEmails.length > 0) {
-        for (const email of subscriberEmails) {
-          await emailService.sendCourseCreatedEmail(
+      // Send new course notification only to student subscribers
+      if (studentSubscriberEmails.length > 0) {
+        for (const email of studentSubscriberEmails) {
+          await emailService.sendNewCourseNotificationToStudents(
             email, 
             populatedCourse.title, 
             populatedCourse.instructor.name
@@ -162,15 +167,12 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
         }
       }
       
-      // Send instructor assignment notification if instructor is subscribed
-      const instructorSubscription = subscriptions.find(sub => sub.email === populatedCourse.instructor.email);
-      if (instructorSubscription) {
-        await emailService.sendInstructorAssignmentEmail(
-          populatedCourse.instructor.email,
-          populatedCourse.title,
-          populatedCourse.instructor.name
-        );
-      }
+      // Send assignment notification only to the assigned instructor
+      await emailService.sendInstructorAssignmentEmail(
+        populatedCourse.instructor.email,
+        populatedCourse.title,
+        populatedCourse.instructor.name
+      );
     } catch (emailError) {
       console.error('Email notification error:', emailError);
       // Don't fail course creation if email fails
@@ -209,6 +211,12 @@ router.put('/:id', auth, upload.single('image'), async (req, res) => {
 
     const { title, description, about, price, category, instructor } = req.body;
     
+    // Get current course to check for instructor changes
+    const currentCourse = await Course.findById(req.params.id).populate('instructor', 'name email');
+    if (!currentCourse) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+    
     const updateData = {
       title,
       description,
@@ -235,8 +243,28 @@ router.put('/:id', auth, upload.single('image'), async (req, res) => {
       { new: true, runValidators: true }
     ).populate('instructor', 'name email profileImage');
     
-    if (!course) {
-      return res.status(404).json({ message: 'Course not found' });
+    // Handle instructor change notifications
+    if (instructor && instructor !== currentCourse.instructor._id.toString()) {
+      try {
+        const emailService = require('../utils/emailService');
+        
+        // Notify previous instructor about unassignment
+        await emailService.sendInstructorUnassignmentEmail(
+          currentCourse.instructor.email,
+          currentCourse.title,
+          currentCourse.instructor.name
+        );
+        
+        // Notify new instructor about assignment
+        await emailService.sendInstructorAssignmentEmail(
+          course.instructor.email,
+          course.title,
+          course.instructor.name
+        );
+      } catch (emailError) {
+        console.error('Email notification error:', emailError);
+        // Don't fail course update if email fails
+      }
     }
     
     res.json({ course });

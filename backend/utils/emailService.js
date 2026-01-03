@@ -86,7 +86,7 @@ class EmailService {
     return results;
   }
 
-  async sendCourseCreatedEmail(email, courseName, instructorName) {
+  async sendNewCourseNotificationToStudents(email, courseName, instructorName) {
     const subject = 'New Course Available - AAU E-Learning';
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -122,6 +122,24 @@ class EmailService {
     return await this.sendEmail(email, subject, htmlContent);
   }
 
+  async sendInstructorUnassignmentEmail(email, courseName, instructorName) {
+    const subject = 'Course Unassignment - AAU E-Learning';
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Course Unassignment Notification</h2>
+        <p>Hello ${instructorName},</p>
+        <p>You are no longer assigned as the instructor for the following course:</p>
+        <div style="background-color: #f4f4f4; padding: 20px; margin: 20px 0; border-left: 4px solid #dc3545;">
+          <h3 style="color: #dc3545; margin: 0 0 10px 0;">${courseName}</h3>
+          <p style="margin: 0; color: #666;">A new instructor has been assigned to this course.</p>
+        </div>
+        <p>Thank you for your previous contributions to this course.</p>
+        <p>Best regards,<br>AAU E-Learning Team</p>
+      </div>
+    `;
+    return await this.sendEmail(email, subject, htmlContent);
+  }
+
   async sendEnrollmentConfirmationEmail(email, studentName, courseName, instructorName) {
     const subject = 'Course Enrollment Confirmation - AAU E-Learning';
     const htmlContent = `
@@ -134,6 +152,54 @@ class EmailService {
           <p style="margin: 0; color: #666;">Instructor: ${instructorName}</p>
         </div>
         <p>You can now access your course materials and start learning!</p>
+        <p>Best regards,<br>AAU E-Learning Team</p>
+      </div>
+    `;
+    return await this.sendEmail(email, subject, htmlContent);
+  }
+
+  async sendReviewApprovedEmail(email, userName, reviewMessage) {
+    const subject = 'Review Approved - AAU E-Learning';
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Review Approved!</h2>
+        <p>Hello ${userName},</p>
+        <p>Great news! Your review has been approved and is now visible on our platform:</p>
+        <div style="background-color: #f4f4f4; padding: 20px; margin: 20px 0; border-left: 4px solid #28a745;">
+          <p style="margin: 0; color: #666; font-style: italic;">${reviewMessage}</p>
+        </div>
+        <p>Thank you for sharing your feedback with the AAU E-Learning community!</p>
+        <p>Best regards,<br>AAU E-Learning Team</p>
+      </div>
+    `;
+    return await this.sendEmail(email, subject, htmlContent);
+  }
+
+  async sendReviewRejectedEmail(email, userName, reviewMessage) {
+    const subject = 'Review Update - AAU E-Learning';
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Review Update</h2>
+        <p>Hello ${userName},</p>
+        <p>We've reviewed your submission, but unfortunately it doesn't meet our community guidelines:</p>
+        <div style="background-color: #f4f4f4; padding: 20px; margin: 20px 0; border-left: 4px solid #dc3545;">
+          <p style="margin: 0; color: #666; font-style: italic;">${reviewMessage}</p>
+        </div>
+        <p>You're welcome to submit a new review that follows our guidelines.</p>
+        <p>Best regards,<br>AAU E-Learning Team</p>
+      </div>
+    `;
+    return await this.sendEmail(email, subject, htmlContent);
+  }
+
+  async sendReviewDeletedEmail(email, userName) {
+    const subject = 'Review Removed - AAU E-Learning';
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Review Removed</h2>
+        <p>Hello ${userName},</p>
+        <p>Your review has been removed from the AAU E-Learning platform.</p>
+        <p>If you have any questions about this action, please contact our support team.</p>
         <p>Best regards,<br>AAU E-Learning Team</p>
       </div>
     `;

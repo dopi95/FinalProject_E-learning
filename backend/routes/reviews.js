@@ -88,7 +88,7 @@ router.patch('/:id/status', auth, async (req, res) => {
     }
     
     const { status } = req.body;
-    const review = await Review.findById(req.params.id);
+    const review = await Review.findById(req.params.id).populate('user', 'name email');
     
     if (!review) {
       return res.status(404).json({ message: 'Review not found' });
@@ -99,8 +99,28 @@ router.patch('/:id/status', auth, async (req, res) => {
     review.reviewedAt = new Date();
     
     await review.save();
-    await review.populate('user', 'name email role profileImage');
     await review.populate('reviewedBy', 'name email');
+    
+    // Send notification email
+    try {
+      const emailService = require('../utils/emailService');
+      
+      if (status === 'approved') {
+        await emailService.sendReviewApprovedEmail(
+          review.user.email,
+          review.user.name,
+          review.message
+        );
+      } else if (status === 'rejected') {
+        await emailService.sendReviewRejectedEmail(
+          review.user.email,
+          review.user.name,
+          review.message
+        );
+      }
+    } catch (emailError) {
+      console.error('Email notification error:', emailError);
+    }
     
     res.json({ 
       message: `Review ${status} successfully`,
@@ -133,11 +153,24 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
     
-    const review = await Review.findByIdAndDelete(req.params.id);
+    const review = await Review.findById(req.params.id).populate('user', 'name email');
     
     if (!review) {
       return res.status(404).json({ message: 'Review not found' });
     }
+    
+    // Send notification email before deletion
+    try {
+      const emailService = require('../utils/emailService');
+      await emailService.sendReviewDeletedEmail(
+        review.user.email,
+        review.user.name
+      );
+    } catch (emailError) {
+      console.error('Email notification error:', emailError);
+    }
+    
+    await Review.findByIdAndDelete(req.params.id);
     
     res.json({ message: 'Review deleted successfully' });
   } catch (error) {
