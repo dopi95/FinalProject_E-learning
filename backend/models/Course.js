@@ -34,6 +34,14 @@ const courseSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  registrationStart: {
+    type: Date,
+    default: null
+  },
+  registrationEnd: {
+    type: Date,
+    default: null
+  },
   students: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
@@ -56,6 +64,20 @@ courseSchema.virtual('studentCount').get(function() {
 
 courseSchema.virtual('starCount').get(function() {
   return this.stars.length;
+});
+
+courseSchema.virtual('registrationStatus').get(function() {
+  const now = new Date();
+  if (!this.registrationStart || !this.registrationEnd) {
+    return 'open';
+  }
+  if (now < this.registrationStart) {
+    return 'not_started';
+  }
+  if (now > this.registrationEnd) {
+    return 'closed';
+  }
+  return 'open';
 });
 
 courseSchema.set('toJSON', { virtuals: true });

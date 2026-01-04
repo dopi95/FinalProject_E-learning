@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Star, Users, User, ArrowRight, CheckCircle, Heart } from 'lucide-react';
 import LoginRequiredModal from './LoginRequiredModal';
 import RoleBasedModal from './RoleBasedModal';
+import RegistrationDateModal from './RegistrationDateModal';
 import { courseAPI, enrollmentAPI, categoryAPI } from '../services/api';
 import { getUserData } from '../utils/userUtils';
 
@@ -19,6 +20,9 @@ const FeaturedCourses = () => {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [modalActionType, setModalActionType] = useState('subscribe');
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [registrationModalType, setRegistrationModalType] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState(null);
 
   useEffect(() => {
     fetchFeaturedCourses();
@@ -103,6 +107,28 @@ const FeaturedCourses = () => {
       return;
     }
     
+    // Find the course to check registration dates
+    const course = courses.find(c => c._id === courseId);
+    if (course && (course.registrationStart || course.registrationEnd)) {
+      const now = new Date();
+      const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
+      const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+      
+      if (startDate && now < startDate) {
+        setSelectedCourse(course);
+        setRegistrationModalType('not_started');
+        setShowRegistrationModal(true);
+        return;
+      }
+      
+      if (endDate && now > endDate) {
+        setSelectedCourse(course);
+        setRegistrationModalType('closed');
+        setShowRegistrationModal(true);
+        return;
+      }
+    }
+    
     navigate(`/payment/${courseId}`);
   };
 
@@ -144,6 +170,25 @@ const FeaturedCourses = () => {
                   </div>
                   <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                     {categories.find(cat => cat.slug === course.category)?.name || course.category}
+                  </div>
+                  <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-1 rounded-full">
+                    {(() => {
+                      if (!course.registrationStart && !course.registrationEnd) {
+                        return <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>;
+                      }
+                      const now = new Date();
+                      const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
+                      const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+                      
+                      if (startDate && now < startDate) {
+                        return <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">Not Started</span>;
+                      } else if (endDate && now > endDate) {
+                        return <span className="text-sm font-semibold text-red-600 dark:text-red-400">Closed</span>;
+                      } else {
+                        return <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>;
+                      }
+                    })()
+                    }
                   </div>
                 </div>
                 
@@ -249,6 +294,14 @@ const FeaturedCourses = () => {
         isVisible={showRoleModal}
         onClose={() => setShowRoleModal(false)}
         userRole={user?.role}
+      />
+
+      <RegistrationDateModal
+        isVisible={showRegistrationModal}
+        onClose={() => setShowRegistrationModal(false)}
+        type={registrationModalType}
+        startDate={selectedCourse?.registrationStart}
+        endDate={selectedCourse?.registrationEnd}
       />
     </section>
   );

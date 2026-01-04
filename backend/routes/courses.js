@@ -112,7 +112,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const { title, description, about, price, category, instructor } = req.body;
+    const { title, description, about, price, category, instructor, registrationStart, registrationEnd } = req.body;
     
     let imageUrl = null;
     if (req.file) {
@@ -135,6 +135,13 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       instructor,
       image: imageUrl
     };
+    
+    if (registrationStart) {
+      courseData.registrationStart = new Date(registrationStart);
+    }
+    if (registrationEnd) {
+      courseData.registrationEnd = new Date(registrationEnd);
+    }
     
     const course = new Course(courseData);
     await course.save();
@@ -209,7 +216,7 @@ router.put('/:id', auth, upload.single('image'), async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const { title, description, about, price, category, instructor } = req.body;
+    const { title, description, about, price, category, instructor, registrationStart, registrationEnd } = req.body;
     
     // Get current course to check for instructor changes
     const currentCourse = await Course.findById(req.params.id).populate('instructor', 'name email');
@@ -225,6 +232,13 @@ router.put('/:id', auth, upload.single('image'), async (req, res) => {
       category,
       instructor
     };
+    
+    if (registrationStart) {
+      updateData.registrationStart = new Date(registrationStart);
+    }
+    if (registrationEnd) {
+      updateData.registrationEnd = new Date(registrationEnd);
+    }
     
     if (req.file) {
       const result = await cloudinary.uploader.upload(

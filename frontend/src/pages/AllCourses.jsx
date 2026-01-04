@@ -6,6 +6,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LoginRequiredModal from '../components/LoginRequiredModal';
 import RoleBasedModal from '../components/RoleBasedModal';
+import RegistrationDateModal from '../components/RegistrationDateModal';
 import { getUserData } from '../utils/userUtils';
 import { courseAPI, categoryAPI, enrollmentAPI } from '../services/api';
 
@@ -27,6 +28,9 @@ const AllCourses = () => {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [modalActionType, setModalActionType] = useState('subscribe');
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [registrationModalType, setRegistrationModalType] = useState('');
+  const [selectedCourseForModal, setSelectedCourseForModal] = useState(null);
 
   useEffect(() => {
     const userData = getUserData();
@@ -125,6 +129,18 @@ const AllCourses = () => {
       return; // Can't select already enrolled courses
     }
     
+    // Check if course is active for selection
+    const course = courses.find(c => c._id === courseId);
+    if (course && (course.registrationStart || course.registrationEnd)) {
+      const now = new Date();
+      const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
+      const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+      
+      if ((startDate && now < startDate) || (endDate && now > endDate)) {
+        return; // Can't select inactive courses
+      }
+    }
+    
     setSelectedCourses(prev => {
       const newSet = new Set(prev);
       if (newSet.has(courseId)) {
@@ -166,6 +182,28 @@ const AllCourses = () => {
     if (enrolledCourses.has(courseId)) {
       navigate('/student-dashboard?tab=courses');
       return;
+    }
+    
+    // Find the course to check registration dates
+    const course = courses.find(c => c._id === courseId);
+    if (course && (course.registrationStart || course.registrationEnd)) {
+      const now = new Date();
+      const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
+      const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+      
+      if (startDate && now < startDate) {
+        setSelectedCourseForModal(course);
+        setRegistrationModalType('not_started');
+        setShowRegistrationModal(true);
+        return;
+      }
+      
+      if (endDate && now > endDate) {
+        setSelectedCourseForModal(course);
+        setRegistrationModalType('closed');
+        setShowRegistrationModal(true);
+        return;
+      }
     }
     
     navigate(`/payment/${courseId}`);
@@ -308,9 +346,29 @@ const AllCourses = () => {
               <input
                 type="checkbox"
                 id="selectAll"
-                checked={selectedCourses.size > 0 && selectedCourses.size === courses.filter(course => !enrolledCourses.has(course._id)).length}
+                checked={selectedCourses.size > 0 && selectedCourses.size === courses.filter(course => {
+                  if (enrolledCourses.has(course._id)) return false;
+                  // Check if course is active
+                  if (course.registrationStart || course.registrationEnd) {
+                    const now = new Date();
+                    const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
+                    const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+                    return !((startDate && now < startDate) || (endDate && now > endDate));
+                  }
+                  return true;
+                }).length}
                 onChange={() => {
-                  const availableCourses = courses.filter(course => !enrolledCourses.has(course._id));
+                  const availableCourses = courses.filter(course => {
+                    if (enrolledCourses.has(course._id)) return false;
+                    // Check if course is active
+                    if (course.registrationStart || course.registrationEnd) {
+                      const now = new Date();
+                      const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
+                      const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+                      return !((startDate && now < startDate) || (endDate && now > endDate));
+                    }
+                    return true;
+                  });
                   if (selectedCourses.size === availableCourses.length) {
                     setSelectedCourses(new Set());
                   } else {
@@ -320,9 +378,18 @@ const AllCourses = () => {
                 className="w-5 h-5 text-blue-600 bg-white border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:ring-2 transition-all"
               />
               <label htmlFor="selectAll" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
-                {selectedCourses.size > 0 && selectedCourses.size === courses.filter(course => !enrolledCourses.has(course._id)).length
-                  ? 'Deselect All Courses'
-                  : 'Select All Available Courses'
+                {selectedCourses.size > 0 && selectedCourses.size === courses.filter(course => {
+                  if (enrolledCourses.has(course._id)) return false;
+                  if (course.registrationStart || course.registrationEnd) {
+                    const now = new Date();
+                    const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
+                    const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+                    return !((startDate && now < startDate) || (endDate && now > endDate));
+                  }
+                  return true;
+                }).length
+                  ? 'Deselect All Active Courses'
+                  : 'Select All Active Courses'
                 }
               </label>
               {selectedCourses.size > 0 && (
@@ -361,19 +428,56 @@ const AllCourses = () => {
                     <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                       {categories.find(cat => cat.slug === course.category)?.name || course.category}
                     </div>
+                    <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-1 rounded-full">
+                      {(() => {
+                        if (!course.registrationStart && !course.registrationEnd) {
+                          return <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>;
+                        }
+                        const now = new Date();
+                        const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
+                        const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+                        
+                        if (startDate && now < startDate) {
+                          return <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">Not Started</span>;
+                        } else if (endDate && now > endDate) {
+                          return <span className="text-sm font-semibold text-red-600 dark:text-red-400">Closed</span>;
+                        } else {
+                          return <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>;
+                        }
+                      })()
+                      }
+                    </div>
                   </div>
                   
                   <div className="p-8">
                     <div className="flex items-start gap-3 mb-4">
                       {/* Selection Checkbox */}
-                      {user?.role === 'student' && !enrolledCourses.has(course._id) && (
-                        <input
-                          type="checkbox"
-                          checked={selectedCourses.has(course._id)}
-                          onChange={() => handleCourseSelection(course._id)}
-                          className="w-5 h-5 text-blue-600 bg-white border-2 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 mt-1 flex-shrink-0"
-                        />
-                      )}
+                      {user?.role === 'student' && !enrolledCourses.has(course._id) && (() => {
+                        // Check if course is active
+                        if (course.registrationStart || course.registrationEnd) {
+                          const now = new Date();
+                          const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
+                          const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+                          
+                          if ((startDate && now < startDate) || (endDate && now > endDate)) {
+                            return (
+                              <input
+                                type="checkbox"
+                                disabled
+                                className="w-5 h-5 text-gray-400 bg-gray-200 border-2 border-gray-300 rounded cursor-not-allowed mt-1 flex-shrink-0"
+                              />
+                            );
+                          }
+                        }
+                        return (
+                          <input
+                            type="checkbox"
+                            checked={selectedCourses.has(course._id)}
+                            onChange={() => handleCourseSelection(course._id)}
+                            className="w-5 h-5 text-blue-600 bg-white border-2 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 mt-1 flex-shrink-0"
+                          />
+                        );
+                      })()}
                       <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex-1">
                         {course.title}
                       </h3>
@@ -502,6 +606,14 @@ const AllCourses = () => {
         isVisible={showRoleModal}
         onClose={() => setShowRoleModal(false)}
         userRole={user?.role}
+      />
+
+      <RegistrationDateModal
+        isVisible={showRegistrationModal}
+        onClose={() => setShowRegistrationModal(false)}
+        type={registrationModalType}
+        startDate={selectedCourseForModal?.registrationStart}
+        endDate={selectedCourseForModal?.registrationEnd}
       />
     </div>
   );

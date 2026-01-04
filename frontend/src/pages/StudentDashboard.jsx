@@ -1061,9 +1061,6 @@ const StudentDashboard = () => {
                   alt={course.title}
                   className="w-full h-48 object-cover"
                 />
-                <div className="absolute top-3 right-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-1 rounded-full">
-                  <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">Active</span>
-                </div>
               </div>
               
               <div className="p-6">

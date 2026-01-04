@@ -5,6 +5,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LoginRequiredModal from '../components/LoginRequiredModal';
 import RoleBasedModal from '../components/RoleBasedModal';
+import RegistrationDateModal from '../components/RegistrationDateModal';
 import Toast from '../components/Toast';
 import { ArrowLeft, Star, Users, Clock, PlayCircle, CheckCircle, Globe, Award, User, Heart } from 'lucide-react';
 import { getUserData } from '../utils/userUtils';
@@ -27,6 +28,8 @@ const CourseDetail = () => {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [enrollmentLoading, setEnrollmentLoading] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [registrationModalType, setRegistrationModalType] = useState('');
 
   useEffect(() => {
     const userData = getUserData();
@@ -135,7 +138,26 @@ const CourseDetail = () => {
       return;
     }
     
-    // Redirect to payment page
+    // Check registration dates FIRST - block if invalid
+    if (course.registrationStart || course.registrationEnd) {
+      const now = new Date();
+      const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
+      const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+      
+      if (startDate && now < startDate) {
+        setRegistrationModalType('not_started');
+        setShowRegistrationModal(true);
+        return; // STOP HERE - don't go to payment
+      }
+      
+      if (endDate && now > endDate) {
+        setRegistrationModalType('closed');
+        setShowRegistrationModal(true);
+        return; // STOP HERE - don't go to payment
+      }
+    }
+    
+    // Only proceed to payment if dates are valid
     console.log('Redirecting to payment page...'); // Debug log
     showToast('Redirecting to payment...', 'success');
     setTimeout(() => navigate(`/payment/${course._id}`), 1000);
@@ -214,9 +236,30 @@ const CourseDetail = () => {
                     {course.title}
                   </h1>
                   <div className="mb-4">
-                    <span className="inline-block bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-full text-sm font-medium">
-                      {categories.find(cat => cat.slug === course.category)?.name || course.category}
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="inline-block bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-full text-sm font-medium">
+                        {categories.find(cat => cat.slug === course.category)?.name || course.category}
+                      </span>
+                      <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-1 rounded-full">
+                        {(() => {
+                          if (!course.registrationStart && !course.registrationEnd) {
+                            return <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>;
+                          }
+                          const now = new Date();
+                          const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
+                          const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+                          
+                          if (startDate && now < startDate) {
+                            return <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">Not Started</span>;
+                          } else if (endDate && now > endDate) {
+                            return <span className="text-sm font-semibold text-red-600 dark:text-red-400">Closed</span>;
+                          } else {
+                            return <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>;
+                          }
+                        })()
+                        }
+                      </div>
+                    </div>
                   </div>
                   <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 mb-4 sm:mb-6 leading-relaxed">
                     {course.description}
@@ -349,6 +392,27 @@ const CourseDetail = () => {
                       <span>{t('courses.certificateText')}</span>
                     </div>
                   </div>
+
+                  {/* Registration Dates */}
+                  {(course.registrationStart || course.registrationEnd) && (
+                    <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                      <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">Registration Period</h4>
+                      <div className="text-xs text-blue-700 dark:text-blue-400">
+                        {course.registrationStart && (
+                          <div className="flex items-center mb-1">
+                            <span className="font-medium mr-2">Start:</span>
+                            <span>{new Date(course.registrationStart).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                          </div>
+                        )}
+                        {course.registrationEnd && (
+                          <div className="flex items-center">
+                            <span className="font-medium mr-2">End:</span>
+                            <span>{new Date(course.registrationEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -369,6 +433,15 @@ const CourseDetail = () => {
         isVisible={showRoleModal}
         onClose={() => setShowRoleModal(false)}
         userRole={user?.role}
+      />
+
+      {/* Registration Date Modal */}
+      <RegistrationDateModal
+        isVisible={showRegistrationModal}
+        onClose={() => setShowRegistrationModal(false)}
+        type={registrationModalType}
+        startDate={course?.registrationStart}
+        endDate={course?.registrationEnd}
       />
 
       {/* Toast Notification */}

@@ -18,6 +18,7 @@ const SuperAdminDashboard = () => {
   const [categories, setCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
   const [courseForm, setCourseForm] = useState({
     title: '',
     description: '',
@@ -25,7 +26,9 @@ const SuperAdminDashboard = () => {
     price: '',
     category: '',
     instructor: '',
-    image: null
+    image: null,
+    registrationStart: '',
+    registrationEnd: ''
   });
 
   const [showCourseDetail, setShowCourseDetail] = useState(false);
@@ -216,7 +219,27 @@ const SuperAdminDashboard = () => {
       if (selectedCategory !== 'all') params.category = selectedCategory;
       
       const response = await courseAPI.getCourses(params);
-      setCourses(response.data.courses);
+      let filteredCourses = response.data.courses;
+      
+      // Filter by status
+      if (selectedStatus !== 'all') {
+        filteredCourses = filteredCourses.filter(course => {
+          const now = new Date();
+          const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
+          const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+          
+          if (selectedStatus === 'active') {
+            return !startDate || !endDate || (now >= startDate && now <= endDate);
+          } else if (selectedStatus === 'not_started') {
+            return startDate && now < startDate;
+          } else if (selectedStatus === 'closed') {
+            return endDate && now > endDate;
+          }
+          return true;
+        });
+      }
+      
+      setCourses(filteredCourses);
     } catch (error) {
       console.error('Error fetching courses:', error);
       showNotification('error', 'Error', 'Failed to fetch courses');
@@ -225,7 +248,7 @@ const SuperAdminDashboard = () => {
 
   useEffect(() => {
     fetchCourses();
-  }, [searchTerm, selectedCategory]);
+  }, [searchTerm, selectedCategory, selectedStatus]);
 
   const handleCourseFormChange = (field, value) => {
     setCourseForm(prev => ({ ...prev, [field]: value }));
@@ -243,7 +266,7 @@ const SuperAdminDashboard = () => {
       setLoading(true);
       const response = await courseAPI.createCourse(courseForm);
       setCourses(prev => [response.data.course, ...prev]);
-      setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null });
+      setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null, registrationStart: '', registrationEnd: '' });
       setShowAddCourse(false);
       showNotification('success', 'Course Added!', 'Course has been successfully created');
     } catch (error) {
@@ -262,7 +285,9 @@ const SuperAdminDashboard = () => {
       price: course.price.toString(),
       category: course.category,
       instructor: course.instructor._id,
-      image: null
+      image: null,
+      registrationStart: course.registrationStart ? new Date(course.registrationStart).toISOString().split('T')[0] : '',
+      registrationEnd: course.registrationEnd ? new Date(course.registrationEnd).toISOString().split('T')[0] : ''
     });
     setShowEditCourse(true);
   };
@@ -274,7 +299,7 @@ const SuperAdminDashboard = () => {
       setCourses(prev => prev.map(course => 
         course._id === editingCourse._id ? response.data.course : course
       ));
-      setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null });
+      setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null, registrationStart: '', registrationEnd: '' });
       setShowEditCourse(false);
       setEditingCourse(null);
       showNotification('success', 'Course Updated!', 'Course has been successfully updated');
@@ -1201,78 +1226,102 @@ const SuperAdminDashboard = () => {
                   </option>
                 ))}
               </select>
+              <select 
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="px-3 py-2 w-full sm:w-auto border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="not_started">Not Started</option>
+                <option value="closed">Closed</option>
+              </select>
             </div>
           </div>
         </div>
         
         {/* Desktop Table View */}
-        <div className="hidden lg:block overflow-x-auto">
+        <div className="hidden lg:block overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Course</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Instructor</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Likes</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Students</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Created</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-2/5">Course</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/6">Instructor</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-16">Price</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-20">Status</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-16">Stats</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-20">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {courses.map((course) => (
                 <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-6 py-4">
+                  <td className="px-3 py-4">
                     <div className="flex items-center">
-                      <img className="h-12 w-12 rounded-lg object-cover mr-4 flex-shrink-0" src={course.image} alt={course.title} />
-                      <div className="min-w-0">
+                      <img className="h-10 w-10 rounded-lg object-cover mr-3 flex-shrink-0" src={course.image} alt={course.title} />
+                      <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{course.title}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{categories.find(cat => cat.slug === course.category)?.name || course.category}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{categories.find(cat => cat.slug === course.category)?.name || course.category}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900 dark:text-white">{course.instructor?.name || 'Unknown'}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{course.instructor?.email || 'No email'}</div>
+                  <td className="px-3 py-4">
+                    <div className="text-sm text-gray-900 dark:text-white truncate">{course.instructor?.name || 'Unknown'}</div>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{course.price} Birr</span>
+                  <td className="px-3 py-4">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{course.price}</span>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1">
-                      <Heart className="h-4 w-4 text-red-500" />
-                      <span className="text-sm text-gray-900 dark:text-white">{course.stars?.length || 0}</span>
+                  <td className="px-3 py-4">
+                    {(() => {
+                      if (!course.registrationStart && !course.registrationEnd) {
+                        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">Active</span>;
+                      }
+                      const now = new Date();
+                      const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
+                      const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+                      
+                      if (startDate && now < startDate) {
+                        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300">Not Started</span>;
+                      } else if (endDate && now > endDate) {
+                        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">Closed</span>;
+                      } else {
+                        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">Active</span>;
+                      }
+                    })()
+                    }
+                  </td>
+                  <td className="px-3 py-4">
+                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center gap-1 mb-1">
+                        <Heart className="h-3 w-3 text-red-500" />
+                        <span>{course.stars?.length || 0}</span>
+                      </div>
+                      <div>👥 {course.studentCount || 0}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-900 dark:text-white">{course.studentCount || 0}</span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(course.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 py-4">
                     <div className="flex space-x-1">
                       <button 
                         onClick={() => {
                           setSelectedCourse(course);
                           setShowCourseDetail(true);
                         }}
-                        className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                        title="View Details"
+                        className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                        title="View"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button 
                         onClick={() => handleEditCourse(course)}
-                        className="text-green-600 hover:text-green-800 p-1.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-                        title="Edit Course"
+                        className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                        title="Edit"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button 
                         onClick={() => handleDeleteCourse(course._id)}
-                        className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                        title="Delete Course"
+                        className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -1340,6 +1389,27 @@ const SuperAdminDashboard = () => {
                     </div>
                   </div>
 
+                  {/* Course Status */}
+                  <div className="mb-4 flex justify-center">
+                    {(() => {
+                      if (!course.registrationStart && !course.registrationEnd) {
+                        return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">Active</span>;
+                      }
+                      const now = new Date();
+                      const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
+                      const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+                      
+                      if (startDate && now < startDate) {
+                        return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300">Not Started</span>;
+                      } else if (endDate && now > endDate) {
+                        return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">Closed</span>;
+                      } else {
+                        return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">Active</span>;
+                      }
+                    })()
+                    }
+                  </div>
+
                   {/* Action Buttons */}
                   <div className="flex gap-2">
                     <button
@@ -1388,7 +1458,7 @@ const SuperAdminDashboard = () => {
                     setShowAddCourse(false);
                     setShowEditCourse(false);
                     setEditingCourse(null);
-                    setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null });
+                    setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null, registrationStart: '', registrationEnd: '' });
                   }}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
@@ -1439,6 +1509,27 @@ const SuperAdminDashboard = () => {
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                     placeholder="Course price"
                   />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Registration Start Date</label>
+                    <input
+                      type="date"
+                      value={courseForm.registrationStart}
+                      onChange={(e) => handleCourseFormChange('registrationStart', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Registration End Date</label>
+                    <input
+                      type="date"
+                      value={courseForm.registrationEnd}
+                      onChange={(e) => handleCourseFormChange('registrationEnd', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
                 </div>
                 
                 <div>
@@ -1532,7 +1623,7 @@ const SuperAdminDashboard = () => {
                     setShowAddCourse(false);
                     setShowEditCourse(false);
                     setEditingCourse(null);
-                    setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null });
+                    setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null, registrationStart: '', registrationEnd: '' });
                   }}
                   className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600"
                 >
@@ -1581,6 +1672,21 @@ const SuperAdminDashboard = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
                     <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{categories.find(cat => cat.slug === selectedCourse.category)?.name || selectedCourse.category}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Registration Start</label>
+                    <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                      {selectedCourse.registrationStart ? new Date(selectedCourse.registrationStart).toLocaleDateString() : 'Not set'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Registration End</label>
+                    <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                      {selectedCourse.registrationEnd ? new Date(selectedCourse.registrationEnd).toLocaleDateString() : 'Not set'}
+                    </p>
                   </div>
                 </div>
                 
