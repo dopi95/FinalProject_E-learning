@@ -27,6 +27,14 @@ const InstructorDashboard = () => {
   const [notificationForm, setNotificationForm] = useState({ title: '', message: '' });
   const [showCourseResourcesSubmenu, setShowCourseResourcesSubmenu] = useState(false);
 
+  // Notification system state
+  const [notifications, setNotifications] = useState([
+    { id: 1, title: 'New Student Enrolled', message: 'John Doe enrolled in Advanced Mathematics', time: '1 hour ago', read: false },
+    { id: 2, title: 'Assignment Submitted', message: 'Sarah submitted Physics Lab Report', time: '3 hours ago', read: false },
+    { id: 3, title: 'Course Review Posted', message: 'New 5-star review on Chemistry Course', time: '1 day ago', read: true }
+  ]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courses, setCourses] = useState([]);
   const [sortByLikes, setSortByLikes] = useState(false);
@@ -113,6 +121,40 @@ const InstructorDashboard = () => {
     }
   };
 
+  const playNotificationSound = () => {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Perfect notification sound: C5 -> E5 -> G5 (major chord)
+    oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+    oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+    oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+    
+    oscillator.type = 'sine';
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.4);
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const removeNotification = (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const handleNotificationClick = () => {
+    setShowNotifications(!showNotifications);
+    if (!showNotifications) {
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    }
+  };
+
   useEffect(() => {
     const userData = getUserData();
     if (userData) {
@@ -128,6 +170,21 @@ const InstructorDashboard = () => {
     if (userData) {
       fetchSubscriptionStatus();
     }
+
+    // Simulate new notification with sound
+    const timer = setTimeout(() => {
+      const newNotification = {
+        id: Date.now(),
+        title: 'New Assignment Submission',
+        message: 'Michael submitted Calculus Assignment 3',
+        time: 'Just now',
+        read: false
+      };
+      setNotifications(prev => [newNotification, ...prev]);
+      playNotificationSound();
+    }, 8000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const fetchSubscriptionStatus = async () => {
@@ -340,13 +397,151 @@ const InstructorDashboard = () => {
   const renderOverview = () => (
     <div className="space-y-4 lg:space-y-6">
       {/* Dashboard Header */}
-      <div className="flex items-center mb-6">
-        <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl mr-4">
-          <GraduationCap className="h-8 w-8 text-blue-600" />
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center">
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl mr-4">
+              <GraduationCap className="h-8 w-8 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Instructor Dashboard</h1>
+              <p className="text-gray-600 dark:text-gray-400">Welcome back{user ? `, ${user.name}` : ''}, manage your courses and students</p>
+            </div>
+          </div>
+          
+          {/* Notifications - Desktop */}
+          <div className="relative hidden lg:block">
+            <button
+              onClick={handleNotificationClick}
+              className="flex items-center px-3 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              <div className="relative">
+                <Bell className="h-4 w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-400" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-3 w-3 lg:h-4 lg:w-4 flex items-center justify-center text-xs">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              <span className="ml-2 text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300">Notifications</span>
+            </button>
+            
+            {showNotifications && (
+              <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-96 overflow-y-auto">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
+                </div>
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                      No notifications
+                    </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div key={notif.id} className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                        !notif.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                      }`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                            !notif.read ? 'bg-blue-500' : 'bg-gray-300'
+                          }`}></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              {notif.title}
+                            </p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                              {notif.message}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                              {notif.time}
+                            </p>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeNotification(notif.id);
+                            }}
+                            className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full transition-colors"
+                            title="Remove notification"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Instructor Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400">Welcome back{user ? `, ${user.name}` : ''}, manage your courses and students</p>
+        
+        {/* Notifications - Mobile */}
+        <div className="lg:hidden">
+          <div className="relative">
+            <button
+              onClick={handleNotificationClick}
+              className="w-full flex items-center justify-center px-4 py-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              <div className="relative">
+                <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Notifications</span>
+            </button>
+            
+            {showNotifications && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-96 overflow-y-auto">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
+                </div>
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                      No notifications
+                    </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div key={notif.id} className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                        !notif.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                      }`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                            !notif.read ? 'bg-blue-500' : 'bg-gray-300'
+                          }`}></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              {notif.title}
+                            </p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                              {notif.message}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                              {notif.time}
+                            </p>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeNotification(notif.id);
+                            }}
+                            className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full transition-colors"
+                            title="Remove notification"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       
