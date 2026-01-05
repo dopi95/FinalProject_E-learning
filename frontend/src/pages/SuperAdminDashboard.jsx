@@ -77,6 +77,20 @@ const SuperAdminDashboard = () => {
     type: 'lecture'
   });
 
+  // Admin management state
+  const [showCreateAdmin, setShowCreateAdmin] = useState(false);
+  const [editingAdmin, setEditingAdmin] = useState(null);
+  const [showPermissions, setShowPermissions] = useState(false);
+  const [selectedAdminForPermissions, setSelectedAdminForPermissions] = useState(null);
+  const [adminForm, setAdminForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'admin',
+    permissions: []
+  });
+  const [adminPermissions, setAdminPermissions] = useState([]);
+
   // Settings state
   const [platformSettings, setPlatformSettings] = useState({
     platformName: 'AAU E-Learning Platform',
@@ -176,6 +190,12 @@ const SuperAdminDashboard = () => {
       setProfileForm(userData);
       if (userData.profileImage) {
         setProfileImage(userData.profileImage);
+      }
+      
+      // Set default active tab based on permissions
+      if (userData.role === 'admin' && userData.permissions) {
+        const firstAllowedTab = userData.permissions[0] || 'profile';
+        setActiveTab(firstAllowedTab);
       }
     }
     fetchUserProfile();
@@ -972,6 +992,103 @@ const SuperAdminDashboard = () => {
     showNotification('success', 'Settings Saved!', 'Platform settings have been updated successfully');
   };
 
+  // Admin management functions
+  const availablePermissions = [
+    { id: 'overview', name: 'System Overview', description: 'View dashboard overview and statistics' },
+    { id: 'users', name: 'All Users', description: 'View and manage all platform users' },
+    { id: 'courses', name: 'Course Management', description: 'Create, edit, and delete courses' },
+    { id: 'schedules', name: 'Assign Schedule', description: 'Create and manage course schedules' },
+    { id: 'contacts', name: 'Contact Messages', description: 'View and reply to contact messages' },
+    { id: 'reviews', name: 'Review Management', description: 'Moderate and manage user reviews' },
+    { id: 'subscriptions', name: 'Email Subscriptions', description: 'Manage newsletter subscriptions' },
+    { id: 'settings', name: 'Global Settings', description: 'Access platform configuration settings' }
+  ];
+
+  const handleCreateAdmin = async () => {
+    try {
+      setLoading(true);
+      if (editingAdmin) {
+        // Admin updates not supported by backend
+        showNotification('error', 'Update Not Supported', 'Admin updates are not currently supported. Please create a new admin instead.');
+        return;
+      }
+      console.log('Creating admin with data:', adminForm); // Debug log
+      const response = await usersAPI.createAdmin(adminForm);
+      // Store the password temporarily for display
+      const userWithPassword = { ...response.data.user, tempPassword: adminForm.password };
+      setUsers(prev => [userWithPassword, ...prev.filter(u => u._id !== userWithPassword._id)]);
+      // Refresh the users list to get updated data
+      fetchUsers();
+      
+      // Show created admin credentials in alert
+      alert(`Admin Created Successfully!\n\nEmail: ${adminForm.email}\nPassword: ${adminForm.password}\nRole: ${adminForm.role}\n\nPlease save these credentials securely.`);
+      
+      showNotification('success', 'Admin Created!', `${adminForm.role} account created successfully`);
+      
+      setAdminForm({ name: '', email: '', password: '', role: 'admin', permissions: [] });
+      setShowCreateAdmin(false);
+      setEditingAdmin(null);
+    } catch (error) {
+      console.error('Admin operation error:', error);
+      showNotification('error', 'Error', error.response?.data?.message || 'Failed to create admin');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdatePermissions = async () => {
+    try {
+      setLoading(true);
+      // Update both role and permissions
+      const response = await usersAPI.updatePermissions(selectedAdminForPermissions._id, adminPermissions, selectedAdminForPermissions.role);
+      setUsers(prev => prev.map(user => 
+        user._id === selectedAdminForPermissions._id ? response.data.user : user
+      ));
+      setShowPermissions(false);
+      setSelectedAdminForPermissions(null);
+      setAdminPermissions([]);
+      showNotification('success', 'Updated Successfully!', 'Admin role and permissions have been updated successfully');
+    } catch (error) {
+      showNotification('error', 'Error', error.response?.data?.message || 'Failed to update permissions');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePermissionToggle = (permissionId) => {
+    setAdminPermissions(prev => 
+      prev.includes(permissionId)
+        ? prev.filter(p => p !== permissionId)
+        : [...prev, permissionId]
+    );
+  };
+
+  const handleAdminFormChange = (field, value) => {
+    if (field === 'role' && value === 'superadmin') {
+      // Auto-select all permissions for superadmin
+      setAdminForm(prev => ({ 
+        ...prev, 
+        [field]: value,
+        permissions: availablePermissions.map(p => p.id)
+      }));
+    } else if (field === 'role' && value === 'admin') {
+      // Clear permissions when switching to admin
+      setAdminForm(prev => ({ 
+        ...prev, 
+        [field]: value,
+        permissions: []
+      }));
+    } else {
+      setAdminForm(prev => ({ ...prev, [field]: value }));
+    }
+  };
+
+  const handleShowPermissions = (admin) => {
+    setSelectedAdminForPermissions(admin);
+    setAdminPermissions(admin.permissions || []);
+    setShowPermissions(true);
+  };
+
   // Generate initials from user name
   const getInitials = (name) => {
     if (!name) return 'SA';
@@ -988,7 +1105,7 @@ const SuperAdminDashboard = () => {
   };
 
   const tabs = [
-    { id: 'overview', name: 'System Overview', icon: Crown },
+    { id: 'overview', name: 'System Overview', icon: user?.role === 'superadmin' ? Crown : Shield },
     { id: 'users', name: 'All Users', icon: Users },
     { id: 'courses', name: 'Course Management', icon: BookOpen },
     { id: 'schedules', name: 'Assign Schedule', icon: Calendar },
@@ -998,18 +1115,42 @@ const SuperAdminDashboard = () => {
     { id: 'admins', name: 'Admin Management', icon: Shield },
     { id: 'settings', name: 'Global Settings', icon: Settings },
     { id: 'profile', name: 'My Profile', icon: User }
-  ];
+  ].filter(tab => {
+    // Super admin sees everything
+    if (user?.role === 'superadmin') return true;
+    
+    // Admin Management and Profile are always visible
+    if (tab.id === 'profile') return true;
+    
+    // Admin Management only for superadmin
+    if (tab.id === 'admins') return user?.role === 'superadmin';
+    
+    // Check permissions for other tabs
+    return user?.permissions?.includes(tab.id) || false;
+  });
 
   const renderOverview = () => (
     <div className="space-y-4 lg:space-y-6">
       {/* Dashboard Header */}
       <div className="flex items-center mb-6">
-        <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-xl mr-4">
-          <Crown className="h-8 w-8 text-purple-600" />
+        <div className={`p-3 rounded-xl mr-4 ${
+          user?.role === 'superadmin' 
+            ? 'bg-purple-100 dark:bg-purple-900/30' 
+            : 'bg-blue-100 dark:bg-blue-900/30'
+        }`}>
+          {user?.role === 'superadmin' ? (
+            <Crown className="h-8 w-8 text-purple-600" />
+          ) : (
+            <Shield className="h-8 w-8 text-blue-600" />
+          )}
         </div>
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Super Admin Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400">Welcome back{user ? `, ${user.name}` : ''}, manage the entire platform</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+            {user?.role === 'superadmin' ? 'Super Admin Dashboard' : 'Admin Dashboard'}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Welcome back{user ? `, ${user.name}` : ''}, manage the platform
+          </p>
         </div>
       </div>
       
@@ -1028,18 +1169,20 @@ const SuperAdminDashboard = () => {
           </div>
         </div>
         
-        <div className="bg-white dark:bg-gray-800 p-4 lg:p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 transform hover:scale-105 transition-all duration-300">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Active Admins</p>
-              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{users.filter(u => u.role === 'admin' || u.role === 'superadmin').length || 0}</p>
-              <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">System administrators</p>
-            </div>
-            <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-xl">
-              <Shield className="h-6 w-6 lg:h-8 lg:w-8 text-purple-600" />
+        {user?.role === 'superadmin' && (
+          <div className="bg-white dark:bg-gray-800 p-4 lg:p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 transform hover:scale-105 transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Active Admins</p>
+                <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{users.filter(u => u.role === 'admin' || u.role === 'superadmin').length || 0}</p>
+                <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">System administrators</p>
+              </div>
+              <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-xl">
+                <Shield className="h-6 w-6 lg:h-8 lg:w-8 text-purple-600" />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="bg-white dark:bg-gray-800 p-4 lg:p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 transform hover:scale-105 transition-all duration-300">
           <div className="flex items-center justify-between">
@@ -1079,37 +1222,93 @@ const SuperAdminDashboard = () => {
           <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">Quick Actions</h3>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          <button 
-            onClick={() => setActiveTab('admins')}
-            className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 transition-all duration-200 group border border-purple-200 dark:border-purple-700"
-          >
-            <Shield className="h-6 w-6 lg:h-8 lg:w-8 text-purple-600 mb-2 group-hover:scale-110 transition-transform" />
-            <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Manage Admins</span>
-          </button>
+          {/* Admin Management - Only for superadmin */}
+          {user?.role === 'superadmin' && (
+            <button 
+              onClick={() => setActiveTab('admins')}
+              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 transition-all duration-200 group border border-purple-200 dark:border-purple-700"
+            >
+              <Shield className="h-6 w-6 lg:h-8 lg:w-8 text-purple-600 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Manage Admins</span>
+            </button>
+          )}
           
-          <button 
-            onClick={() => setActiveTab('users')}
-            className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 transition-all duration-200 group border border-blue-200 dark:border-blue-700"
-          >
-            <Users className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600 mb-2 group-hover:scale-110 transition-transform" />
-            <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">All Users</span>
-          </button>
+          {/* Users Management - Show if user has permission */}
+          {(user?.role === 'superadmin' || user?.permissions?.includes('users')) && (
+            <button 
+              onClick={() => setActiveTab('users')}
+              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 transition-all duration-200 group border border-blue-200 dark:border-blue-700"
+            >
+              <Users className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">All Users</span>
+            </button>
+          )}
           
-          <button 
-            onClick={() => setActiveTab('courses')}
-            className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30 transition-all duration-200 group border border-green-200 dark:border-green-700"
-          >
-            <BookOpen className="h-6 w-6 lg:h-8 lg:w-8 text-green-600 mb-2 group-hover:scale-110 transition-transform" />
-            <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Manage Courses</span>
-          </button>
+          {/* Course Management - Show if user has permission */}
+          {(user?.role === 'superadmin' || user?.permissions?.includes('courses')) && (
+            <button 
+              onClick={() => setActiveTab('courses')}
+              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30 transition-all duration-200 group border border-green-200 dark:border-green-700"
+            >
+              <BookOpen className="h-6 w-6 lg:h-8 lg:w-8 text-green-600 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Manage Courses</span>
+            </button>
+          )}
           
-          <button 
-            onClick={() => setActiveTab('contacts')}
-            className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl hover:from-orange-100 hover:to-red-100 dark:hover:from-orange-900/30 dark:hover:to-red-900/30 transition-all duration-200 group border border-orange-200 dark:border-orange-700"
-          >
-            <MessageSquare className="h-6 w-6 lg:h-8 lg:w-8 text-orange-600 mb-2 group-hover:scale-110 transition-transform" />
-            <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Manage Contacts</span>
-          </button>
+          {/* Contact Management - Show if user has permission */}
+          {(user?.role === 'superadmin' || user?.permissions?.includes('contacts')) && (
+            <button 
+              onClick={() => setActiveTab('contacts')}
+              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl hover:from-orange-100 hover:to-red-100 dark:hover:from-orange-900/30 dark:hover:to-red-900/30 transition-all duration-200 group border border-orange-200 dark:border-orange-700"
+            >
+              <MessageSquare className="h-6 w-6 lg:h-8 lg:w-8 text-orange-600 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Manage Contacts</span>
+            </button>
+          )}
+          
+          {/* Schedule Management - Show if user has permission */}
+          {(user?.role === 'superadmin' || user?.permissions?.includes('schedules')) && (
+            <button 
+              onClick={() => setActiveTab('schedules')}
+              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl hover:from-indigo-100 hover:to-purple-100 dark:hover:from-indigo-900/30 dark:hover:to-purple-900/30 transition-all duration-200 group border border-indigo-200 dark:border-indigo-700"
+            >
+              <Calendar className="h-6 w-6 lg:h-8 lg:w-8 text-indigo-600 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Assign Schedule</span>
+            </button>
+          )}
+          
+          {/* Reviews Management - Show if user has permission */}
+          {(user?.role === 'superadmin' || user?.permissions?.includes('reviews')) && (
+            <button 
+              onClick={() => setActiveTab('reviews')}
+              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl hover:from-yellow-100 hover:to-orange-100 dark:hover:from-yellow-900/30 dark:hover:to-orange-900/30 transition-all duration-200 group border border-yellow-200 dark:border-yellow-700"
+            >
+              <Star className="h-6 w-6 lg:h-8 lg:w-8 text-yellow-600 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Review Management</span>
+            </button>
+          )}
+          
+          {/* Subscriptions Management - Show if user has permission */}
+          {(user?.role === 'superadmin' || user?.permissions?.includes('subscriptions')) && (
+            <button 
+              onClick={() => setActiveTab('subscriptions')}
+              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 rounded-xl hover:from-teal-100 hover:to-cyan-100 dark:hover:from-teal-900/30 dark:hover:to-cyan-900/30 transition-all duration-200 group border border-teal-200 dark:border-teal-700"
+            >
+              <Mail className="h-6 w-6 lg:h-8 lg:w-8 text-teal-600 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Email Subscriptions</span>
+            </button>
+          )}
+          
+          {/* Settings - Show if user has permission */}
+          {(user?.role === 'superadmin' || user?.permissions?.includes('settings')) && (
+            <button 
+              onClick={() => setActiveTab('settings')}
+              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20 rounded-xl hover:from-gray-100 hover:to-slate-100 dark:hover:from-gray-900/30 dark:hover:to-slate-900/30 transition-all duration-200 group border border-gray-200 dark:border-gray-700"
+            >
+              <Settings className="h-6 w-6 lg:h-8 lg:w-8 text-gray-600 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Global Settings</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -2322,99 +2521,573 @@ const SuperAdminDashboard = () => {
     </div>
   );
 
-  const renderAdmins = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Management</h2>
-        <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2">
-          <Plus className="h-4 w-4" /> Create Admin
-        </button>
-      </div>
-      
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {users.filter(u => u.role === 'admin' || u.role === 'superadmin').map((admin, index) => (
-            <div key={admin._id} className="p-6 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-              <div className="flex items-center">
-                <div className="h-12 w-12 bg-purple-100 dark:bg-purple-900/20 rounded-full mr-4 flex items-center justify-center overflow-hidden">
-                  {admin.profileImage ? (
-                    <img src={admin.profileImage} alt={admin.name} className="h-full w-full object-cover" />
-                  ) : (
-                    <Shield className="h-6 w-6 text-purple-600" />
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">{admin.name}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{admin.email}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Role: {admin.role} • Joined: {new Date(admin.createdAt).toLocaleDateString()}</p>
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <button onClick={() => handleViewUser(admin._id)} className="text-blue-600 hover:text-blue-800 px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
-                  View
-                </button>
-                <button className="text-green-600 hover:text-green-800 px-3 py-1 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
-                  Permissions
-                </button>
-                {admin.role !== 'superadmin' && (
-                  <button onClick={() => handleDeleteUser(admin._id)} className="text-red-600 hover:text-red-800 px-3 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                    Revoke
-                  </button>
-                )}
-              </div>
+  const renderAdmins = () => {
+    return (
+      <div className="space-y-4 lg:space-y-6">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-2xl p-4 lg:p-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <div>
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Shield className="h-6 w-6 text-purple-600" />
+                Admin Management
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Manage administrator accounts and permissions
+              </p>
             </div>
-          ))}
-          {users.filter(u => u.role === 'admin' || u.role === 'superadmin').length === 0 && (
-            <div className="p-12 text-center">
-              <Shield className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Admins Found</h3>
-              <p className="text-gray-500 dark:text-gray-400">Create your first admin account to get started.</p>
+            <button 
+              onClick={() => setShowCreateAdmin(true)}
+              className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-xl hover:from-purple-700 hover:to-indigo-700 flex items-center justify-center gap-2 text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              <Plus className="h-4 w-4" /> Create Admin
+            </button>
+          </div>
+        </div>
+        
+        {/* Desktop Table View */}
+        <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Admin</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Permissions</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Joined</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {users.filter(u => u.role === 'admin' || u.role === 'superadmin').map((admin) => (
+                  <tr key={admin._id} className="hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 dark:hover:from-purple-900/10 dark:hover:to-indigo-900/10 transition-all duration-200">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <div className="h-12 w-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full mr-4 flex items-center justify-center overflow-hidden shadow-lg">
+                          {admin.profileImage ? (
+                            <img src={admin.profileImage} alt={admin.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <Shield className="h-6 w-6 text-white" />
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{admin.name}</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{admin.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${
+                        admin.role === 'superadmin' ? 'bg-gradient-to-r from-red-100 to-pink-100 text-red-800 dark:from-red-900/20 dark:to-pink-900/20 dark:text-red-300' :
+                        'bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-800 dark:from-purple-900/20 dark:to-indigo-900/20 dark:text-purple-300'
+                      }`}>
+                        {admin.role === 'superadmin' ? '👑 Super Admin' : '👤 Admin'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        {admin.role === 'superadmin' ? (
+                          <div className="flex items-center gap-1">
+                            <Crown className="h-4 w-4 text-yellow-500" />
+                            <span className="text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">Full Access</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <Settings className="h-4 w-4 text-gray-500" />
+                            <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 px-2 py-1 rounded">
+                              {admin.permissions?.length || 0} permissions
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                      {new Date(admin.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={() => handleShowPermissions(admin)}
+                          className="text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-200 shadow-sm hover:shadow-md"
+                          title="Manage Permissions"
+                        >
+                          <Settings className="h-4 w-4" />
+                        </button>
+                        {admin.role !== 'superadmin' && (
+                          <button 
+                            onClick={() => handleDeleteUser(admin._id)} 
+                            className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 shadow-sm hover:shadow-md"
+                            title="Revoke Access"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="lg:hidden">
+          {users.filter(u => u.role === 'admin' || u.role === 'superadmin').length === 0 ? (
+            <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
+              <div className="w-20 h-20 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Shield className="h-10 w-10 text-purple-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Admins Found</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">Create your first admin account to get started.</p>
+              <button 
+                onClick={() => setShowCreateAdmin(true)}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-purple-700 hover:to-indigo-700 font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                Create Admin
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {users.filter(u => u.role === 'admin' || u.role === 'superadmin').map((admin) => (
+                <div key={admin._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                  {/* Admin Header */}
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="h-14 w-14 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg">
+                      {admin.profileImage ? (
+                        <img src={admin.profileImage} alt={admin.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <Shield className="h-7 w-7 text-white" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-gray-900 dark:text-white text-base mb-1">
+                        {admin.name}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 break-all">
+                        {admin.email}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm ${
+                          admin.role === 'superadmin' ? 'bg-gradient-to-r from-red-100 to-pink-100 text-red-800 dark:from-red-900/20 dark:to-pink-900/20 dark:text-red-300' :
+                          'bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-800 dark:from-purple-900/20 dark:to-indigo-900/20 dark:text-purple-300'
+                        }`}>
+                          {admin.role === 'superadmin' ? '👑 Super Admin' : '👤 Admin'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(admin.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Admin Details */}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Permissions</p>
+                      <div className="flex items-center gap-2">
+                        {admin.role === 'superadmin' ? (
+                          <>
+                            <Crown className="h-4 w-4 text-yellow-500" />
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white">Full Access</p>
+                          </>
+                        ) : (
+                          <>
+                            <Settings className="h-4 w-4 text-gray-500" />
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white">{admin.permissions?.length || 0} permissions</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Join Date</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {new Date(admin.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleShowPermissions(admin)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 text-green-600 dark:text-green-400 py-3 px-4 rounded-xl hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30 transition-all duration-200 text-sm font-semibold shadow-sm hover:shadow-md"
+                    >
+                      <Settings className="h-4 w-4" />
+                      {admin.role === 'superadmin' ? 'Manage Role' : 'Permissions'}
+                    </button>
+                    {admin.role !== 'superadmin' && (
+                      <button
+                        onClick={() => handleDeleteUser(admin._id)}
+                        className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 text-red-600 dark:text-red-400 py-3 px-4 rounded-xl hover:from-red-100 hover:to-pink-100 dark:hover:from-red-900/30 dark:hover:to-pink-900/30 transition-all duration-200 text-sm font-semibold shadow-sm hover:shadow-md"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Revoke
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
+
+        {/* Create/Update Admin Modal */}
+        {showCreateAdmin && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[95vh] overflow-hidden flex flex-col">
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 sm:p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                      <Shield className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-bold text-white">
+                        {editingAdmin ? 'Update Admin' : 'Create Admin'}
+                      </h3>
+                      <p className="text-purple-100 text-sm">Manage administrator access</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowCreateAdmin(false);
+                      setEditingAdmin(null);
+                      setAdminForm({ name: '', email: '', password: '', role: 'admin', permissions: [] });
+                    }}
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  >
+                    <X className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Modal Body */}
+              <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(95vh-140px)]">
+                <div className="space-y-5">
+                  {/* Name Field */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Admin Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={adminForm.name}
+                      onChange={(e) => handleAdminFormChange('name', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200 text-sm"
+                      placeholder="Enter full name"
+                    />
+                  </div>
+                  
+                  {/* Email Field */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      value={adminForm.email}
+                      onChange={(e) => handleAdminFormChange('email', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200 text-sm"
+                      placeholder="admin@example.com"
+                    />
+                  </div>
+                  
+                  {/* Role Selection */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Role *
+                    </label>
+                    <select
+                      value={adminForm.role}
+                      onChange={(e) => handleAdminFormChange('role', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200 text-sm"
+                    >
+                      <option value="admin">👤 Admin</option>
+                      <option value="superadmin">👑 Super Admin</option>
+                    </select>
+                  </div>
+                  
+                  {/* Password Field */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Password {editingAdmin ? '(optional)' : '*'}
+                    </label>
+                    <input
+                      type="password"
+                      value={adminForm.password}
+                      onChange={(e) => handleAdminFormChange('password', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200 text-sm"
+                      placeholder={editingAdmin ? "Leave blank to keep current" : "Enter secure password"}
+                    />
+                    {editingAdmin && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave blank to keep current password</p>
+                    )}
+                  </div>
+
+                  {/* Permissions Section */}
+                  {adminForm.role === 'admin' ? (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        Page Permissions
+                      </label>
+                      <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 max-h-48 overflow-y-auto">
+                        <div className="grid grid-cols-1 gap-3">
+                          {availablePermissions.map((permission) => (
+                            <label key={permission.id} className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer border border-gray-200 dark:border-gray-600">
+                              <input
+                                type="checkbox"
+                                checked={adminForm.permissions.includes(permission.id)}
+                                onChange={() => {
+                                  const newPermissions = adminForm.permissions.includes(permission.id)
+                                    ? adminForm.permissions.filter(p => p !== permission.id)
+                                    : [...adminForm.permissions, permission.id];
+                                  handleAdminFormChange('permissions', newPermissions);
+                                }}
+                                className="mt-0.5 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded flex-shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {permission.name}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                  {permission.description}
+                                </div>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-700">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                          <Crown className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Super Admin Access</p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">Full access to all platform features and settings</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Modal Footer */}
+              <div className="sticky bottom-0 border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6 bg-white dark:bg-gray-800">
+                <div className="flex flex-col-reverse sm:flex-row gap-3">
+                  <button
+                    onClick={() => {
+                      setShowCreateAdmin(false);
+                      setEditingAdmin(null);
+                      setAdminForm({ name: '', email: '', password: '', role: 'admin', permissions: [] });
+                    }}
+                    disabled={loading}
+                    className="w-full sm:flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 px-6 rounded-xl disabled:opacity-50 font-semibold transition-all duration-200 text-sm shadow-lg hover:shadow-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateAdmin}
+                    disabled={loading || !adminForm.name || !adminForm.email || (!editingAdmin && !adminForm.password)}
+                    className="w-full sm:flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white py-3 px-6 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold transition-all duration-200 shadow-lg hover:shadow-xl text-sm"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        {editingAdmin ? 'Updating...' : 'Creating...'}
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="h-4 w-4" />
+                        {editingAdmin ? 'Update Admin' : 'Create Admin'}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Permissions Modal */}
+        {showPermissions && selectedAdminForPermissions && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Manage {selectedAdminForPermissions.role === 'superadmin' ? 'Role & Permissions' : 'Permissions'}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{selectedAdminForPermissions.name}</p>
+                    <p className="text-sm text-blue-600 dark:text-blue-400">Email: {selectedAdminForPermissions.email}</p>
+                    <p className="text-sm text-purple-600 dark:text-purple-400">Role: {selectedAdminForPermissions.role}</p>
+                    {selectedAdminForPermissions.tempPassword && (
+                      <p className="text-sm text-green-600 dark:text-green-400">Password: {selectedAdminForPermissions.tempPassword}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowPermissions(false);
+                      setSelectedAdminForPermissions(null);
+                      setAdminPermissions([]);
+                    }}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+                
+                
+                {/* Role Selection */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role</label>
+                  <select 
+                    value={selectedAdminForPermissions.role}
+                    onChange={(e) => {
+                      setSelectedAdminForPermissions(prev => ({ ...prev, role: e.target.value }));
+                      if (e.target.value === 'superadmin') {
+                        setAdminPermissions(availablePermissions.map(p => p.id));
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="admin">👤 Admin</option>
+                    <option value="superadmin">👑 Super Admin</option>
+                  </select>
+                </div>
+
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {availablePermissions.map((permission) => (
+                    <div key={permission.id} className="flex items-start space-x-3 p-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <input
+                        type="checkbox"
+                        id={`perm-${permission.id}`}
+                        checked={adminPermissions.includes(permission.id)}
+                        onChange={() => handlePermissionToggle(permission.id)}
+                        className="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                      />
+                      <div className="flex-1">
+                        <label htmlFor={`perm-${permission.id}`} className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer">
+                          {permission.name}
+                        </label>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{permission.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={handleUpdatePermissions}
+                    disabled={loading}
+                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Updating...' : `Update ${selectedAdminForPermissions.role === 'superadmin' ? 'Role & Permissions' : 'Permissions'}`}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowPermissions(false);
+                      setSelectedAdminForPermissions(null);
+                      setAdminPermissions([]);
+                    }}
+                    className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderUsers = () => (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">All Users Management</h2>
-        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          <Users className="h-4 w-4" />
-          <span>{users.length} users found</span>
+    <div className="space-y-4 lg:space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-4 lg:p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Users className="h-6 w-6 text-blue-600" />
+              All Users Management
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Manage and monitor all platform users
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-2 rounded-lg">
+            <Users className="h-4 w-4" />
+            <span>{users.length} users found</span>
+          </div>
         </div>
       </div>
       
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
-          <p className="text-lg lg:text-2xl font-bold text-blue-600">{users.filter(u => u.role === 'student').length}</p>
+      {/* Stats Cards - Enhanced Mobile */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4">
+        <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 text-center hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+            <User className="h-4 w-4 lg:h-5 lg:w-5 text-blue-600" />
+          </div>
+          <p className="text-lg lg:text-2xl font-bold text-blue-600 mb-1">{users.filter(u => u.role === 'student').length}</p>
           <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Students</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
-          <p className="text-lg lg:text-2xl font-bold text-green-600">{users.filter(u => u.role === 'instructor').length}</p>
+        <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 text-center hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="w-8 h-8 lg:w-10 lg:h-10 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+            <BookOpen className="h-4 w-4 lg:h-5 lg:w-5 text-green-600" />
+          </div>
+          <p className="text-lg lg:text-2xl font-bold text-green-600 mb-1">{users.filter(u => u.role === 'instructor').length}</p>
           <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Instructors</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
-          <p className="text-lg lg:text-2xl font-bold text-purple-600">{users.filter(u => u.role === 'admin').length}</p>
+        <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 text-center hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="w-8 h-8 lg:w-10 lg:h-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+            <Shield className="h-4 w-4 lg:h-5 lg:w-5 text-purple-600" />
+          </div>
+          <p className="text-lg lg:text-2xl font-bold text-purple-600 mb-1">{users.filter(u => u.role === 'admin').length}</p>
           <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Admins</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
-          <p className="text-lg lg:text-2xl font-bold text-orange-600">{users.filter(u => u.role === 'superadmin').length}</p>
+        <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 text-center hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="w-8 h-8 lg:w-10 lg:h-10 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+            <Crown className="h-4 w-4 lg:h-5 lg:w-5 text-orange-600" />
+          </div>
+          <p className="text-lg lg:text-2xl font-bold text-orange-600 mb-1">{users.filter(u => u.role === 'superadmin').length}</p>
           <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Super Admins</p>
         </div>
         {selectedRole === 'student' && (
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
-            <p className="text-lg lg:text-2xl font-bold text-emerald-600">{totalPayments}</p>
+          <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 text-center hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 col-span-2 sm:col-span-1">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-emerald-100 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+              <svg className="h-4 w-4 lg:h-5 lg:w-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" />
+              </svg>
+            </div>
+            <p className="text-lg lg:text-2xl font-bold text-emerald-600 mb-1">{totalPayments}</p>
             <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Total Payments (Birr)</p>
           </div>
         )}
       </div>
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Filters - Enhanced Mobile */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6 border border-gray-100 dark:border-gray-700">
+        <div className="space-y-4">
+          {/* Search Bar */}
           <div className="relative">
             <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
@@ -2422,128 +3095,141 @@ const SuperAdminDashboard = () => {
               placeholder="Search by name, email, or ID..."
               value={userSearchTerm}
               onChange={(e) => setUserSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+              className="pl-10 pr-4 py-3 w-full border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-700 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
             />
           </div>
-          <select 
-            value={selectedRole}
-            onChange={(e) => setSelectedRole(e.target.value)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
-          >
-            <option value="all">All Roles</option>
-            <option value="student">Students</option>
-            <option value="instructor">Instructors</option>
-            <option value="admin">Admins</option>
-            <option value="superadmin">Super Admins</option>
-          </select>
-          {(selectedRole === 'student' || selectedRole === 'instructor') && (
+          
+          {/* Filter Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <select 
-              value={selectedCourseFilter}
-              onChange={(e) => setSelectedCourseFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value)}
+              className="px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-700 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
             >
-              <option value="all">All Courses</option>
-              {courses.map((course) => (
-                <option key={course._id} value={course._id}>
-                  {course.title}
-                </option>
-              ))}
+              <option value="all">All Roles</option>
+              <option value="student">Students</option>
+              <option value="instructor">Instructors</option>
+              <option value="admin">Admins</option>
+              <option value="superadmin">Super Admins</option>
             </select>
-          )}
-          {(selectedRole === 'student' || selectedRole === 'instructor') && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleExport('pdf')}
-                className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium flex items-center gap-2"
+            
+            {(selectedRole === 'student' || selectedRole === 'instructor') && (
+              <select 
+                value={selectedCourseFilter}
+                onChange={(e) => setSelectedCourseFilter(e.target.value)}
+                className="px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-700 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               >
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-                PDF
-              </button>
-              <button
-                onClick={() => handleExport('excel')}
-                className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center gap-2"
-              >
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-                Excel
-              </button>
-            </div>
-          )}
+                <option value="all">All Courses</option>
+                {courses.map((course) => (
+                  <option key={course._id} value={course._id}>
+                    {course.title}
+                  </option>
+                ))}
+              </select>
+            )}
+            
+            {(selectedRole === 'student' || selectedRole === 'instructor') && (
+              <div className="flex gap-2 sm:col-span-2 lg:col-span-1">
+                <button
+                  onClick={() => handleExport('pdf')}
+                  className="flex-1 px-3 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 text-sm font-medium flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                  <span className="hidden sm:inline">PDF</span>
+                </button>
+                <button
+                  onClick={() => handleExport('excel')}
+                  className="flex-1 px-3 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 text-sm font-medium flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                  <span className="hidden sm:inline">Excel</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {usersLoading ? (
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="flex justify-center items-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading users...</p>
+          </div>
         </div>
       ) : (
         <>
-          {/* Desktop Table View */}
-          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+          {/* Desktop Table View - Enhanced */}
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">User</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Role</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Joined</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">User</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Role</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Joined</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {users.map((user) => (
-                    <tr key={user._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <tr key={user._id} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/10 dark:hover:to-indigo-900/10 transition-all duration-200">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-3 overflow-hidden flex-shrink-0">
+                          <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mr-4 overflow-hidden flex-shrink-0 shadow-lg">
                             {user.profileImage ? (
                               <img src={user.profileImage} alt={user.name} className="h-full w-full object-cover" />
                             ) : (
-                              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                              <span className="text-sm font-bold text-white">
                                 {user.name?.charAt(0)?.toUpperCase() || 'U'}
                               </span>
                             )}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.name}</div>
+                            <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user.name}</div>
                             <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          user.role === 'superadmin' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' :
-                          user.role === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300' :
-                          user.role === 'instructor' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
-                          'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${
+                          user.role === 'superadmin' ? 'bg-gradient-to-r from-red-100 to-pink-100 text-red-800 dark:from-red-900/20 dark:to-pink-900/20 dark:text-red-300' :
+                          user.role === 'admin' ? 'bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-800 dark:from-purple-900/20 dark:to-indigo-900/20 dark:text-purple-300' :
+                          user.role === 'instructor' ? 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 dark:from-blue-900/20 dark:to-cyan-900/20 dark:text-blue-300' :
+                          'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 dark:from-green-900/20 dark:to-emerald-900/20 dark:text-green-300'
                         }`}>
                           {user.role}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                         {user.systemId || 'N/A'}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          user.isVerified ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
-                          'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${
+                          user.isVerified ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 dark:from-green-900/20 dark:to-emerald-900/20 dark:text-green-300' :
+                          'bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 dark:from-yellow-900/20 dark:to-orange-900/20 dark:text-yellow-300'
                         }`}>
-                          {user.isVerified ? 'Verified' : 'Pending'}
+                          {user.isVerified ? '✓ Verified' : '⏳ Pending'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(user.createdAt).toLocaleDateString()}
+                        {new Date(user.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex space-x-2">
                           <button 
                             onClick={() => handleViewUser(user._id)}
-                            className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                            className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 shadow-sm hover:shadow-md"
                             title="View Details"
                           >
                             <Eye className="h-4 w-4" />
@@ -2551,7 +3237,7 @@ const SuperAdminDashboard = () => {
                           {user.role !== 'superadmin' && (
                             <button 
                               onClick={() => handleDeleteUser(user._id)}
-                              className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                              className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 shadow-sm hover:shadow-md"
                               title="Delete User"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -2566,50 +3252,64 @@ const SuperAdminDashboard = () => {
             </div>
           </div>
 
-          {/* Mobile Card View */}
+          {/* Mobile Card View - Enhanced */}
           <div className="lg:hidden">
             {users.length === 0 ? (
-              <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
-                <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Users Found</h3>
-                <p className="text-gray-500 dark:text-gray-400">Try adjusting your search or filters.</p>
+              <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
+                <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Users className="h-10 w-10 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Users Found</h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-6">Try adjusting your search or filters to find users.</p>
+                <div className="flex justify-center">
+                  <button 
+                    onClick={() => {
+                      setUserSearchTerm('');
+                      setSelectedRole('all');
+                      setSelectedCourseFilter('all');
+                    }}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
                 {users.map((user) => (
-                  <div key={user._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
+                  <div key={user._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                     {/* User Header */}
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="h-12 w-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg">
                         {user.profileImage ? (
                           <img src={user.profileImage} alt={user.name} className="h-full w-full object-cover" />
                         ) : (
-                          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                          <span className="text-lg font-bold text-white">
                             {user.name?.charAt(0)?.toUpperCase() || 'U'}
                           </span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base mb-1">
                           {user.name}
                         </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 break-all">
                           {user.email}
                         </p>
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            user.role === 'superadmin' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' :
-                            user.role === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300' :
-                            user.role === 'instructor' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
-                            'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm ${
+                            user.role === 'superadmin' ? 'bg-gradient-to-r from-red-100 to-pink-100 text-red-800 dark:from-red-900/20 dark:to-pink-900/20 dark:text-red-300' :
+                            user.role === 'admin' ? 'bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-800 dark:from-purple-900/20 dark:to-indigo-900/20 dark:text-purple-300' :
+                            user.role === 'instructor' ? 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 dark:from-blue-900/20 dark:to-cyan-900/20 dark:text-blue-300' :
+                            'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 dark:from-green-900/20 dark:to-emerald-900/20 dark:text-green-300'
                           }`}>
                             {user.role}
                           </span>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            user.isVerified ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
-                            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm ${
+                            user.isVerified ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 dark:from-green-900/20 dark:to-emerald-900/20 dark:text-green-300' :
+                            'bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 dark:from-yellow-900/20 dark:to-orange-900/20 dark:text-yellow-300'
                           }`}>
-                            {user.isVerified ? 'Verified' : 'Pending'}
+                            {user.isVerified ? '✓ Verified' : '⏳ Pending'}
                           </span>
                         </div>
                       </div>
@@ -2617,28 +3317,41 @@ const SuperAdminDashboard = () => {
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {new Date(user.createdAt).toLocaleDateString('en-US', {
                             month: 'short',
-                            day: 'numeric'
+                            day: 'numeric',
+                            year: '2-digit'
                           })}
                         </p>
                       </div>
                     </div>
 
-                    {/* User ID */}
-                    {user.systemId && (
-                      <div className="mb-3">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                          {user.role === 'student' ? 'Student ID' : 
-                           user.role === 'instructor' ? 'Instructor ID' : 'System ID'}
+                    {/* User Details */}
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      {user.systemId && (
+                        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                            {user.role === 'student' ? 'Student ID' : 
+                             user.role === 'instructor' ? 'Instructor ID' : 'System ID'}
+                          </p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">{user.systemId}</p>
+                        </div>
+                      )}
+                      <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Join Date</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {new Date(user.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
                         </p>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{user.systemId}</p>
                       </div>
-                    )}
+                    </div>
 
                     {/* Action Buttons */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                       <button
                         onClick={() => handleViewUser(user._id)}
-                        className="flex-1 flex items-center justify-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 py-2 px-3 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                        className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 text-blue-600 dark:text-blue-400 py-3 px-4 rounded-xl hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 transition-all duration-200 text-sm font-semibold shadow-sm hover:shadow-md"
                       >
                         <Eye className="h-4 w-4" />
                         View Details
@@ -2646,7 +3359,7 @@ const SuperAdminDashboard = () => {
                       {user.role !== 'superadmin' && (
                         <button
                           onClick={() => handleDeleteUser(user._id)}
-                          className="flex-1 flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 py-2 px-3 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm font-medium"
+                          className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 text-red-600 dark:text-red-400 py-3 px-4 rounded-xl hover:from-red-100 hover:to-pink-100 dark:hover:from-red-900/30 dark:hover:to-pink-900/30 transition-all duration-200 text-sm font-semibold shadow-sm hover:shadow-md"
                         >
                           <Trash2 className="h-4 w-4" />
                           Delete
@@ -4155,7 +4868,11 @@ const SuperAdminDashboard = () => {
             <div className="min-w-0 flex-1 text-center">
               <h1 className="text-sm lg:text-lg font-bold truncate text-white">{user ? user.name : 'Super Admin'}</h1>
               <p className="text-purple-50 text-xs lg:text-sm flex items-center justify-center">
-                <Crown className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
+                {user?.role === 'superadmin' ? (
+                  <Crown className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
+                ) : (
+                  <Shield className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
+                )}
                 <span className="truncate">{user ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Super Admin'}</span>
               </p>
               {user?.bio && (

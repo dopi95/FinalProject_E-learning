@@ -150,6 +150,119 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
+// Create admin user
+router.post('/create-admin', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Access denied. Super admin only.' });
+    }
+
+    const { email, password, name, role, permissions } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User with this email already exists' });
+    }
+
+    // Validate role
+    const validRoles = ['admin', 'superadmin'];
+    const userRole = validRoles.includes(role) ? role : 'admin';
+
+    // Set permissions based on role
+    let userPermissions = permissions || [];
+    if (userRole === 'superadmin') {
+      // Superadmins get all permissions
+      userPermissions = [
+        'overview',
+        'users', 
+        'courses',
+        'schedules',
+        'contacts',
+        'reviews',
+        'subscriptions',
+        'settings'
+      ];
+    } else if (!userPermissions.length) {
+      // Default permissions for regular admins
+      userPermissions = [
+        'users',
+        'courses',
+        'contacts',
+        'reviews'
+      ];
+    }
+
+    // Create admin user
+    const adminUser = new User({
+      name,
+      email,
+      password,
+      role: userRole,
+      isVerified: true,
+      permissions: userPermissions
+    });
+
+    await adminUser.save();
+
+    res.json({
+      success: true,
+      message: 'Admin user created successfully',
+      user: adminUser
+    });
+  } catch (error) {
+    console.error('Create admin error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create admin user'
+    });
+  }
+});
+
+// Update admin permissions and role
+router.put('/:id/permissions', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Access denied. Super admin only.' });
+    }
+
+    const { permissions, role } = req.body;
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role !== 'admin' && user.role !== 'superadmin') {
+      return res.status(400).json({ message: 'Can only update permissions for admin users' });
+    }
+
+    // Update role if provided
+    if (role && ['admin', 'superadmin'].includes(role)) {
+      user.role = role;
+    }
+
+    // Update permissions
+    if (permissions) {
+      user.permissions = permissions;
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Admin updated successfully',
+      user
+    });
+  } catch (error) {
+    console.error('Update permissions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update permissions'
+    });
+  }
+});
+
 // Delete user
 router.delete('/:id', auth, async (req, res) => {
   try {

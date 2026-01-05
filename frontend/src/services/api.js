@@ -209,6 +209,15 @@ export const usersAPI = {
   
   // Delete user
   deleteUser: (id) => api.delete(`/users/${id}`),
+  
+  // Create admin user
+  createAdmin: (adminData) => api.post('/users/create-admin', adminData),
+  
+  // Update admin user
+  updateAdmin: (id, adminData) => api.post(`/users/create-admin`, { ...adminData, userId: id }),
+  
+  // Update admin permissions and role
+  updatePermissions: (id, permissions, role) => api.put(`/users/${id}/permissions`, { permissions, role }),
 };
 
 // Subscription API functions

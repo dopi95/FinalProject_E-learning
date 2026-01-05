@@ -98,6 +98,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  permissions: {
+    type: [String],
+    default: []
+  },
   // Auth fields
   otp: {
     type: String
