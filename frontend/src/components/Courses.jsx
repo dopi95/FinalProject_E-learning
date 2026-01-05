@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Star, Users, User, Search, Filter, X } from 'lucide-react';
+import { Star, Users, User, Search, Filter, X, MessageCircle } from 'lucide-react';
 import LoginRequiredModal from './LoginRequiredModal';
 import RoleBasedModal from './RoleBasedModal';
+import CommentSection from './CommentSection';
 import { getUserData } from '../utils/userUtils';
 import { courseAPI, categoryAPI } from '../services/api';
 
@@ -21,6 +22,8 @@ const Courses = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState(null);
 
   useEffect(() => {
     const userData = getUserData();
@@ -104,6 +107,16 @@ const Courses = () => {
     
     // Handle enrollment logic for students
     console.log('Enrolling student in course...');
+  };
+
+  const handleShowComments = (courseId) => {
+    setSelectedCourseId(courseId);
+    setShowComments(true);
+  };
+
+  const handleCommentAdded = () => {
+    // Refresh courses to get updated comment count
+    fetchCourses();
   };
 
 
@@ -260,9 +273,16 @@ const Courses = () => {
                         {course.stars?.length || 0}
                       </span>
                     </button>
+                    <button 
+                      onClick={() => handleShowComments(course._id)}
+                      className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200"
+                    >
+                      <MessageCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium text-gray-900 dark:text-white text-sm">{course.commentCount || 0}</span>
+                    </button>
                     <div className="flex items-center text-gray-600 dark:text-gray-400">
                       <Users className="h-5 w-5 mr-2" />
-                      <span className="font-medium">{course.students?.length || 0} {t('courses.students')}</span>
+                      <span className="font-medium">{course.students?.length || 0} Students</span>
                     </div>
                   </div>
                   <div className="flex gap-3 mt-auto">
@@ -301,6 +321,17 @@ const Courses = () => {
         isVisible={showRoleModal}
         onClose={() => setShowRoleModal(false)}
         userRole={user?.role}
+      />
+
+      {/* Comment Section Modal */}
+      <CommentSection
+        courseId={selectedCourseId}
+        isVisible={showComments}
+        onClose={() => {
+          setShowComments(false);
+          setSelectedCourseId(null);
+        }}
+        onCommentAdded={handleCommentAdded}
       />
     </section>
   );

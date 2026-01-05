@@ -66,6 +66,10 @@ courseSchema.virtual('starCount').get(function() {
   return this.stars.length;
 });
 
+courseSchema.virtual('commentCount').get(function() {
+  return this.comments || 0;
+});
+
 courseSchema.virtual('registrationStatus').get(function() {
   const now = new Date();
   if (!this.registrationStart || !this.registrationEnd) {

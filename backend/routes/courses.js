@@ -23,11 +23,23 @@ const upload = multer({
 // Get top 3 featured courses
 router.get('/featured', async (req, res) => {
   try {
+    const Comment = require('../models/Comment');
     const courses = await Course.find({ isActive: true })
       .populate('instructor', 'name email profileImage')
       .populate('stars', 'name profileImage')
       .sort({ createdAt: -1 })
-      .limit(3);
+      .limit(3)
+      .lean();
+    
+    // Add comment counts
+    for (let course of courses) {
+      const commentCount = await Comment.countDocuments({ 
+        course: course._id, 
+        parentComment: null,
+        isActive: true 
+      });
+      course.commentCount = commentCount;
+    }
     
     res.json({ courses });
   } catch (error) {
@@ -53,12 +65,24 @@ router.get('/', async (req, res) => {
       query.category = category;
     }
     
+    const Comment = require('../models/Comment');
     const courses = await Course.find(query)
       .populate('instructor', 'name email profileImage')
       .populate('stars', 'name profileImage')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .skip((page - 1) * limit)
+      .lean();
+    
+    // Add comment counts
+    for (let course of courses) {
+      const commentCount = await Comment.countDocuments({ 
+        course: course._id, 
+        parentComment: null,
+        isActive: true 
+      });
+      course.commentCount = commentCount;
+    }
     
     const total = await Course.countDocuments(query);
     
@@ -194,14 +218,24 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
 // Get single course
 router.get('/:id', async (req, res) => {
   try {
+    const Comment = require('../models/Comment');
     const course = await Course.findById(req.params.id)
       .populate('instructor', 'name email profileImage')
       .populate('students', 'name email')
-      .populate('stars', 'name profileImage');
+      .populate('stars', 'name profileImage')
+      .lean();
     
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
+    
+    // Add comment count
+    const commentCount = await Comment.countDocuments({ 
+      course: course._id, 
+      parentComment: null,
+      isActive: true 
+    });
+    course.commentCount = commentCount;
     
     res.json({ course });
   } catch (error) {

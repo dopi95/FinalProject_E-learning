@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Star, Users, User, ArrowRight, CheckCircle, Heart } from 'lucide-react';
+import { Star, Users, User, ArrowRight, CheckCircle, Heart, MessageCircle } from 'lucide-react';
 import LoginRequiredModal from './LoginRequiredModal';
 import RoleBasedModal from './RoleBasedModal';
 import RegistrationDateModal from './RegistrationDateModal';
+import CommentSection from './CommentSection';
 import { courseAPI, enrollmentAPI, categoryAPI } from '../services/api';
 import { getUserData } from '../utils/userUtils';
 
@@ -23,6 +24,8 @@ const FeaturedCourses = () => {
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [registrationModalType, setRegistrationModalType] = useState('');
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [showComments, setShowComments] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState(null);
 
   useEffect(() => {
     fetchFeaturedCourses();
@@ -132,6 +135,15 @@ const FeaturedCourses = () => {
     navigate(`/payment/${courseId}`);
   };
 
+  const handleShowComments = (courseId) => {
+    setSelectedCourseId(courseId);
+    setShowComments(true);
+  };
+
+  const handleCommentAdded = () => {
+    fetchFeaturedCourses();
+  };
+
   return (
     <section className="py-20 bg-gray-50 dark:bg-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -233,9 +245,16 @@ const FeaturedCourses = () => {
                         {course.stars?.length || 0}
                       </span>
                     </button>
+                    <button 
+                      onClick={() => handleShowComments(course._id)}
+                      className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
+                    >
+                      <MessageCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{course.commentCount || 0}</span>
+                    </button>
                     <div className="flex items-center text-gray-600 dark:text-gray-400">
                       <Users className="h-4 w-4 mr-2" />
-                      <span className="text-sm font-medium">{course.students?.length || 0}</span>
+                      <span className="text-sm font-medium">{course.students?.length || 0} Students</span>
                     </div>
                   </div>
                   
@@ -302,6 +321,16 @@ const FeaturedCourses = () => {
         type={registrationModalType}
         startDate={selectedCourse?.registrationStart}
         endDate={selectedCourse?.registrationEnd}
+      />
+
+      <CommentSection
+        courseId={selectedCourseId}
+        isVisible={showComments}
+        onClose={() => {
+          setShowComments(false);
+          setSelectedCourseId(null);
+        }}
+        onCommentAdded={handleCommentAdded}
       />
     </section>
   );

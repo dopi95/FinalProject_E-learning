@@ -77,6 +77,9 @@ app.use('/api/instructors', require('./routes/instructors'));
 // Subscription routes
 app.use('/api/subscriptions', require('./routes/subscriptions'));
 
+// Comment routes
+app.use('/api/comments', require('./routes/comments'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

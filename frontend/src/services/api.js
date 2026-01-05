@@ -229,4 +229,19 @@ export const subscriptionAPI = {
   sendNewsletter: (data) => api.post('/subscriptions/newsletter', data),
 };
 
+// Comment API functions
+export const commentAPI = {
+  // Get comments for a course
+  getCourseComments: (courseId, params = {}) => api.get(`/comments/course/${courseId}`, { params }),
+  
+  // Add a comment
+  addComment: (commentData) => api.post('/comments', commentData),
+  
+  // Like/unlike a comment
+  likeComment: (commentId) => api.post(`/comments/${commentId}/like`),
+  
+  // Delete a comment
+  deleteComment: (commentId) => api.delete(`/comments/${commentId}`),
+};
+
 export default api;

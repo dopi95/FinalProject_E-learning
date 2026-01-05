@@ -7,9 +7,10 @@ import LoginRequiredModal from '../components/LoginRequiredModal';
 import RoleBasedModal from '../components/RoleBasedModal';
 import RegistrationDateModal from '../components/RegistrationDateModal';
 import Toast from '../components/Toast';
-import { ArrowLeft, Star, Users, Clock, PlayCircle, CheckCircle, Globe, Award, User, Heart } from 'lucide-react';
+import { ArrowLeft, Star, Users, Clock, PlayCircle, CheckCircle, Globe, Award, User, Heart, MessageCircle } from 'lucide-react';
 import { getUserData } from '../utils/userUtils';
 import { courseAPI, enrollmentAPI, categoryAPI } from '../services/api';
+import CommentSection from '../components/CommentSection';
 
 const CourseDetail = () => {
   const { id } = useParams();
@@ -30,6 +31,7 @@ const CourseDetail = () => {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [registrationModalType, setRegistrationModalType] = useState('');
+  const [showComments, setShowComments] = useState(false);
 
   useEffect(() => {
     const userData = getUserData();
@@ -173,6 +175,14 @@ const CourseDetail = () => {
     }, 300);
   };
 
+  const handleShowComments = () => {
+    setShowComments(true);
+  };
+
+  const handleCommentAdded = () => {
+    fetchCourse();
+  };
+
 
 
   return (
@@ -299,6 +309,15 @@ const CourseDetail = () => {
                         />
                         <span className="font-medium text-gray-900 dark:text-white">
                           {course.stars?.length || 0}
+                        </span>
+                      </button>
+                      <button 
+                        onClick={handleShowComments}
+                        className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200"
+                      >
+                        <MessageCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <span className="font-medium text-gray-900 dark:text-white">
+                          {course.commentCount || 0}
                         </span>
                       </button>
                       <div className="flex items-center text-gray-600 dark:text-gray-400">
@@ -450,6 +469,13 @@ const CourseDetail = () => {
         type={toast.type}
         isVisible={toast.show}
         onClose={hideToast}
+      />
+
+      <CommentSection
+        courseId={course?._id}
+        isVisible={showComments}
+        onClose={() => setShowComments(false)}
+        onCommentAdded={handleCommentAdded}
       />
 
       <Footer />
