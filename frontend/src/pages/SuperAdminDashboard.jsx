@@ -1890,103 +1890,262 @@ const SuperAdminDashboard = () => {
   );
   const renderSchedules = () => (
     <div className="space-y-4 lg:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Assign Schedule</h2>
-        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          <Calendar className="h-4 w-4" />
-          <span>{schedules.length} schedules created</span>
+      {/* Header with enhanced mobile design */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-4 lg:p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Calendar className="h-6 w-6 text-blue-600" />
+              Schedule Management
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Assign and manage course schedules for all courses
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-2 rounded-lg">
+              <Calendar className="h-4 w-4" />
+              <span>{schedules.length} schedules created</span>
+            </div>
+            {selectedCourseForSchedule && (
+              <button 
+                onClick={() => setShowScheduleForm(true)} 
+                className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                <Plus className="h-4 w-4" /> 
+                Add Schedule
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {!selectedCourseForSchedule ? (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Select Course to Assign Schedule</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {courses.map((course) => (
-              <div key={course._id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedCourseForSchedule(course)}>
-                <img src={course.image} alt={course.title} className="w-full h-32 object-cover rounded-lg mb-3" />
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{course.title}</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Instructor: {course.instructor?.name}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-500">Students: {course.studentCount || 0}</p>
-              </div>
-            ))}
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BookOpen className="h-8 w-8 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Select Course to Assign Schedule</h3>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Choose a course from the list below to create and manage its schedules</p>
           </div>
+          
+          {courses.length === 0 ? (
+            <div className="text-center py-12">
+              <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Courses Available</h3>
+              <p className="text-gray-500 dark:text-gray-400">Create courses first to assign schedules.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {courses.map((course) => (
+                <div 
+                  key={course._id} 
+                  className="group border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 cursor-pointer transform hover:-translate-y-1" 
+                  onClick={() => setSelectedCourseForSchedule(course)}
+                >
+                  <div className="relative overflow-hidden rounded-lg mb-3">
+                    <img 
+                      src={course.image} 
+                      alt={course.title} 
+                      className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300" 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {course.title}
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                      <User className="h-4 w-4" />
+                      <span>Instructor: {course.instructor?.name || 'Not assigned'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                      <Users className="h-4 w-4" />
+                      <span>Students: {course.studentCount || 0}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                      <Calendar className="h-4 w-4" />
+                      <span>Schedules: {schedules.filter(s => s.courseId === course._id).length}</span>
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        Click to manage
+                      </span>
+                      <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                        <Calendar className="h-3 w-3 text-blue-600 group-hover:text-white" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Selected Course Header */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <img src={selectedCourseForSchedule.image} alt={selectedCourseForSchedule.title} className="w-16 h-16 object-cover rounded-lg" />
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{selectedCourseForSchedule.title}</h3>
-                  <p className="text-gray-600 dark:text-gray-400">Instructor: {selectedCourseForSchedule.instructor?.name}</p>
+          {/* Selected Course Header - Enhanced */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 lg:p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <img 
+                      src={selectedCourseForSchedule.image} 
+                      alt={selectedCourseForSchedule.title} 
+                      className="w-16 h-16 lg:w-20 lg:h-20 object-cover rounded-xl border-2 border-white/20" 
+                    />
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                      <CheckCircle className="h-3 w-3 text-white" />
+                    </div>
+                  </div>
+                  <div className="text-white">
+                    <h3 className="text-lg lg:text-xl font-bold mb-1">{selectedCourseForSchedule.title}</h3>
+                    <p className="text-blue-100 text-sm mb-2">Instructor: {selectedCourseForSchedule.instructor?.name}</p>
+                    <div className="flex flex-wrap gap-3 text-xs">
+                      <span className="bg-white/20 px-2 py-1 rounded-full">
+                        👥 {selectedCourseForSchedule.studentCount || 0} Students
+                      </span>
+                      <span className="bg-white/20 px-2 py-1 rounded-full">
+                        📅 {schedules.filter(s => s.courseId === selectedCourseForSchedule._id).length} Schedules
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <button onClick={() => setShowScheduleForm(true)} className="w-full sm:w-auto bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 text-sm font-medium">
-                  <Plus className="h-4 w-4" /> Add Schedule
-                </button>
-                <button onClick={() => setSelectedCourseForSchedule(null)} className="w-full sm:w-auto bg-gray-500 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-600 text-sm font-medium">
-                  Back to Courses
-                </button>
+                <div className="flex flex-col sm:flex-row gap-2 lg:ml-auto">
+                  <button 
+                    onClick={() => setShowScheduleForm(true)} 
+                    className="w-full sm:w-auto bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 flex items-center justify-center gap-2 text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    <Plus className="h-4 w-4" /> 
+                    Add New Schedule
+                  </button>
+                  <button 
+                    onClick={() => setSelectedCourseForSchedule(null)} 
+                    className="w-full sm:w-auto bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 text-sm font-medium transition-all duration-200"
+                  >
+                    ← Back to Courses
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Course Schedules */}
+          {/* Course Schedules - Enhanced */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
-            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Course Schedules</h4>
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-blue-600" />
+                Course Schedules
+              </h4>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                {schedules.filter(s => s.courseId === selectedCourseForSchedule._id).length} schedules
+              </div>
+            </div>
+            
             {schedules.filter(s => s.courseId === selectedCourseForSchedule._id).length === 0 ? (
-              <div className="text-center py-8">
-                <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-400">No schedules created yet. Click "Add Schedule" to create one.</p>
+              <div className="text-center py-12">
+                <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="h-10 w-10 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Schedules Yet</h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-4">Create your first schedule for this course to get started.</p>
+                <button 
+                  onClick={() => setShowScheduleForm(true)}
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto transition-all duration-200"
+                >
+                  <Plus className="h-4 w-4" />
+                  Create First Schedule
+                </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {schedules.filter(s => s.courseId === selectedCourseForSchedule._id).map((schedule) => (
-                  <div key={schedule.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h5 className="font-semibold text-gray-900 dark:text-white">{schedule.title}</h5>
-                        <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${
+                  <div key={schedule.id} className="group border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <h5 className="font-semibold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {schedule.title}
+                        </h5>
+                        <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full ${
                           schedule.type === 'lecture' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
                           schedule.type === 'exam' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' :
                           'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
                         }`}>
-                          {schedule.type}
+                          {schedule.type === 'lecture' ? '📚' : schedule.type === 'exam' ? '📝' : '📋'} {schedule.type}
                         </span>
                       </div>
-                      <div className="flex gap-1">
-                        <button onClick={() => {
-                          setScheduleForm(schedule);
-                          setShowScheduleForm(true);
-                        }} className="text-green-600 hover:text-green-800 p-1">
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <button 
+                          onClick={() => {
+                            setScheduleForm(schedule);
+                            setShowScheduleForm(true);
+                          }} 
+                          className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                          title="Edit Schedule"
+                        >
                           <Edit className="h-4 w-4" />
                         </button>
-                        <button onClick={() => handleDeleteSchedule(schedule.id)} className="text-red-600 hover:text-red-800 p-1">
+                        <button 
+                          onClick={() => handleDeleteSchedule(schedule.id)} 
+                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="Delete Schedule"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
-                    <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>{new Date(schedule.date).toLocaleDateString()}</span>
+                    
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                          <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                            <Calendar className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Date</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              {new Date(schedule.date).toLocaleDateString('en-US', {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                          <div className="w-8 h-8 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+                            <Clock className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Time</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              {schedule.startTime} - {schedule.endTime}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        <span>{schedule.startTime} - {schedule.endTime}</span>
-                      </div>
+                      
                       {schedule.location && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          <span>{schedule.location}</span>
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                          <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
+                            <MapPin className="h-4 w-4 text-purple-600" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Location</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{schedule.location}</p>
+                          </div>
                         </div>
                       )}
+                      
                       {schedule.description && (
-                        <p className="text-gray-700 dark:text-gray-300 mt-2">{schedule.description}</p>
+                        <div className="p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg border-l-4 border-blue-500">
+                          <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Description</p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">{schedule.description}</p>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1997,66 +2156,162 @@ const SuperAdminDashboard = () => {
         </div>
       )}
 
-      {/* Schedule Form Modal */}
+      {/* Enhanced Schedule Form Modal */}
       {showScheduleForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto">
-            <div className="p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Create Schedule</h3>
-                <button onClick={() => setShowScheduleForm(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1">
-                  <X className="h-5 w-5 sm:h-6 sm:w-6" />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Schedule Title *</label>
-                  <input type="text" value={scheduleForm.title} onChange={(e) => handleScheduleFormChange('title', e.target.value)} className="w-full px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base" placeholder="e.g., Week 1 Lecture" />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
-                  <select value={scheduleForm.type} onChange={(e) => handleScheduleFormChange('type', e.target.value)} className="w-full px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base">
-                    <option value="lecture">Lecture</option>
-                    <option value="exam">Exam</option>
-                    <option value="assignment">Assignment</option>
-                  </select>
-                </div>
-                
-                <div className="grid grid-cols-1 gap-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 sm:p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <Calendar className="h-5 w-5 text-white" />
+                  </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date *</label>
-                    <input type="date" value={scheduleForm.date} onChange={(e) => handleScheduleFormChange('date', e.target.value)} className="w-full px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base" />
+                    <h3 className="text-lg sm:text-xl font-bold text-white">
+                      {scheduleForm.id ? 'Edit Schedule' : 'Create New Schedule'}
+                    </h3>
+                    <p className="text-blue-100 text-sm">{selectedCourseForSchedule.title}</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Time *</label>
-                      <input type="time" value={scheduleForm.startTime} onChange={(e) => handleScheduleFormChange('startTime', e.target.value)} className="w-full px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Time *</label>
-                      <input type="time" value={scheduleForm.endTime} onChange={(e) => handleScheduleFormChange('endTime', e.target.value)} className="w-full px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base" />
-                    </div>
+                </div>
+                <button 
+                  onClick={() => {
+                    setShowScheduleForm(false);
+                    setScheduleForm({ title: '', description: '', date: '', startTime: '', endTime: '', location: '', type: 'lecture' });
+                  }} 
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(95vh-120px)]">
+              <div className="space-y-6">
+                {/* Title and Type Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Schedule Title *
+                    </label>
+                    <input 
+                      type="text" 
+                      value={scheduleForm.title} 
+                      onChange={(e) => handleScheduleFormChange('title', e.target.value)} 
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200" 
+                      placeholder="e.g., Week 1 Introduction Lecture" 
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Schedule Type
+                    </label>
+                    <select 
+                      value={scheduleForm.type} 
+                      onChange={(e) => handleScheduleFormChange('type', e.target.value)} 
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200"
+                    >
+                      <option value="lecture">📚 Lecture</option>
+                      <option value="exam">📝 Exam</option>
+                      <option value="assignment">📋 Assignment</option>
+                      <option value="lab">🔬 Lab Session</option>
+                      <option value="seminar">🎯 Seminar</option>
+                    </select>
                   </div>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Location</label>
-                  <input type="text" value={scheduleForm.location} onChange={(e) => handleScheduleFormChange('location', e.target.value)} className="w-full px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base" placeholder="e.g., Room 101, Online" />
+                {/* Date and Time Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Date *
+                    </label>
+                    <input 
+                      type="date" 
+                      value={scheduleForm.date} 
+                      onChange={(e) => handleScheduleFormChange('date', e.target.value)} 
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200" 
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Start Time *
+                    </label>
+                    <input 
+                      type="time" 
+                      value={scheduleForm.startTime} 
+                      onChange={(e) => handleScheduleFormChange('startTime', e.target.value)} 
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200" 
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      End Time *
+                    </label>
+                    <input 
+                      type="time" 
+                      value={scheduleForm.endTime} 
+                      onChange={(e) => handleScheduleFormChange('endTime', e.target.value)} 
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200" 
+                    />
+                  </div>
                 </div>
                 
+                {/* Location */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
-                  <textarea rows="3" value={scheduleForm.description} onChange={(e) => handleScheduleFormChange('description', e.target.value)} className="w-full px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base resize-none" placeholder="Additional details about this schedule..." />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Location
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input 
+                      type="text" 
+                      value={scheduleForm.location} 
+                      onChange={(e) => handleScheduleFormChange('location', e.target.value)} 
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200" 
+                      placeholder="e.g., Room 101, Online Meeting, Lab A" 
+                    />
+                  </div>
+                </div>
+                
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Description
+                  </label>
+                  <textarea 
+                    rows="4" 
+                    value={scheduleForm.description} 
+                    onChange={(e) => handleScheduleFormChange('description', e.target.value)} 
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none transition-all duration-200" 
+                    placeholder="Additional details about this schedule (optional)..." 
+                  />
                 </div>
               </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3 mt-6">
-                <button onClick={handleCreateSchedule} className="w-full sm:flex-1 bg-blue-600 text-white py-3 sm:py-2 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 text-sm sm:text-base font-medium">
-                  <Save className="h-4 w-4" /> Create Schedule
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button 
+                  onClick={handleCreateSchedule} 
+                  disabled={!scheduleForm.title || !scheduleForm.date || !scheduleForm.startTime || !scheduleForm.endTime}
+                  className="w-full sm:flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-6 rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  <Save className="h-4 w-4" /> 
+                  {scheduleForm.id ? 'Update Schedule' : 'Create Schedule'}
                 </button>
-                <button onClick={() => setShowScheduleForm(false)} className="w-full sm:flex-1 bg-gray-500 text-white py-3 sm:py-2 px-4 rounded-lg hover:bg-gray-600 text-sm sm:text-base font-medium">
+                <button 
+                  onClick={() => {
+                    setShowScheduleForm(false);
+                    setScheduleForm({ title: '', description: '', date: '', startTime: '', endTime: '', location: '', type: 'lecture' });
+                  }} 
+                  className="w-full sm:flex-1 bg-gray-500 text-white py-3 px-6 rounded-lg hover:bg-gray-600 font-medium transition-all duration-200"
+                >
                   Cancel
                 </button>
               </div>

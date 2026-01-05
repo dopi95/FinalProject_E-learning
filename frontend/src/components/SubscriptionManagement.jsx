@@ -30,53 +30,83 @@ const SubscriptionManagement = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
-          Email Subscriptions
-        </h2>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setShowNewsletterForm(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm"
-          >
-            <Send className="h-4 w-4" />
-            Send Newsletter
-          </button>
-          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-            <Users className="h-4 w-4" />
-            <span>{filteredSubscriptions.length} subscribers</span>
+    <div className="space-y-4 lg:space-y-6">
+      {/* Enhanced Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-4 lg:p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Mail className="h-6 w-6 text-blue-600" />
+              Email Subscriptions
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Manage newsletter subscribers and send updates
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-2 rounded-lg">
+              <Users className="h-4 w-4" />
+              <span>{filteredSubscriptions.length} subscribers</span>
+            </div>
+            <button
+              onClick={() => setShowNewsletterForm(true)}
+              className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              <Send className="h-4 w-4" />
+              Send Newsletter
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Enhanced Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
-          <p className="text-2xl font-bold text-blue-600">{subscriptions.length}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Total Subscribers</p>
+        <div className="bg-white dark:bg-gray-800 p-4 lg:p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-2xl lg:text-3xl font-bold text-blue-600">{subscriptions.length}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Subscribers</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-xl flex items-center justify-center">
+              <Users className="h-6 w-6 text-blue-600" />
+            </div>
+          </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
-          <p className="text-2xl font-bold text-green-600">
-            {subscriptions.filter(s => {
-              const date = new Date(s.subscribedAt);
-              const today = new Date();
-              const diffTime = Math.abs(today - date);
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              return diffDays <= 7;
-            }).length}
-          </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">This Week</p>
+        <div className="bg-white dark:bg-gray-800 p-4 lg:p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-2xl lg:text-3xl font-bold text-green-600">
+                {subscriptions.filter(s => {
+                  const date = new Date(s.subscribedAt);
+                  const today = new Date();
+                  const diffTime = Math.abs(today - date);
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                  return diffDays <= 7;
+                }).length}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">This Week</p>
+            </div>
+            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-xl flex items-center justify-center">
+              <Calendar className="h-6 w-6 text-green-600" />
+            </div>
+          </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
-          <p className="text-2xl font-bold text-purple-600">
-            {subscriptions.filter(s => {
-              const date = new Date(s.subscribedAt);
-              const today = new Date();
-              return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
-            }).length}
-          </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">This Month</p>
+        <div className="bg-white dark:bg-gray-800 p-4 lg:p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-2xl lg:text-3xl font-bold text-purple-600">
+                {subscriptions.filter(s => {
+                  const date = new Date(s.subscribedAt);
+                  const today = new Date();
+                  return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+                }).length}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">This Month</p>
+            </div>
+            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-xl flex items-center justify-center">
+              <Mail className="h-6 w-6 text-purple-600" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -160,7 +190,7 @@ const SubscriptionManagement = () => {
             </div>
           </div>
 
-          {/* Mobile Card View */}
+          {/* Mobile Card View - Enhanced */}
           <div className="lg:hidden space-y-4">
             {filteredSubscriptions.map((subscription) => {
               const date = new Date(subscription.subscribedAt);
@@ -169,24 +199,40 @@ const SubscriptionManagement = () => {
               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
               
               return (
-                <div key={subscription._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
-                  <div className="flex items-start gap-3">
-                    <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
-                      <Mail className="h-6 w-6 text-blue-600" />
+                <div key={subscription._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Mail className="h-6 w-6 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-2">
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-2 break-all">
                         {subscription.email}
                       </h3>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        <p className="font-medium mb-1">Subscribed</p>
-                        <p>{date.toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-gray-400" />
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {date.toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            diffDays <= 7 ? 'bg-green-500' : 
+                            diffDays <= 30 ? 'bg-yellow-500' : 'bg-gray-400'
+                          }`}></div>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {diffDays <= 1 ? 'Today' :
+                             diffDays <= 7 ? `${diffDays} days ago` :
+                             diffDays <= 30 ? `${Math.ceil(diffDays/7)} weeks ago` :
+                             `${Math.ceil(diffDays/30)} months ago`}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
