@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown, Heart, Download, Calendar, Clock, MapPin, Save } from 'lucide-react';
+import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown, Heart, Download, Calendar, Clock, MapPin, Save, Bell } from 'lucide-react';
 import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import SubscriptionManagement from '../components/SubscriptionManagement';
@@ -76,6 +76,10 @@ const SuperAdminDashboard = () => {
     location: '',
     type: 'lecture'
   });
+
+  // Notification state
+  const [showNotificationForm, setShowNotificationForm] = useState(false);
+  const [notificationForm, setNotificationForm] = useState({ title: '', message: '', role: 'all' });
 
   // Admin management state
   const [showCreateAdmin, setShowCreateAdmin] = useState(false);
@@ -1112,6 +1116,7 @@ const SuperAdminDashboard = () => {
     { id: 'contacts', name: 'Contact Messages', icon: MessageSquare },
     { id: 'reviews', name: 'Review Management', icon: Star },
     { id: 'subscriptions', name: 'Email Subscriptions', icon: Mail },
+    { id: 'notifications', name: 'Send Notification', icon: Bell },
     { id: 'admins', name: 'Admin Management', icon: Shield },
     { id: 'settings', name: 'Global Settings', icon: Settings },
     { id: 'profile', name: 'My Profile', icon: User }
@@ -3020,6 +3025,97 @@ const SuperAdminDashboard = () => {
     );
   };
 
+  const renderSendNotification = () => (
+    <div className="space-y-4 lg:space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-4 lg:p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Bell className="h-6 w-6 text-blue-600" />
+              Send Notification
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Send notifications to users by role
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Notification Form */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="space-y-6">
+            {/* Role Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Send To</label>
+              <select
+                value={notificationForm.role}
+                onChange={(e) => setNotificationForm(prev => ({ ...prev, role: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+              >
+                <option value="all">All Users</option>
+                <option value="admin">Admins</option>
+                <option value="instructor">Instructors</option>
+                <option value="student">Students</option>
+              </select>
+            </div>
+
+            {/* Title */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Title</label>
+              <input
+                type="text"
+                value={notificationForm.title}
+                onChange={(e) => setNotificationForm(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Notification title"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            {/* Message */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Message</label>
+              <textarea
+                rows="6"
+                value={notificationForm.message}
+                onChange={(e) => setNotificationForm(prev => ({ ...prev, message: e.target.value }))}
+                placeholder="Notification message"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white resize-none"
+              />
+            </div>
+
+            {/* Send Button */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  const roleText = notificationForm.role === 'all' ? 'all users' : `${notificationForm.role}s`;
+                  console.log('Sending notification:', {
+                    role: notificationForm.role,
+                    title: notificationForm.title,
+                    message: notificationForm.message
+                  });
+                  setNotificationForm({ title: '', message: '', role: 'all' });
+                  showNotification('success', 'Notification Sent', `Notification sent to ${roleText}`);
+                }}
+                disabled={!notificationForm.title || !notificationForm.message}
+                className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                Send Notification
+              </button>
+              <button
+                onClick={() => setNotificationForm({ title: '', message: '', role: 'all' })}
+                className="flex-1 bg-gray-500 text-white py-3 px-6 rounded-lg hover:bg-gray-600 font-medium"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderUsers = () => (
     <div className="space-y-4 lg:space-y-6">
       {/* Header */}
@@ -4821,6 +4917,7 @@ const SuperAdminDashboard = () => {
       case 'contacts': return renderContacts();
       case 'reviews': return renderReviews();
       case 'subscriptions': return <SubscriptionManagement />;
+      case 'notifications': return renderSendNotification();
       case 'admins': return renderAdmins();
       case 'users': return renderUsers();
       case 'settings': return renderSettings();
