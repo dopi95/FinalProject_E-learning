@@ -2165,8 +2165,11 @@ const InstructorDashboard = () => {
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
                     {selectedNotificationCourse.title}
                   </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Sending to {selectedNotificationCourse.students?.length || 0} students
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    Sending to {selectedNotificationCourse.students?.length || 0} enrolled students
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    Students will see this notification with your name and course title
                   </p>
                 </div>
                 

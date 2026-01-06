@@ -2,17 +2,80 @@ const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+const Course = require('../models/Course');
+const Enrollment = require('../models/Enrollment');
 const auth = require('../middleware/auth');
 
-// Send notification (Super Admin and Admin only)
+// Debug route to check all notifications
+router.get('/debug-all', auth, async (req, res) => {
+  try {
+    const allNotifications = await Notification.find({})
+      .populate('sender', 'name role')
+      .populate('course', 'title')
+      .sort({ createdAt: -1 });
+    
+    res.json({
+      total: allNotifications.length,
+      notifications: allNotifications.map(n => ({
+        id: n._id,
+        title: n.title,
+        message: n.message,
+        sender: n.sender,
+        course: n.course,
+        recipients: n.recipients.length,
+        createdAt: n.createdAt
+      }))
+    });
+  } catch (error) {
+    console.error('Debug notifications error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Test route to create a notification (for debugging)
+router.post('/test-notification', auth, async (req, res) => {
+  try {
+    const sender = req.user;
+    
+    // Create a test notification for the current user
+    const notification = new Notification({
+      title: 'Test Notification',
+      message: 'This is a test notification to verify the system works.',
+      sender: sender._id,
+      recipients: [{
+        user: sender._id,
+        read: false
+      }],
+      targetRole: 'student',
+      type: 'info'
+    });
+
+    await notification.save();
+    
+    res.status(201).json({
+      message: 'Test notification created successfully',
+      notification: {
+        id: notification._id,
+        title: notification.title,
+        message: notification.message
+      }
+    });
+
+  } catch (error) {
+    console.error('Test notification error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Send notification (Super Admin, Admin, and Instructors)
 router.post('/send', auth, async (req, res) => {
   try {
     const { title, message, role, course } = req.body;
     const sender = req.user;
 
     // Check if user has permission to send notifications
-    if (sender.role !== 'superadmin' && sender.role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied. Only admins can send notifications.' });
+    if (!['superadmin', 'admin', 'instructor'].includes(sender.role)) {
+      return res.status(403).json({ message: 'Access denied. Only admins and instructors can send notifications.' });
     }
 
     // Validate required fields
@@ -20,36 +83,70 @@ router.post('/send', auth, async (req, res) => {
       return res.status(400).json({ message: 'Title and message are required' });
     }
 
-    // Determine target users based on role
+    // Determine target users based on role and sender
     let targetUsers = [];
     
-    if (role === 'all') {
-      if (sender.role === 'superadmin') {
-        // Super admin can send to everyone
-        targetUsers = await User.find({ 
-          role: { $in: ['student', 'instructor', 'admin'] },
-          isVerified: true 
-        }).select('_id');
-      } else {
-        // Regular admin can only send to students and instructors
-        targetUsers = await User.find({ 
-          role: { $in: ['student', 'instructor'] },
-          isVerified: true 
-        }).select('_id');
+    if (sender.role === 'instructor') {
+      // Instructors can only send to students enrolled in their courses
+      if (role !== 'student' || !course) {
+        return res.status(403).json({ message: 'Instructors can only send notifications to students in their courses' });
       }
-    } else if (role === 'admin' && sender.role === 'superadmin') {
-      // Only super admin can send to admins
-      targetUsers = await User.find({ 
-        role: 'admin',
-        isVerified: true 
-      }).select('_id');
-    } else if (role === 'student' || role === 'instructor') {
-      targetUsers = await User.find({ 
-        role: role,
-        isVerified: true 
-      }).select('_id');
-    } else {
-      return res.status(403).json({ message: 'You do not have permission to send notifications to this role' });
+      
+      // Verify the instructor teaches this course
+      const courseDoc = await Course.findOne({ _id: course, instructor: sender._id });
+      if (!courseDoc) {
+        return res.status(403).json({ message: 'You can only send notifications to students in courses you teach' });
+      }
+      
+      // Get students enrolled in this specific course
+      const enrollments = await Enrollment.find({ course: course, status: 'active' })
+        .populate('user', '_id')
+        .select('user');
+      
+      targetUsers = enrollments.map(enrollment => ({ _id: enrollment.user._id }));
+      
+    } else if (sender.role === 'admin' || sender.role === 'superadmin') {
+      // Admin/SuperAdmin logic (existing)
+      if (role === 'all') {
+        if (sender.role === 'superadmin') {
+          // Super admin can send to everyone
+          targetUsers = await User.find({ 
+            role: { $in: ['student', 'instructor', 'admin'] },
+            isVerified: true 
+          }).select('_id');
+        } else {
+          // Regular admin can only send to students and instructors
+          targetUsers = await User.find({ 
+            role: { $in: ['student', 'instructor'] },
+            isVerified: true 
+          }).select('_id');
+        }
+      } else if (role === 'admin' && sender.role === 'superadmin') {
+        // Only super admin can send to admins
+        targetUsers = await User.find({ 
+          role: 'admin',
+          isVerified: true 
+        }).select('_id');
+      } else if (role === 'student' || role === 'instructor') {
+        if (course) {
+          // Send to specific course students/instructors
+          const enrollments = await Enrollment.find({ course: course, status: 'active' })
+            .populate('user', '_id role')
+            .select('user');
+          
+          targetUsers = enrollments
+            .filter(enrollment => enrollment.user.role === role)
+            .map(enrollment => ({ _id: enrollment.user._id }));
+        } else {
+          // Send to all users of specified role
+          targetUsers = await User.find({ 
+            role: role,
+            isVerified: true 
+          }).select('_id');
+        }
+      } else {
+        return res.status(403).json({ message: 'You do not have permission to send notifications to this role' });
+      }
     }
 
     if (targetUsers.length === 0) {
@@ -97,18 +194,21 @@ router.post('/send', auth, async (req, res) => {
 router.get('/my-notifications', auth, async (req, res) => {
   try {
     const userId = req.user._id;
-    const { page = 1, limit = 20 } = req.query;
+    console.log('Fetching notifications for user:', userId);
 
+    // Get notifications with population
     const notifications = await Notification.find({
       'recipients.user': userId
     })
     .populate('sender', 'name role')
     .populate('course', 'title')
     .sort({ createdAt: -1 })
-    .limit(limit * 1)
-    .skip((page - 1) * limit);
+    .limit(20)
+    .lean();
 
-    // Transform notifications to include read status for current user
+    console.log('Found notifications:', notifications.length);
+
+    // Transform notifications with full info
     const userNotifications = notifications.map(notification => {
       const userRecipient = notification.recipients.find(
         recipient => recipient.user.toString() === userId.toString()
@@ -116,11 +216,16 @@ router.get('/my-notifications', auth, async (req, res) => {
 
       return {
         id: notification._id,
-        title: notification.title,
-        message: notification.message,
-        type: notification.type,
-        sender: notification.sender,
-        course: notification.course,
+        title: notification.title || 'No title',
+        message: notification.message || 'No message',
+        type: notification.type || 'info',
+        sender: notification.sender ? {
+          name: notification.sender.name,
+          role: notification.sender.role
+        } : null,
+        course: notification.course ? {
+          title: notification.course.title
+        } : null,
         read: userRecipient ? userRecipient.read : false,
         readAt: userRecipient ? userRecipient.readAt : null,
         createdAt: notification.createdAt,
@@ -129,24 +234,25 @@ router.get('/my-notifications', auth, async (req, res) => {
     });
 
     // Get unread count
-    const unreadCount = await Notification.countDocuments({
-      'recipients': {
-        $elemMatch: {
-          user: userId,
-          read: false
-        }
-      }
-    });
+    const unreadCount = notifications.filter(n => {
+      const userRecipient = n.recipients.find(
+        recipient => recipient.user.toString() === userId.toString()
+      );
+      return userRecipient && !userRecipient.read;
+    }).length;
+
+    console.log('Unread count:', unreadCount);
 
     res.json({
       notifications: userNotifications,
       unreadCount,
-      currentPage: parseInt(page),
-      totalPages: Math.ceil(await Notification.countDocuments({ 'recipients.user': userId }) / limit)
+      currentPage: 1,
+      totalPages: Math.ceil(notifications.length / 20)
     });
 
   } catch (error) {
     console.error('Get notifications error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -247,20 +353,33 @@ router.delete('/:notificationId', auth, async (req, res) => {
 
 // Helper function to get time ago
 function getTimeAgo(date) {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now - date) / 1000);
-  
-  if (diffInSeconds < 60) {
-    return 'Just now';
-  } else if (diffInSeconds < 3600) {
-    const minutes = Math.floor(diffInSeconds / 60);
-    return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-  } else if (diffInSeconds < 86400) {
-    const hours = Math.floor(diffInSeconds / 3600);
-    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-  } else {
-    const days = Math.floor(diffInSeconds / 86400);
-    return `${days} day${days > 1 ? 's' : ''} ago`;
+  try {
+    if (!date) return 'Unknown time';
+    
+    const now = new Date();
+    const inputDate = new Date(date);
+    
+    if (isNaN(inputDate.getTime())) {
+      return 'Invalid date';
+    }
+    
+    const diffInSeconds = Math.floor((now - inputDate) / 1000);
+    
+    if (diffInSeconds < 60) {
+      return 'Just now';
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    } else {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `${days} day${days > 1 ? 's' : ''} ago`;
+    }
+  } catch (error) {
+    console.error('Error in getTimeAgo:', error);
+    return 'Unknown time';
   }
 }
 

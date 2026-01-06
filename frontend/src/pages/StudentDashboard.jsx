@@ -813,9 +813,16 @@ const StudentDashboard = () => {
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{notif.message}</p>
                             <p className="text-xs text-gray-500 dark:text-gray-500 mb-1">{notif.time}</p>
                             {notif.sender && (
-                              <p className="text-xs text-gray-500 dark:text-gray-500">
-                                from {notif.sender.role === 'superadmin' ? 'superadmin' : notif.sender.role === 'admin' ? 'admin' : notif.sender.role}
-                              </p>
+                              <div className="text-xs text-gray-500 dark:text-gray-500">
+                                {notif.sender.role === 'instructor' ? (
+                                  <div>
+                                    <p>from Instructor: {notif.sender.name}</p>
+                                    {notif.course && <p>Course: {notif.course.title}</p>}
+                                  </div>
+                                ) : (
+                                  <p>from {notif.sender.role === 'superadmin' ? 'superadmin' : notif.sender.role === 'admin' ? 'admin' : notif.sender.role}</p>
+                                )}
+                              </div>
                             )}
                           </div>
                           <div className="flex items-center gap-2">
