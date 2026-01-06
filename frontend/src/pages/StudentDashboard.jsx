@@ -1035,13 +1035,27 @@ const StudentDashboard = () => {
                 />
               </div>
               
-              <div className="p-6">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 line-clamp-2">
+              <div className="p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-3 line-clamp-2 leading-tight">
                   {course.title}
                 </h3>
                 
+                {/* Course Description */}
+                {course.description && (
+                  <div className="mb-4">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed break-words overflow-hidden">
+                      <span className="line-clamp-3">
+                        {course.description.length > 120 
+                          ? `${course.description.substring(0, 120)}...` 
+                          : course.description
+                        }
+                      </span>
+                    </p>
+                  </div>
+                )}
+                
                 <div className="flex items-center mb-4">
-                  <div className="w-10 h-10 rounded-full mr-3 overflow-hidden">
+                  <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-full mr-3 overflow-hidden flex-shrink-0">
                     {course.instructor?.profileImage ? (
                       <img 
                         src={course.instructor.profileImage} 
@@ -1050,17 +1064,17 @@ const StudentDashboard = () => {
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center">
-                        <span className="text-white text-sm font-semibold">
+                        <span className="text-white text-xs sm:text-sm font-semibold">
                           {course.instructor?.name ? course.instructor.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'IN'}
                         </span>
                       </div>
                     )}
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">{course.instructor?.name || 'Instructor'}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm truncate">{course.instructor?.name || 'Instructor'}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Instructor</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex-shrink-0">
                     <p className="text-xs text-gray-500 dark:text-gray-400">{course.enrolledStudents || 0} students</p>
                   </div>
                 </div>
@@ -1070,7 +1084,7 @@ const StudentDashboard = () => {
                     setSelectedCourse(course);
                     setActiveTab('course-materials');
                   }}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2.5 sm:py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-sm sm:text-base"
                 >
                   View Course Materials
                 </button>

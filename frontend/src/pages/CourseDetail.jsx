@@ -237,7 +237,7 @@ const CourseDetail = () => {
               </div>
             </div>
           ) : course ? (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-12">
               {/* Main Content */}
               <div className="lg:col-span-2">
                 {/* Course Header */}
@@ -279,9 +279,11 @@ const CourseDetail = () => {
                       </div>
                     </div>
                   </div>
-                  <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 mb-4 sm:mb-6 leading-relaxed">
-                    {course.description}
-                  </p>
+                  <div className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 mb-4 sm:mb-6 leading-relaxed">
+                    <p className="break-words whitespace-pre-wrap">
+                      {course.description}
+                    </p>
+                  </div>
                   
                   <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-6 mb-6">
                     <div className="flex items-center">
@@ -303,7 +305,7 @@ const CourseDetail = () => {
                         <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t('courses.instructor')}</p>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between sm:justify-start sm:space-x-6">
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                       <button 
                         onClick={() => handleStarLike(course._id)}
                         className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200"
@@ -337,28 +339,30 @@ const CourseDetail = () => {
                 </div>
 
                 {/* Course Description */}
-                <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 mb-8">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('courses.aboutCourse')}</h2>
-                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                    {course.about || course.description}
-                  </p>
+                <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-4 sm:p-8 mb-8">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">{t('courses.aboutCourse')}</h2>
+                  <div className="prose prose-gray dark:prose-invert max-w-none">
+                    <div className="text-gray-600 dark:text-gray-300 leading-relaxed text-sm sm:text-base break-words whitespace-pre-wrap overflow-hidden">
+                      {course.about || course.description}
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* Sidebar */}
               <div className="lg:col-span-1">
-                <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 sticky top-24">
-                  <div className="text-center mb-6">
-                    <div className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+                <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-4 sm:p-6 lg:p-8 sticky top-24">
+                  <div className="text-center mb-4 sm:mb-6">
+                    <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">
                       {course.price} {t('courses.birr')}
                     </div>
-                    <p className="text-gray-500 dark:text-gray-400">{t('courses.oneTimePayment')}</p>
+                    <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">{t('courses.oneTimePayment')}</p>
                   </div>
 
                   <button 
                     onClick={handleEnroll}
                     disabled={enrollmentLoading}
-                    className={`w-full py-4 px-6 rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 mb-6 transition-all duration-300 ${
+                    className={`w-full py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl font-semibold text-base sm:text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 mb-4 sm:mb-6 transition-all duration-300 ${
                       isEnrolled 
                         ? 'bg-green-600 hover:bg-green-700 text-white'
                         : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
@@ -379,67 +383,67 @@ const CourseDetail = () => {
                   </button>
 
                   {isEnrolled && (
-                    <div className="mb-6 flex items-center justify-center text-green-600 dark:text-green-400 text-sm font-medium">
+                    <div className="mb-4 sm:mb-6 flex items-center justify-center text-green-600 dark:text-green-400 text-sm font-medium">
                       <CheckCircle className="h-4 w-4 mr-2" />
                       {t('courses.registered')}
                     </div>
                   )}
 
-                  <div className="space-y-4 mb-6">
-                    <h3 className="font-bold text-gray-900 dark:text-white">{t('courses.courseIncludes')}</h3>
+                  <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
+                    <h3 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base">{t('courses.courseIncludes')}</h3>
                     <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-600 dark:text-gray-300 text-sm">{t('courses.lifetimeAccess')}</span>
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2 sm:mr-3 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm break-words">{t('courses.lifetimeAccess')}</span>
                     </div>
                     <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-600 dark:text-gray-300 text-sm">{t('courses.certificate')}</span>
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2 sm:mr-3 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm break-words">{t('courses.certificate')}</span>
                     </div>
                     <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-600 dark:text-gray-300 text-sm">{t('courses.instructorSupport')}</span>
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2 sm:mr-3 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm break-words">{t('courses.instructorSupport')}</span>
                     </div>
                     <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-600 dark:text-gray-300 text-sm">{t('courses.mobileAccess')}</span>
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2 sm:mr-3 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm break-words">{t('courses.mobileAccess')}</span>
                     </div>
                     <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-600 dark:text-gray-300 text-sm">{t('courses.moneyBack')}</span>
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2 sm:mr-3 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm break-words">{t('courses.moneyBack')}</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                  <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                     <div className="flex items-center">
-                      <Globe className="h-4 w-4 mr-1" />
-                      <span>{t('courses.online')}</span>
+                      <Globe className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                      <span className="break-words">{t('courses.online')}</span>
                     </div>
                     <div className="flex items-center">
-                      <Award className="h-4 w-4 mr-1" />
-                      <span>{t('courses.certificateText')}</span>
+                      <Award className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                      <span className="break-words">{t('courses.certificateText')}</span>
                     </div>
                   </div>
 
                   {/* Course Dates Information */}
                   {(course.startDate || course.endDate) && (
-                    <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                      <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">{t('courses.registrationPeriod')}:</h4>
-                      <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                    <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                      <h4 className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2 sm:mb-3">{t('courses.registrationPeriod')}:</h4>
+                      <div className="space-y-2 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                         {course.startDate && (
-                          <div className="flex items-center">
-                            <span className="font-medium mr-2">{t('courses.start')}:</span>
-                            <span>{new Date(course.startDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="font-medium mr-0 sm:mr-2 mb-1 sm:mb-0">{t('courses.start')}:</span>
+                            <span className="break-words">{new Date(course.startDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                           </div>
                         )}
                         {course.endDate && (
-                          <div className="flex items-center">
-                            <span className="font-medium mr-2">{t('courses.end')}:</span>
-                            <span>{new Date(course.endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="font-medium mr-0 sm:mr-2 mb-1 sm:mb-0">{t('courses.end')}:</span>
+                            <span className="break-words">{new Date(course.endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                           </div>
                         )}
                         {course.endDate && (
-                          <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border-l-4 border-red-500">
-                            <p className="text-sm text-red-700 dark:text-red-300 font-medium">
+                          <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border-l-4 border-red-500">
+                            <p className="text-xs sm:text-sm text-red-700 dark:text-red-300 font-medium break-words">
                               {t('courses.deadlineNote', { date: new Date(course.endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) })}
                             </p>
                           </div>

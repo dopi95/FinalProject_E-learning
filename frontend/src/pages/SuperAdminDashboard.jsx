@@ -1812,20 +1812,23 @@ const SuperAdminDashboard = () => {
                   {/* Course Status */}
                   <div className="mb-4 flex justify-center">
                     {(() => {
-                      if (!course.registrationStart && !course.registrationEnd) {
+                      if (!course.startDate && !course.endDate) {
                         return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">Active</span>;
                       }
                       const now = new Date();
-                      const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
-                      const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+                      const startDate = course.startDate ? new Date(course.startDate) : null;
+                      const endDate = course.endDate ? new Date(course.endDate) : null;
                       
                       if (startDate && now < startDate) {
                         return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300">Not Started</span>;
-                      } else if (endDate && now > endDate) {
-                        return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">Closed</span>;
-                      } else {
-                        return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">Active</span>;
+                      } else if (endDate) {
+                        const endOfDay = new Date(endDate);
+                        endOfDay.setHours(23, 59, 59, 999);
+                        if (now > endOfDay) {
+                          return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">Closed</span>;
+                        }
                       }
+                      return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">Active</span>;
                     })()
                     }
                   </div>

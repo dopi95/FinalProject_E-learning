@@ -117,53 +117,59 @@ const PaymentPage = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Course Summary */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Course Summary</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-4 sm:p-6 lg:p-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">Course Summary</h2>
               
-              <div className="flex items-start space-x-4 mb-6">
+              <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-4 mb-4 sm:mb-6">
                 <img 
                   src={course?.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400'} 
                   alt={course?.title}
-                  className="w-20 h-20 object-cover rounded-xl"
+                  className="w-full sm:w-20 h-48 sm:h-20 object-cover rounded-xl flex-shrink-0"
                 />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 dark:text-white text-lg mb-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 dark:text-white text-base sm:text-lg mb-2 leading-tight">
                     {course?.title}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2">
-                    {course?.description}
-                  </p>
+                  <div className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                    <p className="break-words overflow-hidden">
+                      <span className="line-clamp-3 sm:line-clamp-4">
+                        {course?.description}
+                      </span>
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-gray-600 dark:text-gray-300">Course Price:</span>
-                  <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 space-y-2 sm:space-y-0">
+                  <span className="text-gray-600 dark:text-gray-300 text-sm sm:text-base">Course Price:</span>
+                  <span className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
                     {course?.price} ETB
                   </span>
                 </div>
                 
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
-                  <div className="flex items-center mb-2">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Lifetime Access</span>
-                  </div>
-                  <div className="flex items-center mb-2">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Certificate of Completion</span>
-                  </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">30-day Money Back Guarantee</span>
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 sm:p-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center">
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 break-words">Lifetime Access</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 break-words">Certificate of Completion</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 break-words">30-day Money Back Guarantee</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Payment Methods */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Payment Method</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-4 sm:p-6 lg:p-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">Payment Method</h2>
               
               {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
@@ -171,27 +177,27 @@ const PaymentPage = () => {
                 </div>
               )}
 
-              <div className="space-y-4 mb-8">
+              <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
                 {/* Telebirr */}
                 <div 
-                  className={`border-2 rounded-xl p-4 cursor-pointer transition-all ${
+                  className={`border-2 rounded-xl p-3 sm:p-4 cursor-pointer transition-all ${
                     selectedMethod === 'telebirr' 
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                   onClick={() => setSelectedMethod('telebirr')}
                 >
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-3 sm:space-x-4">
                     <img 
                       src="/assets/images/telebirrlogo.png" 
                       alt="Telebirr"
-                      className="w-12 h-12 object-contain"
+                      className="w-10 h-10 sm:w-12 sm:h-12 object-contain flex-shrink-0"
                     />
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">Telebirr</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">Pay with Telebirr mobile wallet</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Telebirr</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 break-words">Pay with Telebirr mobile wallet</p>
                     </div>
-                    <div className={`w-5 h-5 rounded-full border-2 ${
+                    <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex-shrink-0 ${
                       selectedMethod === 'telebirr' 
                         ? 'border-blue-500 bg-blue-500' 
                         : 'border-gray-300 dark:border-gray-600'
@@ -205,24 +211,24 @@ const PaymentPage = () => {
 
                 {/* CBE */}
                 <div 
-                  className={`border-2 rounded-xl p-4 cursor-pointer transition-all ${
+                  className={`border-2 rounded-xl p-3 sm:p-4 cursor-pointer transition-all ${
                     selectedMethod === 'cbe' 
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                   onClick={() => setSelectedMethod('cbe')}
                 >
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-3 sm:space-x-4">
                     <img 
                       src="/assets/images/cbe.png" 
                       alt="CBE"
-                      className="w-12 h-12 object-contain"
+                      className="w-10 h-10 sm:w-12 sm:h-12 object-contain flex-shrink-0"
                     />
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">Commercial Bank of Ethiopia</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">Pay with CBE mobile banking</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Commercial Bank of Ethiopia</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 break-words">Pay with CBE mobile banking</p>
                     </div>
-                    <div className={`w-5 h-5 rounded-full border-2 ${
+                    <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex-shrink-0 ${
                       selectedMethod === 'cbe' 
                         ? 'border-blue-500 bg-blue-500' 
                         : 'border-gray-300 dark:border-gray-600'
@@ -236,12 +242,12 @@ const PaymentPage = () => {
               </div>
 
               {/* Security Notice */}
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 mb-6">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
                 <div className="flex items-center mb-2">
-                  <Shield className="h-5 w-5 text-green-500 mr-2" />
+                  <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2 flex-shrink-0" />
                   <span className="font-semibold text-gray-900 dark:text-white text-sm">Secure Payment</span>
                 </div>
-                <p className="text-xs text-gray-600 dark:text-gray-300">
+                <p className="text-xs text-gray-600 dark:text-gray-300 break-words leading-relaxed">
                   Your payment information is encrypted and secure. We use industry-standard security measures.
                 </p>
               </div>
@@ -250,7 +256,7 @@ const PaymentPage = () => {
               <button 
                 onClick={handlePayment}
                 disabled={!selectedMethod || processing}
-                className={`w-full py-4 px-6 rounded-2xl font-semibold text-lg transition-all ${
+                className={`w-full py-3 sm:py-4 px-4 sm:px-6 rounded-2xl font-semibold text-base sm:text-lg transition-all ${
                   selectedMethod && !processing
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transform hover:-translate-y-1'
                     : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
