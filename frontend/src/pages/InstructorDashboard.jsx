@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, BellRing, BellOff, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe, Heart } from 'lucide-react';
-import { profileAPI, courseAPI, instructorAPI, subscriptionAPI } from '../services/api';
+import { profileAPI, courseAPI, instructorAPI, subscriptionAPI, notificationAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 import { useTranslation } from 'react-i18next';
@@ -28,34 +28,10 @@ const InstructorDashboard = () => {
   const [showCourseResourcesSubmenu, setShowCourseResourcesSubmenu] = useState(false);
 
   // Admin notifications state
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: 'New Student Enrolled',
-      message: 'John Doe enrolled in Advanced Mathematics',
-      time: '1 hour ago',
-      read: false,
-      type: 'info'
-    },
-    {
-      id: 2,
-      title: 'Assignment Submitted',
-      message: 'Sarah submitted Physics Lab Report',
-      time: '3 hours ago',
-      read: false,
-      type: 'success'
-    },
-    {
-      id: 3,
-      title: 'Course Review Posted',
-      message: 'New 5-star review on Chemistry Course',
-      time: '1 day ago',
-      read: true,
-      type: 'success'
-    }
-  ]);
+  const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [hasNewNotifications, setHasNewNotifications] = useState(true);
+  const [hasNewNotifications, setHasNewNotifications] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
 
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courses, setCourses] = useState([]);
@@ -201,36 +177,56 @@ const InstructorDashboard = () => {
     fetchInstructorStudents();
     if (userData) {
       fetchSubscriptionStatus();
+      fetchNotifications();
     }
   }, []);
 
-  // Check for notifications on load
-  useEffect(() => {
-    if (user?.role === 'instructor' && hasNewNotifications) {
-      setTimeout(() => playNotificationSound(), 1000);
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      setNotificationsLoading(true);
+      const response = await notificationAPI.getMyNotifications();
+      setNotifications(response.data.notifications);
+      setHasNewNotifications(response.data.unreadCount > 0);
+    } catch (error) {
+      console.error('Fetch notifications error:', error);
+    } finally {
+      setNotificationsLoading(false);
     }
-  }, [user, hasNewNotifications]);
+  };
 
-  // Simulate new notification
-  useEffect(() => {
-    if (user?.role === 'instructor') {
-      const interval = setInterval(() => {
-        const newNotif = {
-          id: Date.now(),
-          title: 'New Assignment Submission',
-          message: 'Michael submitted Calculus Assignment 3',
-          time: 'Just now',
-          read: false,
-          type: 'info'
-        };
-        setNotifications(prev => [newNotif, ...prev]);
-        setHasNewNotifications(true);
-        playNotificationSound();
-      }, 30000); // Every 30 seconds for demo
-      
-      return () => clearInterval(interval);
+  // Mark notification as read
+  const markNotificationAsRead = async (notificationId) => {
+    try {
+      await notificationAPI.markAsRead(notificationId);
+      setNotifications(prev => prev.map(n => 
+        n.id === notificationId ? { ...n, read: true } : n
+      ));
+    } catch (error) {
+      console.error('Mark notification as read error:', error);
     }
-  }, [user]);
+  };
+
+  // Mark all notifications as read
+  const markAllNotificationsAsRead = async () => {
+    try {
+      await notificationAPI.markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setHasNewNotifications(false);
+    } catch (error) {
+      console.error('Mark all notifications as read error:', error);
+    }
+  };
+
+  // Delete notification
+  const deleteNotification = async (notificationId) => {
+    try {
+      await notificationAPI.deleteNotification(notificationId);
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+    } catch (error) {
+      console.error('Delete notification error:', error);
+    }
+  };
 
   const fetchSubscriptionStatus = async () => {
     try {
@@ -524,14 +520,19 @@ const InstructorDashboard = () => {
                           <div className="flex-1 min-w-0">
                             <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{notif.title}</h4>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{notif.message}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-500">{notif.time}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mb-1">{notif.time}</p>
+                            {notif.sender && (
+                              <p className="text-xs text-gray-500 dark:text-gray-500">
+                                from {notif.sender.role === 'superadmin' ? 'superadmin' : notif.sender.role === 'admin' ? 'admin' : notif.sender.role}
+                              </p>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
                             {!notif.read && (
                               <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
                             )}
                             <button
-                              onClick={() => setNotifications(prev => prev.filter(n => n.id !== notif.id))}
+                              onClick={() => deleteNotification(notif.id)}
                               className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
                             >
                               <X className="h-3 w-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
@@ -544,10 +545,7 @@ const InstructorDashboard = () => {
                 </div>
                 <div className="p-3 border-t border-gray-200 dark:border-gray-700">
                   <button
-                    onClick={() => {
-                      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                      setHasNewNotifications(false);
-                    }}
+                    onClick={markAllNotificationsAsRead}
                     className="w-full text-sm text-blue-600 hover:text-blue-700 font-medium"
                   >
                     Mark all as read
@@ -2196,21 +2194,31 @@ const InstructorDashboard = () => {
                 
                 <div className="flex gap-3 pt-4">
                   <button
-                    onClick={() => {
-                      console.log('Sending notification:', {
-                        course: selectedNotificationCourse.title,
-                        title: notificationForm.title,
-                        message: notificationForm.message
-                      });
-                      setShowNotificationForm(false);
-                      setSelectedNotificationCourse(null);
-                      setNotificationForm({ title: '', message: '' });
-                      showNotification('success', 'Notification Sent', `Notification sent to ${selectedNotificationCourse.title} students`);
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        await notificationAPI.sendNotification({
+                          title: notificationForm.title,
+                          message: notificationForm.message,
+                          role: 'student',
+                          course: selectedNotificationCourse._id
+                        });
+                        
+                        setShowNotificationForm(false);
+                        setSelectedNotificationCourse(null);
+                        setNotificationForm({ title: '', message: '' });
+                        showNotification('success', 'Notification Sent', `Notification sent to ${selectedNotificationCourse.title} students`);
+                      } catch (error) {
+                        console.error('Send notification error:', error);
+                        showNotification('error', 'Send Failed', error.response?.data?.message || 'Failed to send notification');
+                      } finally {
+                        setLoading(false);
+                      }
                     }}
-                    disabled={!notificationForm.title || !notificationForm.message}
+                    disabled={!notificationForm.title || !notificationForm.message || loading}
                     className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Send Notification
+                    {loading ? 'Sending...' : 'Send Notification'}
                   </button>
                   <button
                     onClick={() => {

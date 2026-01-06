@@ -78,6 +78,9 @@ app.use('/api/subscriptions', require('./routes/subscriptions'));
 // Comment routes
 app.use('/api/comments', require('./routes/comments'));
 
+// Notification routes
+app.use('/api/notifications', require('./routes/notifications'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

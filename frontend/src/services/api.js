@@ -253,4 +253,22 @@ export const commentAPI = {
   deleteComment: (commentId) => api.delete(`/comments/${commentId}`),
 };
 
+// Notification API functions
+export const notificationAPI = {
+  // Send notification (Admin/SuperAdmin only)
+  sendNotification: (notificationData) => api.post('/notifications/send', notificationData),
+  
+  // Get user's notifications
+  getMyNotifications: (params = {}) => api.get('/notifications/my-notifications', { params }),
+  
+  // Mark notification as read
+  markAsRead: (notificationId) => api.patch(`/notifications/${notificationId}/read`),
+  
+  // Mark all notifications as read
+  markAllAsRead: () => api.patch('/notifications/mark-all-read'),
+  
+  // Delete notification
+  deleteNotification: (notificationId) => api.delete(`/notifications/${notificationId}`),
+};
+
 export default api;

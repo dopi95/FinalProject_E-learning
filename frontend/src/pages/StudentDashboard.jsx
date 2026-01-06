@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellRing, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star, Globe, Heart, Settings } from 'lucide-react';
-import { profileAPI, enrollmentAPI, paymentAPI, subscriptionAPI } from '../services/api';
+import { profileAPI, enrollmentAPI, paymentAPI, subscriptionAPI, notificationAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 import { useTranslation } from 'react-i18next';
@@ -32,34 +32,10 @@ const StudentDashboard = () => {
   const [showSubscribeMenu, setShowSubscribeMenu] = useState(false);
   const [showLikedOnly, setShowLikedOnly] = useState(false);
   // Admin notifications state
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: 'New Assignment Posted',
-      message: 'Mathematics - Due in 3 days',
-      time: '2 hours ago',
-      read: false,
-      type: 'info'
-    },
-    {
-      id: 2,
-      title: 'Grade Published',
-      message: 'Physics Quiz - 92%',
-      time: '1 day ago',
-      read: false,
-      type: 'success'
-    },
-    {
-      id: 3,
-      title: 'Schedule Updated',
-      message: 'Chemistry Lab - Tomorrow 2:00 PM',
-      time: '2 days ago',
-      read: true,
-      type: 'info'
-    }
-  ]);
+  const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [hasNewNotifications, setHasNewNotifications] = useState(true);
+  const [hasNewNotifications, setHasNewNotifications] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -167,33 +143,52 @@ const StudentDashboard = () => {
     oscillator.stop(audioContext.currentTime + 0.3);
   };
 
-  // Check for notifications on load
-  useEffect(() => {
-    if (user?.role === 'student' && hasNewNotifications) {
-      setTimeout(() => playNotificationSound(), 1000);
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      setNotificationsLoading(true);
+      const response = await notificationAPI.getMyNotifications();
+      setNotifications(response.data.notifications);
+      setHasNewNotifications(response.data.unreadCount > 0);
+    } catch (error) {
+      console.error('Fetch notifications error:', error);
+    } finally {
+      setNotificationsLoading(false);
     }
-  }, [user, hasNewNotifications]);
+  };
 
-  // Simulate new notification
-  useEffect(() => {
-    if (user?.role === 'student') {
-      const interval = setInterval(() => {
-        const newNotif = {
-          id: Date.now(),
-          title: 'New Course Available',
-          message: 'Advanced Programming - Enroll now!',
-          time: 'Just now',
-          read: false,
-          type: 'info'
-        };
-        setNotifications(prev => [newNotif, ...prev]);
-        setHasNewNotifications(true);
-        playNotificationSound();
-      }, 30000); // Every 30 seconds for demo
-      
-      return () => clearInterval(interval);
+  // Mark notification as read
+  const markNotificationAsRead = async (notificationId) => {
+    try {
+      await notificationAPI.markAsRead(notificationId);
+      setNotifications(prev => prev.map(n => 
+        n.id === notificationId ? { ...n, read: true } : n
+      ));
+    } catch (error) {
+      console.error('Mark notification as read error:', error);
     }
-  }, [user]);
+  };
+
+  // Mark all notifications as read
+  const markAllNotificationsAsRead = async () => {
+    try {
+      await notificationAPI.markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setHasNewNotifications(false);
+    } catch (error) {
+      console.error('Mark all notifications as read error:', error);
+    }
+  };
+
+  // Delete notification
+  const deleteNotification = async (notificationId) => {
+    try {
+      await notificationAPI.deleteNotification(notificationId);
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+    } catch (error) {
+      console.error('Delete notification error:', error);
+    }
+  };
 
   const playSound = (type) => {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -650,6 +645,8 @@ const StudentDashboard = () => {
     fetchEnrolledCourses();
     // Fetch grades
     fetchGrades();
+    // Fetch notifications
+    fetchNotifications();
   }, [searchParams]);
 
   // Fetch payments when user is loaded
@@ -814,14 +811,19 @@ const StudentDashboard = () => {
                           <div className="flex-1 min-w-0">
                             <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{notif.title}</h4>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{notif.message}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-500">{notif.time}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mb-1">{notif.time}</p>
+                            {notif.sender && (
+                              <p className="text-xs text-gray-500 dark:text-gray-500">
+                                from {notif.sender.role === 'superadmin' ? 'superadmin' : notif.sender.role === 'admin' ? 'admin' : notif.sender.role}
+                              </p>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
                             {!notif.read && (
                               <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
                             )}
                             <button
-                              onClick={() => setNotifications(prev => prev.filter(n => n.id !== notif.id))}
+                              onClick={() => deleteNotification(notif.id)}
                               className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
                             >
                               <X className="h-3 w-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
@@ -834,10 +836,7 @@ const StudentDashboard = () => {
                 </div>
                 <div className="p-3 border-t border-gray-200 dark:border-gray-700">
                   <button
-                    onClick={() => {
-                      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                      setHasNewNotifications(false);
-                    }}
+                    onClick={markAllNotificationsAsRead}
                     className="w-full text-sm text-blue-600 hover:text-blue-700 font-medium"
                   >
                     Mark all as read
