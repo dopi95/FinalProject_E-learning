@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown, Heart, Download, Calendar, Clock, MapPin, Save, Bell, BellRing } from 'lucide-react';
 import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI } from '../services/api';
+import api from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import SubscriptionManagement from '../components/SubscriptionManagement';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
@@ -66,15 +67,10 @@ const SuperAdminDashboard = () => {
   // Schedule management state
   const [selectedCourseForSchedule, setSelectedCourseForSchedule] = useState(null);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [showCourseSchedules, setShowCourseSchedules] = useState(false);
   const [schedules, setSchedules] = useState([]);
   const [scheduleForm, setScheduleForm] = useState({
-    title: '',
-    description: '',
-    date: '',
-    startTime: '',
-    endTime: '',
-    location: '',
-    type: 'lecture'
+    sessions: [{ day: 'monday', startTime: '', endTime: '', room: '' }]
   });
 
   // Notification state
@@ -315,9 +311,18 @@ const SuperAdminDashboard = () => {
       const response = await courseAPI.getCourses(params);
       let filteredCourses = response.data.courses;
       
+      // Debug: Log course data to see what fields are available
+      console.log('Course data:', filteredCourses[0]);
+      
+      // Map courses to ensure student count is available
+      const coursesWithStudentCount = filteredCourses.map(course => ({
+        ...course,
+        studentCount: course.studentCount || course.enrollmentCount || course.enrollments?.length || course.students?.length || 0
+      }));
+      
       // Filter by status
       if (selectedStatus !== 'all') {
-        filteredCourses = filteredCourses.filter(course => {
+        filteredCourses = coursesWithStudentCount.filter(course => {
           const now = new Date();
           const startDate = course.startDate ? new Date(course.startDate) : null;
           const endDate = course.endDate ? new Date(course.endDate) : null;
@@ -337,6 +342,8 @@ const SuperAdminDashboard = () => {
           }
           return true;
         });
+      } else {
+        filteredCourses = coursesWithStudentCount;
       }
       
       setCourses(filteredCourses);
@@ -527,7 +534,18 @@ const SuperAdminDashboard = () => {
       if (selectedCourseFilter !== 'all') params.course = selectedCourseFilter;
       
       const response = await usersAPI.getUsers(params);
-      setUsers(response.data.users);
+      const fetchedUsers = response.data.users || [];
+      
+      // Filter to show only real registered users (exclude any test/demo data)
+      const realUsers = fetchedUsers.filter(user => 
+        user.email && 
+        user.name && 
+        user.createdAt && 
+        !user.email.includes('test') && 
+        !user.email.includes('demo')
+      );
+      
+      setUsers(realUsers);
       
       // Calculate total payments for students
       if (selectedRole === 'student') {
@@ -542,6 +560,7 @@ const SuperAdminDashboard = () => {
     } catch (error) {
       console.error('Error fetching users:', error);
       showNotification('error', 'Error', 'Failed to fetch users');
+      setUsers([]); // Set empty array on error
     } finally {
       setUsersLoading(false);
     }
@@ -1037,24 +1056,58 @@ const SuperAdminDashboard = () => {
     setScheduleForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleSessionChange = (index, field, value) => {
+    setScheduleForm(prev => ({
+      ...prev,
+      sessions: prev.sessions.map((session, i) => 
+        i === index ? { ...session, [field]: value } : session
+      )
+    }));
+  };
+
+  const addSession = () => {
+    setScheduleForm(prev => ({
+      ...prev,
+      sessions: [...prev.sessions, { day: 'monday', startTime: '', endTime: '', room: '' }]
+    }));
+  };
+
+  const removeSession = (index) => {
+    setScheduleForm(prev => ({
+      ...prev,
+      sessions: prev.sessions.filter((_, i) => i !== index)
+    }));
+  };
+
   const handleCreateSchedule = () => {
-    if (!selectedCourseForSchedule || !scheduleForm.title || !scheduleForm.date || !scheduleForm.startTime || !scheduleForm.endTime) {
+    if (!selectedCourseForSchedule || scheduleForm.sessions.some(s => !s.day || !s.startTime || !s.endTime)) {
       showNotification('error', 'Error', 'Please fill all required fields');
       return;
     }
 
-    const newSchedule = {
-      id: Date.now(),
-      courseId: selectedCourseForSchedule._id,
-      courseTitle: selectedCourseForSchedule.title,
-      ...scheduleForm,
-      createdAt: new Date().toISOString()
-    };
+    if (scheduleForm.id) {
+      // Update existing schedule
+      setSchedules(prev => prev.map(schedule => 
+        schedule.id === scheduleForm.id 
+          ? { ...schedule, sessions: scheduleForm.sessions }
+          : schedule
+      ));
+      showNotification('success', 'Schedule Updated!', 'Class schedule has been successfully updated');
+    } else {
+      // Create new schedule
+      const newSchedule = {
+        id: Date.now(),
+        courseId: selectedCourseForSchedule._id,
+        courseTitle: selectedCourseForSchedule.title,
+        sessions: scheduleForm.sessions,
+        createdAt: new Date().toISOString()
+      };
+      setSchedules(prev => [...prev, newSchedule]);
+      showNotification('success', 'Schedule Created!', 'Class schedule has been successfully created');
+    }
 
-    setSchedules(prev => [...prev, newSchedule]);
-    setScheduleForm({ title: '', description: '', date: '', startTime: '', endTime: '', location: '', type: 'lecture' });
+    setScheduleForm({ sessions: [{ day: 'monday', startTime: '', endTime: '', room: '' }] });
     setShowScheduleForm(false);
-    showNotification('success', 'Schedule Created!', 'Schedule has been successfully created');
   };
 
   const handleDeleteSchedule = (scheduleId) => {
@@ -1611,7 +1664,7 @@ const SuperAdminDashboard = () => {
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/6">Instructor</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-16">Price</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-20">Status</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-16">Stats</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-16">Likes</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-20">Actions</th>
               </tr>
             </thead>
@@ -1629,6 +1682,9 @@ const SuperAdminDashboard = () => {
                   </td>
                   <td className="px-3 py-4">
                     <div className="text-sm text-gray-900 dark:text-white truncate">{course.instructor?.name || 'Unknown'}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      👥 {course.studentCount || course.enrollmentCount || course.enrollments?.length || course.students?.length || 0}
+                    </div>
                   </td>
                   <td className="px-3 py-4">
                     <span className="text-sm font-medium text-gray-900 dark:text-white">{course.price}</span>
@@ -1657,11 +1713,10 @@ const SuperAdminDashboard = () => {
                   </td>
                   <td className="px-3 py-4">
                     <div className="text-xs text-gray-600 dark:text-gray-400">
-                      <div className="flex items-center gap-1 mb-1">
+                      <div className="flex items-center gap-1">
                         <Heart className="h-3 w-3 text-red-500" />
                         <span>{course.stars?.length || 0}</span>
                       </div>
-                      <div>👥 {course.studentCount || 0}</div>
                     </div>
                   </td>
                   <td className="px-3 py-4">
@@ -2255,276 +2310,474 @@ const SuperAdminDashboard = () => {
   );
   const renderSchedules = () => (
     <div className="space-y-4 lg:space-y-6">
-      {/* Header with enhanced mobile design */}
+      {/* Header */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-4 lg:p-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <Calendar className="h-6 w-6 text-blue-600" />
-              Schedule Management
+              Assign Schedule
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Assign and manage course schedules for all courses
+              Manage course schedules and assignments
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-2 rounded-lg">
-              <Calendar className="h-4 w-4" />
-              <span>{schedules.length} schedules created</span>
-            </div>
-            {selectedCourseForSchedule && (
-              <button 
-                onClick={() => setShowScheduleForm(true)} 
-                className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
-              >
-                <Plus className="h-4 w-4" /> 
-                Add Schedule
-              </button>
-            )}
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-2 rounded-lg">
+            <Calendar className="h-4 w-4" />
+            <span>{schedules.length} total schedules</span>
           </div>
         </div>
       </div>
 
-      {!selectedCourseForSchedule ? (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <BookOpen className="h-8 w-8 text-blue-600" />
+      {/* Courses Table with Schedule Management */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+        <div className="px-4 lg:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <div className="relative w-full sm:w-auto">
+                <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search courses..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 w-full sm:w-64 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                />
+              </div>
+              <select 
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-3 py-2 w-full sm:w-auto border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+              >
+                <option value="all">All Categories</option>
+                {categories.map((category) => (
+                  <option key={category._id} value={category.slug}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Select Course to Assign Schedule</h3>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Choose a course from the list below to create and manage its schedules</p>
           </div>
-          
+        </div>
+        
+        {/* Desktop Table View */}
+        <div className="hidden lg:block overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Course</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Instructor</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Students</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Schedules</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {courses.map((course) => {
+                const courseSchedules = schedules.filter(s => s.courseId === course._id);
+                return (
+                  <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <img className="h-12 w-12 rounded-lg object-cover mr-4 flex-shrink-0" src={course.image} alt={course.title} />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{course.title}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{categories.find(cat => cat.slug === course.category)?.name || course.category}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 dark:text-white">{course.instructor?.name || 'Not assigned'}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1">
+                        <Users className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{course.studentCount || course.enrollmentCount || course.enrollments?.length || course.students?.length || 0}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{courseSchedules.length}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {(() => {
+                        if (!course.startDate && !course.endDate) {
+                          return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">Active</span>;
+                        }
+                        const now = new Date();
+                        const startDate = course.startDate ? new Date(course.startDate) : null;
+                        const endDate = course.endDate ? new Date(course.endDate) : null;
+                        
+                        if (startDate && now < startDate) {
+                          return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300">Not Started</span>;
+                        } else if (endDate) {
+                          const endOfDay = new Date(endDate);
+                          endOfDay.setHours(23, 59, 59, 999);
+                          if (now > endOfDay) {
+                            return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">Closed</span>;
+                          }
+                        }
+                        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">Active</span>;
+                      })()
+                      }
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={() => {
+                            setSelectedCourseForSchedule(course);
+                            setScheduleForm({ sessions: [{ day: 'monday', startTime: '', endTime: '', room: '' }] });
+                            setShowScheduleForm(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                          title="Create Schedule"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setSelectedCourseForSchedule(course);
+                            setShowCourseSchedules(true);
+                          }}
+                          className="text-green-600 hover:text-green-800 p-1.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                          title="View Schedules"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        {courseSchedules.length > 0 && (
+                          <button 
+                            onClick={() => {
+                              setSelectedCourseForSchedule(course);
+                              const latestSchedule = courseSchedules[courseSchedules.length - 1];
+                              setScheduleForm(latestSchedule);
+                              setShowScheduleForm(true);
+                            }}
+                            className="text-orange-600 hover:text-orange-800 p-1.5 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
+                            title="Edit Latest Schedule"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                        )}
+                        {courseSchedules.length > 0 && (
+                          <button 
+                            onClick={() => {
+                              if (window.confirm(`Are you sure you want to delete all schedules for ${course.title}?`)) {
+                                courseSchedules.forEach(schedule => handleDeleteSchedule(schedule.id));
+                              }
+                            }}
+                            className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            title="Delete All Schedules"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="lg:hidden">
           {courses.length === 0 ? (
             <div className="text-center py-12">
               <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Courses Available</h3>
-              <p className="text-gray-500 dark:text-gray-400">Create courses first to assign schedules.</p>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Courses Found</h3>
+              <p className="text-gray-500 dark:text-gray-400">Try adjusting your search or filters.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {courses.map((course) => (
-                <div 
-                  key={course._id} 
-                  className="group border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 cursor-pointer transform hover:-translate-y-1" 
-                  onClick={() => setSelectedCourseForSchedule(course)}
-                >
-                  <div className="relative overflow-hidden rounded-lg mb-3">
-                    <img 
-                      src={course.image} 
-                      alt={course.title} 
-                      className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  </div>
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                    {course.title}
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                      <User className="h-4 w-4" />
-                      <span>Instructor: {course.instructor?.name || 'Not assigned'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                      <Users className="h-4 w-4" />
-                      <span>Students: {course.studentCount || 0}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                      <Calendar className="h-4 w-4" />
-                      <span>Schedules: {schedules.filter(s => s.courseId === course._id).length}</span>
-                    </div>
-                  </div>
-                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        Click to manage
-                      </span>
-                      <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
-                        <Calendar className="h-3 w-3 text-blue-600 group-hover:text-white" />
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {courses.map((course) => {
+                const courseSchedules = schedules.filter(s => s.courseId === course._id);
+                return (
+                  <div key={course._id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    {/* Course Header */}
+                    <div className="flex items-start gap-3 mb-3">
+                      <img 
+                        className="h-16 w-16 rounded-xl object-cover flex-shrink-0" 
+                        src={course.image} 
+                        alt={course.title} 
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight mb-1">
+                          {course.title}
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          {categories.find(cat => cat.slug === course.category)?.name || course.category}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          By {course.instructor?.name || 'Not assigned'}
+                        </p>
                       </div>
                     </div>
+
+                    {/* Course Stats */}
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                      <div className="text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <Users className="h-3 w-3 text-blue-500" />
+                          <span className="text-xs font-medium text-gray-900 dark:text-white">{course.studentCount || course.enrollmentCount || course.enrollments?.length || course.students?.length || 0}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Students</p>
+                      </div>
+                      <div className="text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <Calendar className="h-3 w-3 text-green-500" />
+                          <span className="text-xs font-medium text-gray-900 dark:text-white">{courseSchedules.length}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Schedules</p>
+                      </div>
+                      <div className="text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
+                        <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">
+                          {new Date(course.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Created</p>
+                      </div>
+                    </div>
+
+                    {/* Course Status */}
+                    <div className="mb-4 flex justify-center">
+                      {(() => {
+                        if (!course.startDate && !course.endDate) {
+                          return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">Active</span>;
+                        }
+                        const now = new Date();
+                        const startDate = course.startDate ? new Date(course.startDate) : null;
+                        const endDate = course.endDate ? new Date(course.endDate) : null;
+                        
+                        if (startDate && now < startDate) {
+                          return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300">Not Started</span>;
+                        } else if (endDate) {
+                          const endOfDay = new Date(endDate);
+                          endOfDay.setHours(23, 59, 59, 999);
+                          if (now > endOfDay) {
+                            return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">Closed</span>;
+                          }
+                        }
+                        return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">Active</span>;
+                      })()
+                      }
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedCourseForSchedule(course);
+                          setScheduleForm({ sessions: [{ day: 'monday', startTime: '', endTime: '', room: '' }] });
+                          setShowScheduleForm(true);
+                        }}
+                        className="flex items-center justify-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 py-2 px-3 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Create
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedCourseForSchedule(course);
+                          setShowCourseSchedules(true);
+                        }}
+                        className="flex items-center justify-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 py-2 px-3 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-sm font-medium"
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span className="hidden sm:inline">View ({courseSchedules.length})</span>
+                      </button>
+                      {courseSchedules.length > 0 && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setSelectedCourseForSchedule(course);
+                              const latestSchedule = courseSchedules[courseSchedules.length - 1];
+                              setScheduleForm(latestSchedule);
+                              setShowScheduleForm(true);
+                            }}
+                            className="flex items-center justify-center gap-2 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 py-2 px-3 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors text-sm font-medium"
+                          >
+                            <Edit className="h-4 w-4" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Delete all schedules for ${course.title}?`)) {
+                                courseSchedules.forEach(schedule => handleDeleteSchedule(schedule.id));
+                              }
+                            }}
+                            className="flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 py-2 px-3 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm font-medium"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
-      ) : (
-        <div className="space-y-6">
-          {/* Selected Course Header - Enhanced */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 lg:p-6">
-              <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <img 
-                      src={selectedCourseForSchedule.image} 
-                      alt={selectedCourseForSchedule.title} 
-                      className="w-16 h-16 lg:w-20 lg:h-20 object-cover rounded-xl border-2 border-white/20" 
-                    />
-                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                      <CheckCircle className="h-3 w-3 text-white" />
-                    </div>
-                  </div>
-                  <div className="text-white">
-                    <h3 className="text-lg lg:text-xl font-bold mb-1">{selectedCourseForSchedule.title}</h3>
-                    <p className="text-blue-100 text-sm mb-2">Instructor: {selectedCourseForSchedule.instructor?.name}</p>
-                    <div className="flex flex-wrap gap-3 text-xs">
-                      <span className="bg-white/20 px-2 py-1 rounded-full">
-                        👥 {selectedCourseForSchedule.studentCount || 0} Students
-                      </span>
-                      <span className="bg-white/20 px-2 py-1 rounded-full">
-                        📅 {schedules.filter(s => s.courseId === selectedCourseForSchedule._id).length} Schedules
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2 lg:ml-auto">
-                  <button 
-                    onClick={() => setShowScheduleForm(true)} 
-                    className="w-full sm:w-auto bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 flex items-center justify-center gap-2 text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
-                  >
-                    <Plus className="h-4 w-4" /> 
-                    Add New Schedule
-                  </button>
-                  <button 
-                    onClick={() => setSelectedCourseForSchedule(null)} 
-                    className="w-full sm:w-auto bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 text-sm font-medium transition-all duration-200"
-                  >
-                    ← Back to Courses
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Course Schedules - Enhanced */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-blue-600" />
-                Course Schedules
-              </h4>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                {schedules.filter(s => s.courseId === selectedCourseForSchedule._id).length} schedules
-              </div>
-            </div>
-            
-            {schedules.filter(s => s.courseId === selectedCourseForSchedule._id).length === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="h-10 w-10 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Schedules Yet</h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-4">Create your first schedule for this course to get started.</p>
-                <button 
-                  onClick={() => setShowScheduleForm(true)}
-                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto transition-all duration-200"
-                >
-                  <Plus className="h-4 w-4" />
-                  Create First Schedule
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {schedules.filter(s => s.courseId === selectedCourseForSchedule._id).map((schedule) => (
-                  <div key={schedule.id} className="group border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <h5 className="font-semibold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                          {schedule.title}
-                        </h5>
-                        <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full ${
-                          schedule.type === 'lecture' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
-                          schedule.type === 'exam' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' :
-                          'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-                        }`}>
-                          {schedule.type === 'lecture' ? '📚' : schedule.type === 'exam' ? '📝' : '📋'} {schedule.type}
-                        </span>
-                      </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <button 
-                          onClick={() => {
-                            setScheduleForm(schedule);
-                            setShowScheduleForm(true);
-                          }} 
-                          className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                          title="Edit Schedule"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteSchedule(schedule.id)} 
-                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                          title="Delete Schedule"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                          <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                            <Calendar className="h-4 w-4 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Date</p>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">
-                              {new Date(schedule.date).toLocaleDateString('en-US', {
-                                weekday: 'short',
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                          <div className="w-8 h-8 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-                            <Clock className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Time</p>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">
-                              {schedule.startTime} - {schedule.endTime}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {schedule.location && (
-                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                          <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                            <MapPin className="h-4 w-4 text-purple-600" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Location</p>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{schedule.location}</p>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {schedule.description && (
-                        <div className="p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg border-l-4 border-blue-500">
-                          <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Description</p>
-                          <p className="text-sm text-gray-700 dark:text-gray-300">{schedule.description}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Enhanced Schedule Form Modal */}
       {showScheduleForm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-2xl lg:max-w-3xl max-h-[95vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 sm:p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-bold text-white">
+                      {scheduleForm.id ? 'Update Class Sessions' : 'Create Class Sessions'}
+                    </h3>
+                    <p className="text-blue-100 text-xs sm:text-sm truncate max-w-[200px] sm:max-w-none">{selectedCourseForSchedule?.title}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => {
+                    setShowScheduleForm(false);
+                    setScheduleForm({ sessions: [{ day: 'monday', startTime: '', endTime: '', room: '' }] });
+                  }} 
+                  className="p-1.5 sm:p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-3 sm:p-6 overflow-y-auto" style={{ maxHeight: 'calc(95vh - 140px)' }}>
+              <div className="space-y-4 sm:space-y-6">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Class Sessions</h4>
+                  <button
+                    onClick={addSession}
+                    className="bg-blue-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:bg-blue-700 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                    Add Session
+                  </button>
+                </div>
+                
+                <div className="space-y-3 sm:space-y-4">
+                  {scheduleForm.sessions.map((session, index) => (
+                    <div key={index} className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-6 bg-gray-50 dark:bg-gray-700/30">
+                      <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <h5 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-lg">Session {index + 1}</h5>
+                        {scheduleForm.sessions.length > 1 && (
+                          <button
+                            onClick={() => removeSession(index)}
+                            className="text-red-600 hover:text-red-800 p-1 sm:p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Remove Session"
+                          >
+                            <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                          </button>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
+                        <div>
+                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
+                            Day of Week *
+                          </label>
+                          <select
+                            value={session.day}
+                            onChange={(e) => handleSessionChange(index, 'day', e.target.value)}
+                            className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                          >
+                            <option value="monday">Monday</option>
+                            <option value="tuesday">Tuesday</option>
+                            <option value="wednesday">Wednesday</option>
+                            <option value="thursday">Thursday</option>
+                            <option value="friday">Friday</option>
+                            <option value="saturday">Saturday</option>
+                            <option value="sunday">Sunday</option>
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
+                            Room/Location
+                          </label>
+                          <input
+                            type="text"
+                            value={session.room}
+                            onChange={(e) => handleSessionChange(index, 'room', e.target.value)}
+                            className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                            placeholder="e.g., Room 101"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 sm:gap-6 mt-3 sm:mt-6">
+                        <div>
+                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
+                            Start Time *
+                          </label>
+                          <input
+                            type="time"
+                            value={session.startTime}
+                            onChange={(e) => handleSessionChange(index, 'startTime', e.target.value)}
+                            className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
+                            End Time *
+                          </label>
+                          <input
+                            type="time"
+                            value={session.endTime}
+                            onChange={(e) => handleSessionChange(index, 'endTime', e.target.value)}
+                            className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="border-t border-gray-200 dark:border-gray-700 p-3 sm:p-6 bg-gray-50 dark:bg-gray-800">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                <button 
+                  onClick={handleCreateSchedule}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 sm:py-4 px-4 sm:px-6 rounded-xl hover:from-blue-700 hover:to-indigo-700 flex items-center justify-center gap-2 sm:gap-3 font-semibold text-sm sm:text-base transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  <Save className="h-4 w-4 sm:h-5 sm:w-5" /> 
+                  {scheduleForm.id ? 'Update Sessions' : 'Create Sessions'}
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowScheduleForm(false);
+                    setScheduleForm({ sessions: [{ day: 'monday', startTime: '', endTime: '', room: '' }] });
+                  }} 
+                  className="flex-1 bg-gray-500 text-white py-3 sm:py-4 px-4 sm:px-6 rounded-xl hover:bg-gray-600 font-semibold text-sm sm:text-base transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Course Schedules View Modal */}
+      {showCourseSchedules && selectedCourseForSchedule && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-hidden">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 sm:p-6">
               <div className="flex items-center justify-between">
@@ -2534,152 +2787,110 @@ const SuperAdminDashboard = () => {
                   </div>
                   <div>
                     <h3 className="text-lg sm:text-xl font-bold text-white">
-                      {scheduleForm.id ? 'Edit Schedule' : 'Create New Schedule'}
+                      Course Schedules
                     </h3>
                     <p className="text-blue-100 text-sm">{selectedCourseForSchedule.title}</p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => {
-                    setShowScheduleForm(false);
-                    setScheduleForm({ title: '', description: '', date: '', startTime: '', endTime: '', location: '', type: 'lecture' });
-                  }} 
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                >
-                  <X className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      setShowCourseSchedules(false);
+                      setScheduleForm({ sessions: [{ day: 'monday', startTime: '', endTime: '', room: '' }] });
+                      setShowScheduleForm(true);
+                    }} 
+                    className="bg-white/20 text-white px-3 py-2 rounded-lg hover:bg-white/30 text-sm font-medium transition-all duration-200 flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Session
+                  </button>
+                  <button 
+                    onClick={() => setShowCourseSchedules(false)} 
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  >
+                    <X className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                  </button>
+                </div>
               </div>
             </div>
             
             {/* Modal Body */}
             <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(95vh-120px)]">
-              <div className="space-y-6">
-                {/* Title and Type Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Schedule Title *
-                    </label>
-                    <input 
-                      type="text" 
-                      value={scheduleForm.title} 
-                      onChange={(e) => handleScheduleFormChange('title', e.target.value)} 
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200" 
-                      placeholder="e.g., Week 1 Introduction Lecture" 
-                    />
+              {schedules.filter(s => s.courseId === selectedCourseForSchedule._id).length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Calendar className="h-10 w-10 text-gray-400" />
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Schedule Type
-                    </label>
-                    <select 
-                      value={scheduleForm.type} 
-                      onChange={(e) => handleScheduleFormChange('type', e.target.value)} 
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200"
-                    >
-                      <option value="lecture">📚 Lecture</option>
-                      <option value="exam">📝 Exam</option>
-                      <option value="assignment">📋 Assignment</option>
-                      <option value="lab">🔬 Lab Session</option>
-                      <option value="seminar">🎯 Seminar</option>
-                    </select>
-                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Schedules Yet</h3>
+                  <p className="text-gray-500 dark:text-gray-400 mb-6">Create your first schedule for this course to get started.</p>
+                  <button 
+                    onClick={() => {
+                      setShowCourseSchedules(false);
+                      setScheduleForm({ title: '', description: '', date: '', startTime: '', endTime: '', location: '', type: 'lecture' });
+                      setShowScheduleForm(true);
+                    }}
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto transition-all duration-200"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create First Schedule
+                  </button>
                 </div>
-                
-                {/* Date and Time Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Date *
-                    </label>
-                    <input 
-                      type="date" 
-                      value={scheduleForm.date} 
-                      onChange={(e) => handleScheduleFormChange('date', e.target.value)} 
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200" 
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Start Time *
-                    </label>
-                    <input 
-                      type="time" 
-                      value={scheduleForm.startTime} 
-                      onChange={(e) => handleScheduleFormChange('startTime', e.target.value)} 
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200" 
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      End Time *
-                    </label>
-                    <input 
-                      type="time" 
-                      value={scheduleForm.endTime} 
-                      onChange={(e) => handleScheduleFormChange('endTime', e.target.value)} 
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200" 
-                    />
-                  </div>
+              ) : (
+                <div className="space-y-4">
+                  {schedules.filter(s => s.courseId === selectedCourseForSchedule._id).map((schedule) => (
+                    <div key={schedule.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-lg">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h5 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                            {schedule.courseTitle} - Class Schedule
+                          </h5>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Created: {new Date(schedule.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <button 
+                          onClick={() => handleDeleteSchedule(schedule.id)} 
+                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="Delete Schedule"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {schedule.sessions.map((session, index) => (
+                          <div key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+                            <div className="flex items-center gap-2 mb-3">
+                              <Calendar className="h-4 w-4 text-blue-600" />
+                              <span className="font-semibold text-blue-800 dark:text-blue-300 capitalize">
+                                {session.day}
+                              </span>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-3 w-3 text-gray-500" />
+                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                  {session.startTime} - {session.endTime}
+                                </span>
+                              </div>
+                              
+                              {session.room && (
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="h-3 w-3 text-gray-500" />
+                                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                                    {session.room}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                
-                {/* Location */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Location
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <input 
-                      type="text" 
-                      value={scheduleForm.location} 
-                      onChange={(e) => handleScheduleFormChange('location', e.target.value)} 
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200" 
-                      placeholder="e.g., Room 101, Online Meeting, Lab A" 
-                    />
-                  </div>
-                </div>
-                
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Description
-                  </label>
-                  <textarea 
-                    rows="4" 
-                    value={scheduleForm.description} 
-                    onChange={(e) => handleScheduleFormChange('description', e.target.value)} 
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none transition-all duration-200" 
-                    placeholder="Additional details about this schedule (optional)..." 
-                  />
-                </div>
-              </div>
-            </div>
-            
-            {/* Modal Footer */}
-            <div className="border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button 
-                  onClick={handleCreateSchedule} 
-                  disabled={!scheduleForm.title || !scheduleForm.date || !scheduleForm.startTime || !scheduleForm.endTime}
-                  className="w-full sm:flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-6 rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                  <Save className="h-4 w-4" /> 
-                  {scheduleForm.id ? 'Update Schedule' : 'Create Schedule'}
-                </button>
-                <button 
-                  onClick={() => {
-                    setShowScheduleForm(false);
-                    setScheduleForm({ title: '', description: '', date: '', startTime: '', endTime: '', location: '', type: 'lecture' });
-                  }} 
-                  className="w-full sm:flex-1 bg-gray-500 text-white py-3 px-6 rounded-lg hover:bg-gray-600 font-medium transition-all duration-200"
-                >
-                  Cancel
-                </button>
-              </div>
+              )}
             </div>
           </div>
         </div>
