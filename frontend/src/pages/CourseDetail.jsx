@@ -141,10 +141,10 @@ const CourseDetail = () => {
     }
     
     // Check registration dates FIRST - block if invalid
-    if (course.registrationStart || course.registrationEnd) {
+    if (course.startDate || course.endDate) {
       const now = new Date();
-      const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
-      const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+      const startDate = course.startDate ? new Date(course.startDate) : null;
+      const endDate = course.endDate ? new Date(course.endDate) : null;
       
       if (startDate && now < startDate) {
         setRegistrationModalType('not_started');
@@ -257,21 +257,20 @@ const CourseDetail = () => {
                       </span>
                       <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-1 rounded-full">
                         {(() => {
-                          if (!course.registrationStart && !course.registrationEnd) {
+                          if (!course.startDate && !course.endDate) {
                             return <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>;
                           }
                           const now = new Date();
-                          const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
-                          const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+                          const startDate = course.startDate ? new Date(course.startDate) : null;
+                          const endDate = course.endDate ? new Date(course.endDate) : null;
                           
                           if (startDate && now < startDate) {
                             return <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">Not Started</span>;
                           } else if (endDate) {
-                            // Set end date to end of day for comparison
                             const endOfDay = new Date(endDate);
                             endOfDay.setHours(23, 59, 59, 999);
                             if (now > endOfDay) {
-                              return <span className="text-sm font-semibold text-red-600 dark:text-red-400">Closed - Note: After {endDate.toLocaleDateString()}, the course is closed</span>;
+                              return <span className="text-sm font-semibold text-red-600 dark:text-red-400">Closed</span>;
                             }
                           }
                           return <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>;
@@ -421,31 +420,35 @@ const CourseDetail = () => {
                     </div>
                   </div>
 
-                  {/* Registration Dates */}
-                  {(course.registrationStart || course.registrationEnd) && (
-                    <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                      <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">{t('courses.registrationPeriod')}</h4>
-                      <div className="text-xs text-blue-700 dark:text-blue-400">
-                        {course.registrationStart && (
-                          <div className="flex items-center mb-1">
+                  {/* Course Dates Information */}
+                  {(course.startDate || course.endDate) && (
+                    <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                      <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">{t('courses.registrationPeriod')}:</h4>
+                      <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                        {course.startDate && (
+                          <div className="flex items-center">
                             <span className="font-medium mr-2">{t('courses.start')}:</span>
-                            <span>{new Date(course.registrationStart).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                            <span>{new Date(course.startDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                           </div>
                         )}
-                        {course.registrationEnd && (
-                          <div className="flex items-center mb-2">
+                        {course.endDate && (
+                          <div className="flex items-center">
                             <span className="font-medium mr-2">{t('courses.end')}:</span>
-                            <span>{new Date(course.registrationEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                            <span>{new Date(course.endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                           </div>
                         )}
-                        {course.registrationEnd && (
-                          <div className="text-xs text-red-600 dark:text-red-400 font-medium mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded">
-                            {t('courses.deadlineNote', { date: new Date(course.registrationEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) })}
+                        {course.endDate && (
+                          <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border-l-4 border-red-500">
+                            <p className="text-sm text-red-700 dark:text-red-300 font-medium">
+                              {t('courses.deadlineNote', { date: new Date(course.endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) })}
+                            </p>
                           </div>
                         )}
                       </div>
                     </div>
                   )}
+
+
                 </div>
               </div>
             </div>
@@ -473,8 +476,8 @@ const CourseDetail = () => {
         isVisible={showRegistrationModal}
         onClose={() => setShowRegistrationModal(false)}
         type={registrationModalType}
-        startDate={course?.registrationStart}
-        endDate={course?.registrationEnd}
+        startDate={course?.startDate}
+        endDate={course?.endDate}
       />
 
       {/* Toast Notification */}

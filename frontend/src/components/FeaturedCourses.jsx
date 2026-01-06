@@ -112,10 +112,10 @@ const FeaturedCourses = () => {
     
     // Find the course to check registration dates
     const course = courses.find(c => c._id === courseId);
-    if (course && (course.registrationStart || course.registrationEnd)) {
+    if (course && (course.startDate || course.endDate)) {
       const now = new Date();
-      const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
-      const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+      const startDate = course.startDate ? new Date(course.startDate) : null;
+      const endDate = course.endDate ? new Date(course.endDate) : null;
       
       if (startDate && now < startDate) {
         setSelectedCourse(course);
@@ -125,7 +125,6 @@ const FeaturedCourses = () => {
       }
       
       if (endDate) {
-        // Set end date to end of day for comparison
         const endOfDay = new Date(endDate);
         endOfDay.setHours(23, 59, 59, 999);
         if (now > endOfDay) {
@@ -190,17 +189,16 @@ const FeaturedCourses = () => {
                   </div>
                   <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-1 rounded-full">
                     {(() => {
-                      if (!course.registrationStart && !course.registrationEnd) {
+                      if (!course.startDate && !course.endDate) {
                         return <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>;
                       }
                       const now = new Date();
-                      const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
-                      const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+                      const startDate = course.startDate ? new Date(course.startDate) : null;
+                      const endDate = course.endDate ? new Date(course.endDate) : null;
                       
                       if (startDate && now < startDate) {
                         return <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">Not Started</span>;
                       } else if (endDate) {
-                        // Set end date to end of day for comparison
                         const endOfDay = new Date(endDate);
                         endOfDay.setHours(23, 59, 59, 999);
                         if (now > endOfDay) {
@@ -328,8 +326,8 @@ const FeaturedCourses = () => {
         isVisible={showRegistrationModal}
         onClose={() => setShowRegistrationModal(false)}
         type={registrationModalType}
-        startDate={selectedCourse?.registrationStart}
-        endDate={selectedCourse?.registrationEnd}
+        startDate={selectedCourse?.startDate}
+        endDate={selectedCourse?.endDate}
       />
 
       <CommentSection

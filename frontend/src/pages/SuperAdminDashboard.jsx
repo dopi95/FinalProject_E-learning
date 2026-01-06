@@ -2626,20 +2626,20 @@ const SuperAdminDashboard = () => {
 
       {/* Enhanced Schedule Form Modal */}
       {showScheduleForm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-2xl lg:max-w-3xl max-h-[95vh] overflow-hidden">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 sm:p-6">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-[95vw] sm:max-w-2xl lg:max-w-4xl h-[95vh] flex flex-col border border-gray-200 dark:border-gray-700">
+            {/* Modal Header - Fixed */}
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-4 sm:p-6 flex-shrink-0 rounded-t-3xl">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                    <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg sm:text-xl font-bold text-white">
+                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-white">
                       {scheduleForm.id ? 'Update Class Sessions' : 'Create Class Sessions'}
                     </h3>
-                    <p className="text-blue-100 text-xs sm:text-sm truncate max-w-[200px] sm:max-w-none">{selectedCourseForSchedule?.title}</p>
+                    <p className="text-blue-100 text-xs sm:text-sm lg:text-base truncate max-w-[200px] sm:max-w-[300px] lg:max-w-none">{selectedCourseForSchedule?.title}</p>
                   </div>
                 </div>
                 <button 
@@ -2647,100 +2647,110 @@ const SuperAdminDashboard = () => {
                     setShowScheduleForm(false);
                     setScheduleForm({ sessions: [{ day: 'monday', startTime: '', endTime: '', room: '' }] });
                   }} 
-                  className="p-1.5 sm:p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  className="p-2 sm:p-3 hover:bg-white/20 rounded-xl transition-all duration-200 group"
                 >
-                  <X className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                  <X className="h-5 w-5 sm:h-6 sm:w-6 text-white group-hover:scale-110 transition-transform" />
                 </button>
               </div>
             </div>
             
-            {/* Modal Body */}
-            <div className="p-3 sm:p-6 overflow-y-auto" style={{ maxHeight: 'calc(95vh - 140px)' }}>
+            {/* Modal Body - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
               <div className="space-y-4 sm:space-y-6">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Class Sessions</h4>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                  <div>
+                    <h4 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Class Sessions</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Configure weekly class schedule</p>
+                  </div>
                   <button
                     onClick={addSession}
-                    className="bg-blue-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:bg-blue-700 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 flex items-center justify-center gap-2 text-sm sm:text-base font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 w-full sm:w-auto"
                   >
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
                     Add Session
                   </button>
                 </div>
                 
-                <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-4 sm:space-y-6 pb-4">
                   {scheduleForm.sessions.map((session, index) => (
-                    <div key={index} className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-6 bg-gray-50 dark:bg-gray-700/30">
-                      <div className="flex items-center justify-between mb-3 sm:mb-4">
-                        <h5 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-lg">Session {index + 1}</h5>
+                    <div key={index} className="border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700/30 dark:to-gray-800/30 hover:shadow-lg transition-all duration-200">
+                      <div className="flex items-center justify-between mb-4 sm:mb-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-base">
+                            {index + 1}
+                          </div>
+                          <h5 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg lg:text-xl">Session {index + 1}</h5>
+                        </div>
                         {scheduleForm.sessions.length > 1 && (
                           <button
                             onClick={() => removeSession(index)}
-                            className="text-red-600 hover:text-red-800 p-1 sm:p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            className="text-red-600 hover:text-red-800 p-2 sm:p-3 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-200 group"
                             title="Remove Session"
                           >
-                            <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                            <Trash2 className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-110 transition-transform" />
                           </button>
                         )}
                       </div>
                       
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
-                        <div>
-                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
-                            Day of Week *
-                          </label>
-                          <select
-                            value={session.day}
-                            onChange={(e) => handleSessionChange(index, 'day', e.target.value)}
-                            className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                          >
-                            <option value="monday">Monday</option>
-                            <option value="tuesday">Tuesday</option>
-                            <option value="wednesday">Wednesday</option>
-                            <option value="thursday">Thursday</option>
-                            <option value="friday">Friday</option>
-                            <option value="saturday">Saturday</option>
-                            <option value="sunday">Sunday</option>
-                          </select>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
+                              Day of Week *
+                            </label>
+                            <select
+                              value={session.day}
+                              onChange={(e) => handleSessionChange(index, 'day', e.target.value)}
+                              className="w-full px-4 py-3 sm:px-5 sm:py-4 border-2 border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-700 dark:text-white text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 font-medium"
+                            >
+                              <option value="monday">📅 Monday</option>
+                              <option value="tuesday">📅 Tuesday</option>
+                              <option value="wednesday">📅 Wednesday</option>
+                              <option value="thursday">📅 Thursday</option>
+                              <option value="friday">📅 Friday</option>
+                              <option value="saturday">📅 Saturday</option>
+                              <option value="sunday">📅 Sunday</option>
+                            </select>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
+                              Room/Location
+                            </label>
+                            <input
+                              type="text"
+                              value={session.room}
+                              onChange={(e) => handleSessionChange(index, 'room', e.target.value)}
+                              className="w-full px-4 py-3 sm:px-5 sm:py-4 border-2 border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-700 dark:text-white text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 font-medium"
+                              placeholder="🏫 e.g., Room 101, Lab A, Online"
+                            />
+                          </div>
                         </div>
                         
-                        <div>
-                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
-                            Room/Location
-                          </label>
-                          <input
-                            type="text"
-                            value={session.room}
-                            onChange={(e) => handleSessionChange(index, 'room', e.target.value)}
-                            className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                            placeholder="e.g., Room 101"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-3 sm:gap-6 mt-3 sm:mt-6">
-                        <div>
-                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
-                            Start Time *
-                          </label>
-                          <input
-                            type="time"
-                            value={session.startTime}
-                            onChange={(e) => handleSessionChange(index, 'startTime', e.target.value)}
-                            className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
-                            End Time *
-                          </label>
-                          <input
-                            type="time"
-                            value={session.endTime}
-                            onChange={(e) => handleSessionChange(index, 'endTime', e.target.value)}
-                            className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                          />
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
+                              Start Time *
+                            </label>
+                            <input
+                              type="time"
+                              value={session.startTime}
+                              onChange={(e) => handleSessionChange(index, 'startTime', e.target.value)}
+                              className="w-full px-4 py-3 sm:px-5 sm:py-4 border-2 border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-700 dark:text-white text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 font-medium"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
+                              End Time *
+                            </label>
+                            <input
+                              type="time"
+                              value={session.endTime}
+                              onChange={(e) => handleSessionChange(index, 'endTime', e.target.value)}
+                              className="w-full px-4 py-3 sm:px-5 sm:py-4 border-2 border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-700 dark:text-white text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 font-medium"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2749,24 +2759,24 @@ const SuperAdminDashboard = () => {
               </div>
             </div>
             
-            {/* Modal Footer */}
-            <div className="border-t border-gray-200 dark:border-gray-700 p-3 sm:p-6 bg-gray-50 dark:bg-gray-800">
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            {/* Modal Footer - Fixed at Bottom */}
+            <div className="border-t-2 border-gray-200 dark:border-gray-700 p-4 sm:p-6 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 flex-shrink-0 rounded-b-3xl">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <button 
                   onClick={handleCreateSchedule}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 sm:py-4 px-4 sm:px-6 rounded-xl hover:from-blue-700 hover:to-indigo-700 flex items-center justify-center gap-2 sm:gap-3 font-semibold text-sm sm:text-base transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  className="flex-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white py-4 sm:py-5 px-6 sm:px-8 rounded-2xl hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 flex items-center justify-center gap-3 font-bold text-sm sm:text-base lg:text-lg transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 active:scale-95"
                 >
-                  <Save className="h-4 w-4 sm:h-5 sm:w-5" /> 
-                  {scheduleForm.id ? 'Update Sessions' : 'Create Sessions'}
+                  <Save className="h-5 w-5 sm:h-6 sm:w-6" /> 
+                  {scheduleForm.id ? '✨ Update Sessions' : '🚀 Create Sessions'}
                 </button>
                 <button 
                   onClick={() => {
                     setShowScheduleForm(false);
                     setScheduleForm({ sessions: [{ day: 'monday', startTime: '', endTime: '', room: '' }] });
                   }} 
-                  className="flex-1 bg-gray-500 text-white py-3 sm:py-4 px-4 sm:px-6 rounded-xl hover:bg-gray-600 font-semibold text-sm sm:text-base transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  className="flex-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white py-4 sm:py-5 px-6 sm:px-8 rounded-2xl hover:from-gray-600 hover:to-gray-700 font-bold text-sm sm:text-base lg:text-lg transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 active:scale-95"
                 >
-                  Cancel
+                  ❌ Cancel
                 </button>
               </div>
             </div>
