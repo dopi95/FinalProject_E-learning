@@ -152,10 +152,15 @@ const CourseDetail = () => {
         return; // STOP HERE - don't go to payment
       }
       
-      if (endDate && now > endDate) {
-        setRegistrationModalType('closed');
-        setShowRegistrationModal(true);
-        return; // STOP HERE - don't go to payment
+      if (endDate) {
+        // Set end date to end of day for comparison
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        if (now > endOfDay) {
+          setRegistrationModalType('closed');
+          setShowRegistrationModal(true);
+          return;
+        }
       }
     }
     
@@ -261,11 +266,15 @@ const CourseDetail = () => {
                           
                           if (startDate && now < startDate) {
                             return <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">Not Started</span>;
-                          } else if (endDate && now > endDate) {
-                            return <span className="text-sm font-semibold text-red-600 dark:text-red-400">Closed</span>;
-                          } else {
-                            return <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>;
+                          } else if (endDate) {
+                            // Set end date to end of day for comparison
+                            const endOfDay = new Date(endDate);
+                            endOfDay.setHours(23, 59, 59, 999);
+                            if (now > endOfDay) {
+                              return <span className="text-sm font-semibold text-red-600 dark:text-red-400">Closed - Note: After {endDate.toLocaleDateString()}, the course is closed</span>;
+                            }
                           }
+                          return <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>;
                         })()
                         }
                       </div>
@@ -355,7 +364,7 @@ const CourseDetail = () => {
                         ? 'bg-green-600 hover:bg-green-700 text-white'
                         : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
                     } ${enrollmentLoading ? 'opacity-50 cursor-not-allowed' : ''} ${
-                      user?.role === 'instructor' || user?.role === 'superadmin' ? 'hidden' : ''
+                      user?.role === 'instructor' || user?.role === 'superadmin' || user?.role === 'admin' ? 'hidden' : ''
                     }`}
                   >
                     {enrollmentLoading ? (
@@ -415,18 +424,23 @@ const CourseDetail = () => {
                   {/* Registration Dates */}
                   {(course.registrationStart || course.registrationEnd) && (
                     <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                      <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">Registration Period</h4>
+                      <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">{t('courses.registrationPeriod')}</h4>
                       <div className="text-xs text-blue-700 dark:text-blue-400">
                         {course.registrationStart && (
                           <div className="flex items-center mb-1">
-                            <span className="font-medium mr-2">Start:</span>
+                            <span className="font-medium mr-2">{t('courses.start')}:</span>
                             <span>{new Date(course.registrationStart).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                           </div>
                         )}
                         {course.registrationEnd && (
-                          <div className="flex items-center">
-                            <span className="font-medium mr-2">End:</span>
+                          <div className="flex items-center mb-2">
+                            <span className="font-medium mr-2">{t('courses.end')}:</span>
                             <span>{new Date(course.registrationEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                          </div>
+                        )}
+                        {course.registrationEnd && (
+                          <div className="text-xs text-red-600 dark:text-red-400 font-medium mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                            {t('courses.deadlineNote', { date: new Date(course.registrationEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) })}
                           </div>
                         )}
                       </div>

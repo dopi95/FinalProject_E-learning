@@ -124,11 +124,16 @@ const FeaturedCourses = () => {
         return;
       }
       
-      if (endDate && now > endDate) {
-        setSelectedCourse(course);
-        setRegistrationModalType('closed');
-        setShowRegistrationModal(true);
-        return;
+      if (endDate) {
+        // Set end date to end of day for comparison
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        if (now > endOfDay) {
+          setSelectedCourse(course);
+          setRegistrationModalType('closed');
+          setShowRegistrationModal(true);
+          return;
+        }
       }
     }
     
@@ -194,11 +199,15 @@ const FeaturedCourses = () => {
                       
                       if (startDate && now < startDate) {
                         return <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">Not Started</span>;
-                      } else if (endDate && now > endDate) {
-                        return <span className="text-sm font-semibold text-red-600 dark:text-red-400">Closed</span>;
-                      } else {
-                        return <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>;
+                      } else if (endDate) {
+                        // Set end date to end of day for comparison
+                        const endOfDay = new Date(endDate);
+                        endOfDay.setHours(23, 59, 59, 999);
+                        if (now > endOfDay) {
+                          return <span className="text-sm font-semibold text-red-600 dark:text-red-400">Closed</span>;
+                        }
                       }
+                      return <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>;
                     })()
                     }
                   </div>
@@ -259,7 +268,7 @@ const FeaturedCourses = () => {
                   </div>
                   
                   <div className="flex gap-3">
-                    {user?.role !== 'instructor' && user?.role !== 'superadmin' && (
+                    {user?.role !== 'instructor' && user?.role !== 'superadmin' && user?.role !== 'admin' && (
                       <button 
                         onClick={() => handleEnroll(course._id)}
                         className={`flex-1 py-3 px-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 ${
@@ -273,7 +282,7 @@ const FeaturedCourses = () => {
                     )}
                     <Link
                       to={`/course/${course._id}`}
-                      className={`${user?.role === 'instructor' || user?.role === 'superadmin' ? 'flex-1' : 'flex-1'} border-2 border-blue-600 text-blue-600 dark:text-blue-400 py-3 px-4 rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold text-center flex items-center justify-center`}
+                      className={`${user?.role === 'instructor' || user?.role === 'superadmin' || user?.role === 'admin' ? 'flex-1' : 'flex-1'} border-2 border-blue-600 text-blue-600 dark:text-blue-400 py-3 px-4 rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold text-center flex items-center justify-center`}
                     >
                       {t('courses.viewDetails')}
                     </Link>

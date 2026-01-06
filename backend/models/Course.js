@@ -34,11 +34,11 @@ const courseSchema = new mongoose.Schema({
     type: String,
     default: null
   },
-  registrationStart: {
+  startDate: {
     type: Date,
     default: null
   },
-  registrationEnd: {
+  endDate: {
     type: Date,
     default: null
   },
@@ -70,18 +70,21 @@ courseSchema.virtual('commentCount').get(function() {
   return this.comments || 0;
 });
 
-courseSchema.virtual('registrationStatus').get(function() {
+courseSchema.virtual('courseStatus').get(function() {
   const now = new Date();
-  if (!this.registrationStart || !this.registrationEnd) {
-    return 'open';
+  if (!this.startDate || !this.endDate) {
+    return 'active';
   }
-  if (now < this.registrationStart) {
+  if (now < this.startDate) {
     return 'not_started';
   }
-  if (now > this.registrationEnd) {
+  // Set time to end of day for endDate comparison
+  const endOfDay = new Date(this.endDate);
+  endOfDay.setHours(23, 59, 59, 999);
+  if (now > endOfDay) {
     return 'closed';
   }
-  return 'open';
+  return 'active';
 });
 
 courseSchema.set('toJSON', { virtuals: true });

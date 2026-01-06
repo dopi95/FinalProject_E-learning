@@ -139,7 +139,11 @@ const AllCourses = () => {
       const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
       const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
       
-      if ((startDate && now < startDate) || (endDate && now > endDate)) {
+      if ((startDate && now < startDate) || (endDate && (() => {
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        return now > endOfDay;
+      })())) {
         return; // Can't select inactive courses
       }
     }
@@ -201,11 +205,16 @@ const AllCourses = () => {
         return;
       }
       
-      if (endDate && now > endDate) {
-        setSelectedCourseForModal(course);
-        setRegistrationModalType('closed');
-        setShowRegistrationModal(true);
-        return;
+      if (endDate) {
+        // Set end date to end of day for comparison
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        if (now > endOfDay) {
+          setSelectedCourseForModal(course);
+          setRegistrationModalType('closed');
+          setShowRegistrationModal(true);
+          return;
+        }
       }
     }
     
@@ -365,7 +374,12 @@ const AllCourses = () => {
                     const now = new Date();
                     const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
                     const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
-                    return !((startDate && now < startDate) || (endDate && now > endDate));
+                    if (endDate) {
+                      const endOfDay = new Date(endDate);
+                      endOfDay.setHours(23, 59, 59, 999);
+                      return !((startDate && now < startDate) || (now > endOfDay));
+                    }
+                    return !((startDate && now < startDate));
                   }
                   return true;
                 }).length}
@@ -377,7 +391,12 @@ const AllCourses = () => {
                       const now = new Date();
                       const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
                       const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
-                      return !((startDate && now < startDate) || (endDate && now > endDate));
+                      if (endDate) {
+                        const endOfDay = new Date(endDate);
+                        endOfDay.setHours(23, 59, 59, 999);
+                        return !((startDate && now < startDate) || (now > endOfDay));
+                      }
+                      return !((startDate && now < startDate));
                     }
                     return true;
                   });
@@ -396,7 +415,12 @@ const AllCourses = () => {
                     const now = new Date();
                     const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
                     const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
-                    return !((startDate && now < startDate) || (endDate && now > endDate));
+                    if (endDate) {
+                      const endOfDay = new Date(endDate);
+                      endOfDay.setHours(23, 59, 59, 999);
+                      return !((startDate && now < startDate) || (now > endOfDay));
+                    }
+                    return !((startDate && now < startDate));
                   }
                   return true;
                 }).length
@@ -451,11 +475,15 @@ const AllCourses = () => {
                         
                         if (startDate && now < startDate) {
                           return <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">Not Started</span>;
-                        } else if (endDate && now > endDate) {
-                          return <span className="text-sm font-semibold text-red-600 dark:text-red-400">Closed</span>;
-                        } else {
-                          return <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>;
+                        } else if (endDate) {
+                          // Set end date to end of day for comparison
+                          const endOfDay = new Date(endDate);
+                          endOfDay.setHours(23, 59, 59, 999);
+                          if (now > endOfDay) {
+                            return <span className="text-sm font-semibold text-red-600 dark:text-red-400">Closed</span>;
+                          }
                         }
+                        return <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>;
                       })()
                       }
                     </div>
@@ -471,7 +499,11 @@ const AllCourses = () => {
                           const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
                           const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
                           
-                          if ((startDate && now < startDate) || (endDate && now > endDate)) {
+                          if ((startDate && now < startDate) || (endDate && (() => {
+                            const endOfDay = new Date(endDate);
+                            endOfDay.setHours(23, 59, 59, 999);
+                            return now > endOfDay;
+                          })())) {
                             return (
                               <input
                                 type="checkbox"
@@ -545,7 +577,7 @@ const AllCourses = () => {
                     </div>
                     
                     <div className="flex gap-3">
-                      {user?.role !== 'instructor' && user?.role !== 'superadmin' && (
+                      {user?.role !== 'instructor' && user?.role !== 'superadmin' && user?.role !== 'admin' && (
                         <button 
                           onClick={() => handleEnroll(course._id)}
                           className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
@@ -555,7 +587,7 @@ const AllCourses = () => {
                       )}
                       <Link
                         to={`/course/${course._id}`}
-                        className={`${user?.role === 'instructor' || user?.role === 'superadmin' ? 'flex-1' : 'flex-1'} border-2 border-blue-600 text-blue-600 dark:text-blue-400 py-3 px-4 rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold text-center flex items-center justify-center`}
+                        className={`${user?.role === 'instructor' || user?.role === 'superadmin' || user?.role === 'admin' ? 'flex-1' : 'flex-1'} border-2 border-blue-600 text-blue-600 dark:text-blue-400 py-3 px-4 rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold text-center flex items-center justify-center`}
                       >
                         {t('courses.viewDetails')}
                       </Link>

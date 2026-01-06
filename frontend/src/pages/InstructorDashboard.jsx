@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, BellOff, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe, Heart } from 'lucide-react';
+import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, BellRing, BellOff, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe, Heart } from 'lucide-react';
 import { profileAPI, courseAPI, instructorAPI, subscriptionAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
@@ -27,13 +27,35 @@ const InstructorDashboard = () => {
   const [notificationForm, setNotificationForm] = useState({ title: '', message: '' });
   const [showCourseResourcesSubmenu, setShowCourseResourcesSubmenu] = useState(false);
 
-  // Notification system state
+  // Admin notifications state
   const [notifications, setNotifications] = useState([
-    { id: 1, title: 'New Student Enrolled', message: 'John Doe enrolled in Advanced Mathematics', time: '1 hour ago', read: false },
-    { id: 2, title: 'Assignment Submitted', message: 'Sarah submitted Physics Lab Report', time: '3 hours ago', read: false },
-    { id: 3, title: 'Course Review Posted', message: 'New 5-star review on Chemistry Course', time: '1 day ago', read: true }
+    {
+      id: 1,
+      title: 'New Student Enrolled',
+      message: 'John Doe enrolled in Advanced Mathematics',
+      time: '1 hour ago',
+      read: false,
+      type: 'info'
+    },
+    {
+      id: 2,
+      title: 'Assignment Submitted',
+      message: 'Sarah submitted Physics Lab Report',
+      time: '3 hours ago',
+      read: false,
+      type: 'success'
+    },
+    {
+      id: 3,
+      title: 'Course Review Posted',
+      message: 'New 5-star review on Chemistry Course',
+      time: '1 day ago',
+      read: true,
+      type: 'success'
+    }
   ]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [hasNewNotifications, setHasNewNotifications] = useState(true);
 
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courses, setCourses] = useState([]);
@@ -121,25 +143,35 @@ const InstructorDashboard = () => {
     }
   };
 
+  // Play notification sound
   const playNotificationSound = () => {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    // Perfect notification sound: C5 -> E5 -> G5 (major chord)
-    oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
-    oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
-    oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
-    
-    oscillator.type = 'sine';
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.4);
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Check if AudioContext is allowed
+      if (audioContext.state === 'suspended') {
+        return; // Don't play sound if not allowed
+      }
+      
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+      // Silently fail if audio is not supported or blocked
+      console.log('Audio notification blocked by browser');
+    }
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -170,22 +202,35 @@ const InstructorDashboard = () => {
     if (userData) {
       fetchSubscriptionStatus();
     }
-
-    // Simulate new notification with sound
-    const timer = setTimeout(() => {
-      const newNotification = {
-        id: Date.now(),
-        title: 'New Assignment Submission',
-        message: 'Michael submitted Calculus Assignment 3',
-        time: 'Just now',
-        read: false
-      };
-      setNotifications(prev => [newNotification, ...prev]);
-      playNotificationSound();
-    }, 8000);
-    
-    return () => clearTimeout(timer);
   }, []);
+
+  // Check for notifications on load
+  useEffect(() => {
+    if (user?.role === 'instructor' && hasNewNotifications) {
+      setTimeout(() => playNotificationSound(), 1000);
+    }
+  }, [user, hasNewNotifications]);
+
+  // Simulate new notification
+  useEffect(() => {
+    if (user?.role === 'instructor') {
+      const interval = setInterval(() => {
+        const newNotif = {
+          id: Date.now(),
+          title: 'New Assignment Submission',
+          message: 'Michael submitted Calculus Assignment 3',
+          time: 'Just now',
+          read: false,
+          type: 'info'
+        };
+        setNotifications(prev => [newNotif, ...prev]);
+        setHasNewNotifications(true);
+        playNotificationSound();
+      }, 30000); // Every 30 seconds for demo
+      
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const fetchSubscriptionStatus = async () => {
     try {
@@ -197,29 +242,40 @@ const InstructorDashboard = () => {
   };
 
   const playSound = (type) => {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    if (type === 'subscribe') {
-      oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
-      oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
-      oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2);
-    } else {
-      oscillator.frequency.setValueAtTime(784, audioContext.currentTime);
-      oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
-      oscillator.frequency.setValueAtTime(523, audioContext.currentTime + 0.2);
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Check if AudioContext is allowed
+      if (audioContext.state === 'suspended') {
+        return; // Don't play sound if not allowed
+      }
+      
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      if (type === 'subscribe') {
+        oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
+        oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2);
+      } else {
+        oscillator.frequency.setValueAtTime(784, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
+        oscillator.frequency.setValueAtTime(523, audioContext.currentTime + 0.2);
+      }
+      
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+      // Silently fail if audio is not supported or blocked
+      console.log('Audio notification blocked by browser');
     }
-    
-    oscillator.type = 'sine';
-    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.3);
   };
 
   const toggleSubscription = async () => {
@@ -409,140 +465,88 @@ const InstructorDashboard = () => {
             </div>
           </div>
           
-          {/* Notifications - Desktop */}
-          <div className="relative hidden lg:block">
-            <button
-              onClick={handleNotificationClick}
-              className="flex items-center px-3 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              <div className="relative">
-                <Bell className="h-4 w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-400" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-3 w-3 lg:h-4 lg:w-4 flex items-center justify-center text-xs">
-                    {unreadCount}
-                  </span>
-                )}
-              </div>
-              <span className="ml-2 text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300">Notifications</span>
-            </button>
-            
-            {showNotifications && (
-              <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-96 overflow-y-auto">
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
-                </div>
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {notifications.length === 0 ? (
-                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                      No notifications
-                    </div>
-                  ) : (
-                    notifications.map((notif) => (
-                      <div key={notif.id} className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                        !notif.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                      }`}>
-                        <div className="flex items-start gap-3">
-                          <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                            !notif.read ? 'bg-blue-500' : 'bg-gray-300'
-                          }`}></div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">
-                              {notif.title}
-                            </p>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                              {notif.message}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                              {notif.time}
-                            </p>
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeNotification(notif.id);
-                            }}
-                            className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full transition-colors"
-                            title="Remove notification"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Notifications - Mobile */}
-        <div className="lg:hidden">
+          {/* Notifications */}
           <div className="relative">
             <button
-              onClick={handleNotificationClick}
-              className="w-full flex items-center justify-center px-4 py-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              onClick={() => {
+                setShowNotifications(!showNotifications);
+                if (hasNewNotifications) {
+                  setHasNewNotifications(false);
+                }
+              }}
+              className="relative p-3 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 dark:border-gray-700"
             >
-              <div className="relative">
-                <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                    {unreadCount}
-                  </span>
-                )}
-              </div>
-              <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Notifications</span>
+              {hasNewNotifications ? (
+                <BellRing className="h-6 w-6 text-blue-600 animate-pulse" />
+              ) : (
+                <Bell className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+              )}
+              {hasNewNotifications && (
+                <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-xs text-white font-bold">{notifications.filter(n => !n.read).length}</span>
+                </span>
+              )}
             </button>
             
             {showNotifications && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-96 overflow-y-auto">
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
                 </div>
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                <div className="max-h-96 overflow-y-auto">
                   {notifications.length === 0 ? (
-                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                      No notifications
+                    <div className="p-6 text-center">
+                      <Bell className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-500 dark:text-gray-400">No notifications</p>
                     </div>
                   ) : (
                     notifications.map((notif) => (
-                      <div key={notif.id} className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                        !notif.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                      <div key={notif.id} className={`p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                        !notif.read ? 'bg-blue-50 dark:bg-blue-900/10' : ''
                       }`}>
                         <div className="flex items-start gap-3">
                           <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                            !notif.read ? 'bg-blue-500' : 'bg-gray-300'
-                          }`}></div>
+                            notif.type === 'success' ? 'bg-green-500' :
+                            notif.type === 'info' ? 'bg-blue-500' :
+                            notif.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                          }`} />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">
-                              {notif.title}
-                            </p>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                              {notif.message}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                              {notif.time}
-                            </p>
+                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{notif.title}</h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{notif.message}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500">{notif.time}</p>
                           </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeNotification(notif.id);
-                            }}
-                            className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full transition-colors"
-                            title="Remove notification"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            {!notif.read && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
+                            )}
+                            <button
+                              onClick={() => setNotifications(prev => prev.filter(n => n.id !== notif.id))}
+                              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                            >
+                              <X className="h-3 w-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))
                   )}
                 </div>
+                <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => {
+                      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                      setHasNewNotifications(false);
+                    }}
+                    className="w-full text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Mark all as read
+                  </button>
+                </div>
               </div>
             )}
           </div>
         </div>
+
       </div>
       
       {/* Stats Cards */}

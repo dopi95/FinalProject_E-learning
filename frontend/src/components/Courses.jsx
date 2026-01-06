@@ -286,7 +286,7 @@ const Courses = () => {
                     </div>
                   </div>
                   <div className="flex gap-3 mt-auto">
-                    {user?.role !== 'instructor' && user?.role !== 'superadmin' && (
+                    {user?.role !== 'instructor' && user?.role !== 'superadmin' && user?.role !== 'admin' && (
                       <button 
                         onClick={handleEnroll}
                         className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
@@ -296,7 +296,7 @@ const Courses = () => {
                     )}
                     <Link
                       to={`/course/${course._id}`}
-                      className={`${user?.role === 'instructor' || user?.role === 'superadmin' ? 'flex-1' : 'flex-1'} border-2 border-blue-600 text-blue-600 dark:text-blue-400 py-3 px-4 rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold text-center flex items-center justify-center`}
+                      className={`${user?.role === 'instructor' || user?.role === 'superadmin' || user?.role === 'admin' ? 'flex-1' : 'flex-1'} border-2 border-blue-600 text-blue-600 dark:text-blue-400 py-3 px-4 rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold text-center flex items-center justify-center`}
                     >
                       {t('courses.viewDetails')}
                     </Link>

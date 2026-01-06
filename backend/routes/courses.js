@@ -136,7 +136,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const { title, description, about, price, category, instructor, registrationStart, registrationEnd } = req.body;
+    const { title, description, about, price, category, instructor, startDate, endDate } = req.body;
     
     let imageUrl = null;
     if (req.file) {
@@ -160,11 +160,11 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       image: imageUrl
     };
     
-    if (registrationStart) {
-      courseData.registrationStart = new Date(registrationStart);
+    if (startDate) {
+      courseData.startDate = new Date(startDate);
     }
-    if (registrationEnd) {
-      courseData.registrationEnd = new Date(registrationEnd);
+    if (endDate) {
+      courseData.endDate = new Date(endDate);
     }
     
     const course = new Course(courseData);
@@ -250,7 +250,7 @@ router.put('/:id', auth, upload.single('image'), async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const { title, description, about, price, category, instructor, registrationStart, registrationEnd } = req.body;
+    const { title, description, about, price, category, instructor, startDate, endDate } = req.body;
     
     // Get current course to check for instructor changes
     const currentCourse = await Course.findById(req.params.id).populate('instructor', 'name email');
@@ -267,11 +267,11 @@ router.put('/:id', auth, upload.single('image'), async (req, res) => {
       instructor
     };
     
-    if (registrationStart) {
-      updateData.registrationStart = new Date(registrationStart);
+    if (startDate) {
+      updateData.startDate = new Date(startDate);
     }
-    if (registrationEnd) {
-      updateData.registrationEnd = new Date(registrationEnd);
+    if (endDate) {
+      updateData.endDate = new Date(endDate);
     }
     
     if (req.file) {

@@ -61,7 +61,11 @@ const resources = {
         marketingLongDescription: 'Learn comprehensive digital marketing strategies including SEO, social media marketing, content marketing, email campaigns, and paid advertising. Understand analytics, conversion optimization, and how to build a complete digital marketing funnel that drives results.',
         likes: 'Likes',
         likeCount: 'likes',
-        online: 'Online'
+        online: 'Online',
+        registrationPeriod: 'Registration Period',
+        start: 'Start',
+        end: 'End',
+        deadlineNote: 'Note: The final deadline date is {{date}}. After this date, the course will be closed.'
       },
       testimonials: {
         title: 'What Our Community Says',
@@ -337,7 +341,11 @@ const resources = {
         marketingLongDescription: 'SEO፣ ማህበራዊ ሚዲያ ማርኬቲንግ፣ የይዘት ማርኬቲንግ፣ የኢሜይል ዘመቻዎች እና የተከፈለ ማስታወቂያን ጨምሮ አጠቃላይ የዲጂታል ማርኬቲንግ ስትራቴጂዎችን ይማሩ። ትንታኔዎችን፣ የልወጣ ማሻሻያን እና ውጤቶችን የሚያመጣ ሙሉ የዲጂታል ማርኬቲንግ ፈነልን እንዴት መገንባት እንደሚቻል ይረዱ።',
         likes: 'ላይኮች',
         likeCount: 'ላይኮች',
-        online: 'ኦንላይን'
+        online: 'ኦንላይን',
+        registrationPeriod: 'የምዝገባ ጊዜ',
+        start: 'መጀመሪያ',
+        end: 'መጨረሻ',
+        deadlineNote: 'ማስታወሻ: የመጨረሻ የመጨረሻ ቀን {{date}} ነው። ከዚህ ቀን በኋላ ኮርሱ ይዘጋል።'
       },
       testimonials: {
         title: 'የእኛ ማህበረሰብ ምን ይላል',

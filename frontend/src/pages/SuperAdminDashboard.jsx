@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown, Heart, Download, Calendar, Clock, MapPin, Save, Bell } from 'lucide-react';
+import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown, Heart, Download, Calendar, Clock, MapPin, Save, Bell, BellRing } from 'lucide-react';
 import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import SubscriptionManagement from '../components/SubscriptionManagement';
@@ -27,8 +27,8 @@ const SuperAdminDashboard = () => {
     category: '',
     instructor: '',
     image: null,
-    registrationStart: '',
-    registrationEnd: ''
+    startDate: '',
+    endDate: ''
   });
 
   const [showCourseDetail, setShowCourseDetail] = useState(false);
@@ -128,6 +128,76 @@ const SuperAdminDashboard = () => {
     title: '',
     message: ''
   });
+
+  // Admin notifications state
+  const [notifications, setNotifications] = useState([
+    {
+      id: 1,
+      title: 'System Update',
+      message: 'Platform maintenance scheduled for tonight at 2 AM',
+      time: '2 hours ago',
+      read: false,
+      type: 'info'
+    },
+    {
+      id: 2,
+      title: 'New Course Added',
+      message: 'Advanced React Development course has been published',
+      time: '5 hours ago',
+      read: false,
+      type: 'success'
+    }
+  ]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [hasNewNotifications, setHasNewNotifications] = useState(true);
+
+  // Play notification sound
+  const playNotificationSound = () => {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  };
+
+  // Check for notifications on load
+  useEffect(() => {
+    if (user?.role === 'admin' && hasNewNotifications) {
+      setTimeout(() => playNotificationSound(), 1000);
+    }
+  }, [user, hasNewNotifications]);
+
+  // Simulate new notification
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      const interval = setInterval(() => {
+        const newNotif = {
+          id: Date.now(),
+          title: 'New Message',
+          message: 'You have received a new system notification',
+          time: 'Just now',
+          read: false,
+          type: 'info'
+        };
+        setNotifications(prev => [newNotif, ...prev]);
+        setHasNewNotifications(true);
+        playNotificationSound();
+      }, 30000); // Every 30 seconds for demo
+      
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const showNotification = (type, title, message) => {
     setNotification({
@@ -249,15 +319,21 @@ const SuperAdminDashboard = () => {
       if (selectedStatus !== 'all') {
         filteredCourses = filteredCourses.filter(course => {
           const now = new Date();
-          const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
-          const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+          const startDate = course.startDate ? new Date(course.startDate) : null;
+          const endDate = course.endDate ? new Date(course.endDate) : null;
           
           if (selectedStatus === 'active') {
-            return !startDate || !endDate || (now >= startDate && now <= endDate);
+            if (!startDate || !endDate) return true;
+            const endOfDay = new Date(endDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            return now >= startDate && now <= endOfDay;
           } else if (selectedStatus === 'not_started') {
             return startDate && now < startDate;
           } else if (selectedStatus === 'closed') {
-            return endDate && now > endDate;
+            if (!endDate) return false;
+            const endOfDay = new Date(endDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            return now > endOfDay;
           }
           return true;
         });
@@ -290,7 +366,7 @@ const SuperAdminDashboard = () => {
       setLoading(true);
       const response = await courseAPI.createCourse(courseForm);
       setCourses(prev => [response.data.course, ...prev]);
-      setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null, registrationStart: '', registrationEnd: '' });
+      setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null, startDate: '', endDate: '' });
       setShowAddCourse(false);
       showNotification('success', 'Course Added!', 'Course has been successfully created');
     } catch (error) {
@@ -310,8 +386,8 @@ const SuperAdminDashboard = () => {
       category: course.category,
       instructor: course.instructor._id,
       image: null,
-      registrationStart: course.registrationStart ? new Date(course.registrationStart).toISOString().split('T')[0] : '',
-      registrationEnd: course.registrationEnd ? new Date(course.registrationEnd).toISOString().split('T')[0] : ''
+      startDate: course.startDate ? new Date(course.startDate).toISOString().split('T')[0] : '',
+      endDate: course.endDate ? new Date(course.endDate).toISOString().split('T')[0] : ''
     });
     setShowEditCourse(true);
   };
@@ -323,7 +399,7 @@ const SuperAdminDashboard = () => {
       setCourses(prev => prev.map(course => 
         course._id === editingCourse._id ? response.data.course : course
       ));
-      setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null, registrationStart: '', registrationEnd: '' });
+      setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null, startDate: '', endDate: '' });
       setShowEditCourse(false);
       setEditingCourse(null);
       showNotification('success', 'Course Updated!', 'Course has been successfully updated');
@@ -1005,6 +1081,7 @@ const SuperAdminDashboard = () => {
     { id: 'contacts', name: 'Contact Messages', description: 'View and reply to contact messages' },
     { id: 'reviews', name: 'Review Management', description: 'Moderate and manage user reviews' },
     { id: 'subscriptions', name: 'Email Subscriptions', description: 'Manage newsletter subscriptions' },
+    { id: 'notifications', name: 'Send Notification', description: 'Send notifications to users' },
     { id: 'settings', name: 'Global Settings', description: 'Access platform configuration settings' }
   ];
 
@@ -1149,7 +1226,7 @@ const SuperAdminDashboard = () => {
             <Shield className="h-8 w-8 text-blue-600" />
           )}
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
             {user?.role === 'superadmin' ? 'Super Admin Dashboard' : 'Admin Dashboard'}
           </h1>
@@ -1157,6 +1234,87 @@ const SuperAdminDashboard = () => {
             Welcome back{user ? `, ${user.name}` : ''}, manage the platform
           </p>
         </div>
+        {user?.role === 'admin' && (
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowNotifications(!showNotifications);
+                if (hasNewNotifications) {
+                  setHasNewNotifications(false);
+                }
+              }}
+              className="relative p-3 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 dark:border-gray-700"
+            >
+              {hasNewNotifications ? (
+                <BellRing className="h-6 w-6 text-blue-600 animate-pulse" />
+              ) : (
+                <Bell className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+              )}
+              {hasNewNotifications && (
+                <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-xs text-white font-bold">{notifications.filter(n => !n.read).length}</span>
+                </span>
+              )}
+            </button>
+            
+            {showNotifications && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <Bell className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-500 dark:text-gray-400">No notifications</p>
+                    </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div key={notif.id} className={`p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                        !notif.read ? 'bg-blue-50 dark:bg-blue-900/10' : ''
+                      }`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                            notif.type === 'success' ? 'bg-green-500' :
+                            notif.type === 'info' ? 'bg-blue-500' :
+                            notif.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{notif.title}</h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{notif.message}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500">{notif.time}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {!notif.read && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
+                            )}
+                            <button
+                              onClick={() => setNotifications(prev => prev.filter(n => n.id !== notif.id))}
+                              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                            >
+                              <X className="h-3 w-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => {
+                      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                      setHasNewNotifications(false);
+                    }}
+                    className="w-full text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Mark all as read
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       
       {/* Stats Cards */}
@@ -1477,20 +1635,23 @@ const SuperAdminDashboard = () => {
                   </td>
                   <td className="px-3 py-4">
                     {(() => {
-                      if (!course.registrationStart && !course.registrationEnd) {
+                      if (!course.startDate && !course.endDate) {
                         return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">Active</span>;
                       }
                       const now = new Date();
-                      const startDate = course.registrationStart ? new Date(course.registrationStart) : null;
-                      const endDate = course.registrationEnd ? new Date(course.registrationEnd) : null;
+                      const startDate = course.startDate ? new Date(course.startDate) : null;
+                      const endDate = course.endDate ? new Date(course.endDate) : null;
                       
                       if (startDate && now < startDate) {
                         return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300">Not Started</span>;
-                      } else if (endDate && now > endDate) {
-                        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">Closed</span>;
-                      } else {
-                        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">Active</span>;
+                      } else if (endDate) {
+                        const endOfDay = new Date(endDate);
+                        endOfDay.setHours(23, 59, 59, 999);
+                        if (now > endOfDay) {
+                          return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">Closed</span>;
+                        }
                       }
+                      return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">Active</span>;
                     })()
                     }
                   </td>
@@ -1717,20 +1878,20 @@ const SuperAdminDashboard = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Registration Start Date</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Course Start Date</label>
                     <input
                       type="date"
-                      value={courseForm.registrationStart}
-                      onChange={(e) => handleCourseFormChange('registrationStart', e.target.value)}
+                      value={courseForm.startDate}
+                      onChange={(e) => handleCourseFormChange('startDate', e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Registration End Date</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Registration Deadline (End Date)</label>
                     <input
                       type="date"
-                      value={courseForm.registrationEnd}
-                      onChange={(e) => handleCourseFormChange('registrationEnd', e.target.value)}
+                      value={courseForm.endDate}
+                      onChange={(e) => handleCourseFormChange('endDate', e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                     />
                   </div>
@@ -1881,15 +2042,15 @@ const SuperAdminDashboard = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Registration Start</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Course Start</label>
                     <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                      {selectedCourse.registrationStart ? new Date(selectedCourse.registrationStart).toLocaleDateString() : 'Not set'}
+                      {selectedCourse.startDate ? new Date(selectedCourse.startDate).toLocaleDateString() : 'Not set'}
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Registration End</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Registration Deadline</label>
                     <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                      {selectedCourse.registrationEnd ? new Date(selectedCourse.registrationEnd).toLocaleDateString() : 'Not set'}
+                      {selectedCourse.endDate ? new Date(selectedCourse.endDate).toLocaleDateString() : 'Not set'}
                     </p>
                   </div>
                 </div>
@@ -2934,18 +3095,21 @@ const SuperAdminDashboard = () => {
 
         {/* Permissions Modal */}
         {showPermissions && selectedAdminForPermissions && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Manage {selectedAdminForPermissions.role === 'superadmin' ? 'Role & Permissions' : 'Permissions'}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{selectedAdminForPermissions.name}</p>
-                    <p className="text-sm text-blue-600 dark:text-blue-400">Email: {selectedAdminForPermissions.email}</p>
-                    <p className="text-sm text-purple-600 dark:text-purple-400">Role: {selectedAdminForPermissions.role}</p>
-                    {selectedAdminForPermissions.tempPassword && (
-                      <p className="text-sm text-green-600 dark:text-green-400">Password: {selectedAdminForPermissions.tempPassword}</p>
-                    )}
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-hidden flex flex-col">
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 sm:p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                      <Settings className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-bold text-white">
+                        Manage {selectedAdminForPermissions.role === 'superadmin' ? 'Role & Permissions' : 'Permissions'}
+                      </h3>
+                      <p className="text-purple-100 text-sm">{selectedAdminForPermissions.name}</p>
+                    </div>
                   </div>
                   <button
                     onClick={() => {
@@ -2953,16 +3117,37 @@ const SuperAdminDashboard = () => {
                       setSelectedAdminForPermissions(null);
                       setAdminPermissions([]);
                     }}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
                   >
-                    <X className="h-6 w-6" />
+                    <X className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                   </button>
                 </div>
-                
+              </div>
+              
+              {/* Modal Body */}
+              <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+                {/* Admin Info Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-700">
+                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Email</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white break-all">{selectedAdminForPermissions.email}</p>
+                  </div>
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4 border border-purple-200 dark:border-purple-700">
+                    <p className="text-xs text-purple-600 dark:text-purple-400 font-medium mb-1">Current Role</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAdminForPermissions.role}</p>
+                  </div>
+                </div>
+
+                {selectedAdminForPermissions.tempPassword && (
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4 border border-green-200 dark:border-green-700 mb-6">
+                    <p className="text-xs text-green-600 dark:text-green-400 font-medium mb-1">Temporary Password</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white font-mono">{selectedAdminForPermissions.tempPassword}</p>
+                  </div>
+                )}
                 
                 {/* Role Selection */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role</label>
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Role</label>
                   <select 
                     value={selectedAdminForPermissions.role}
                     onChange={(e) => {
@@ -2971,50 +3156,73 @@ const SuperAdminDashboard = () => {
                         setAdminPermissions(availablePermissions.map(p => p.id));
                       }
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200"
                   >
                     <option value="admin">👤 Admin</option>
                     <option value="superadmin">👑 Super Admin</option>
                   </select>
                 </div>
 
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {availablePermissions.map((permission) => (
-                    <div key={permission.id} className="flex items-start space-x-3 p-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <input
-                        type="checkbox"
-                        id={`perm-${permission.id}`}
-                        checked={adminPermissions.includes(permission.id)}
-                        onChange={() => handlePermissionToggle(permission.id)}
-                        className="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                      />
-                      <div className="flex-1">
-                        <label htmlFor={`perm-${permission.id}`} className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer">
-                          {permission.name}
+                {/* Permissions Section */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    Page Permissions
+                  </label>
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 max-h-80 overflow-y-auto">
+                    <div className="grid grid-cols-1 gap-3">
+                      {availablePermissions.map((permission) => (
+                        <label key={permission.id} className="flex items-start gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer border border-gray-200 dark:border-gray-600 group">
+                          <input
+                            type="checkbox"
+                            checked={adminPermissions.includes(permission.id)}
+                            onChange={() => handlePermissionToggle(permission.id)}
+                            className="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded flex-shrink-0 transition-colors"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                              {permission.name}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                              {permission.description}
+                            </div>
+                          </div>
                         </label>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{permission.description}</p>
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
                 </div>
-                
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={handleUpdatePermissions}
-                    disabled={loading}
-                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? 'Updating...' : `Update ${selectedAdminForPermissions.role === 'superadmin' ? 'Role & Permissions' : 'Permissions'}`}
-                  </button>
+              </div>
+              
+              {/* Modal Footer */}
+              <div className="sticky bottom-0 border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6 bg-white dark:bg-gray-800">
+                <div className="flex flex-col-reverse sm:flex-row gap-3">
                   <button
                     onClick={() => {
                       setShowPermissions(false);
                       setSelectedAdminForPermissions(null);
                       setAdminPermissions([]);
                     }}
-                    className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600"
+                    disabled={loading}
+                    className="w-full sm:flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 px-6 rounded-xl disabled:opacity-50 font-semibold transition-all duration-200 text-sm"
                   >
                     Cancel
+                  </button>
+                  <button
+                    onClick={handleUpdatePermissions}
+                    disabled={loading}
+                    className="w-full sm:flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white py-3 px-6 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold transition-all duration-200 shadow-lg hover:shadow-xl text-sm"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <Settings className="h-4 w-4" />
+                        Update {selectedAdminForPermissions.role === 'superadmin' ? 'Role & Permissions' : 'Permissions'}
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -3054,10 +3262,20 @@ const SuperAdminDashboard = () => {
                 onChange={(e) => setNotificationForm(prev => ({ ...prev, role: e.target.value }))}
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
               >
-                <option value="all">All Users</option>
-                <option value="admin">Admins</option>
-                <option value="instructor">Instructors</option>
-                <option value="student">Students</option>
+                {user?.role === 'superadmin' ? (
+                  <>
+                    <option value="all">All Users</option>
+                    <option value="admin">Admins</option>
+                    <option value="instructor">Instructors</option>
+                    <option value="student">Students</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="all">All Users (Students & Instructors)</option>
+                    <option value="instructor">Instructors</option>
+                    <option value="student">Students</option>
+                  </>
+                )}
               </select>
             </div>
 
@@ -3089,7 +3307,9 @@ const SuperAdminDashboard = () => {
             <div className="flex gap-3">
               <button
                 onClick={() => {
-                  const roleText = notificationForm.role === 'all' ? 'all users' : `${notificationForm.role}s`;
+                  const roleText = user?.role === 'superadmin' 
+                    ? (notificationForm.role === 'all' ? 'all users' : `${notificationForm.role}s`)
+                    : (notificationForm.role === 'all' ? 'all users (students & instructors)' : `${notificationForm.role}s`);
                   console.log('Sending notification:', {
                     role: notificationForm.role,
                     title: notificationForm.title,
