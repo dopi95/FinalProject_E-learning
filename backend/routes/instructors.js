@@ -15,7 +15,10 @@ router.get('/students', auth, async (req, res) => {
     const { course } = req.query;
     
     // Get instructor's courses
-    const instructorCourses = await Course.find({ instructor: req.user.id })
+    const instructorCourses = await Course.find({ 
+      instructor: req.user.id,
+      isActive: true 
+    })
       .select('_id title students');
 
     if (instructorCourses.length === 0) {

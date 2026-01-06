@@ -104,7 +104,10 @@ router.get('/instructor/courses', auth, async (req, res) => {
       return res.status(403).json({ message: 'Access denied. Instructors only.' });
     }
 
-    const courses = await Course.find({ instructor: req.user.id })
+    const courses = await Course.find({ 
+      instructor: req.user.id,
+      isActive: true 
+    })
       .populate('instructor', 'name email profileImage')
       .populate('students', 'name email')
       .populate('stars', 'name profileImage')

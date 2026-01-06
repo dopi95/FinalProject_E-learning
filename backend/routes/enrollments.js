@@ -13,6 +13,7 @@ router.get('/my-courses', auth, async (req, res) => {
     })
     .populate({
       path: 'course',
+      match: { isActive: true },
       populate: {
         path: 'instructor',
         select: 'name email profileImage bio department specialization experience'
@@ -20,7 +21,10 @@ router.get('/my-courses', auth, async (req, res) => {
     })
     .sort({ enrollmentDate: -1 });
 
-    const courses = await Promise.all(enrollments.map(async (enrollment) => {
+    // Filter out enrollments where course is null (deleted/inactive courses)
+    const validEnrollments = enrollments.filter(enrollment => enrollment.course !== null);
+
+    const courses = await Promise.all(validEnrollments.map(async (enrollment) => {
       // Get enrolled student count for this course
       const enrolledCount = await Enrollment.countDocuments({
         course: enrollment.course._id,
@@ -54,6 +58,22 @@ router.get('/my-courses', auth, async (req, res) => {
 // Check enrollment status for a specific course
 router.get('/check/:courseId', auth, async (req, res) => {
   try {
+    // First check if the course exists and is active
+    const course = await Course.findOne({
+      _id: req.params.courseId,
+      isActive: true
+    });
+
+    if (!course) {
+      return res.json({
+        success: true,
+        data: {
+          isEnrolled: false,
+          enrollment: null
+        }
+      });
+    }
+
     const enrollment = await Enrollment.findOne({
       user: req.user.id,
       course: req.params.courseId,
@@ -82,12 +102,18 @@ router.get('/my-enrollments', auth, async (req, res) => {
     const enrollments = await Enrollment.find({ 
       user: req.user.id 
     })
-    .populate('course')
+    .populate({
+      path: 'course',
+      match: { isActive: true }
+    })
     .sort({ enrollmentDate: -1 });
+
+    // Filter out enrollments where course is null (deleted/inactive courses)
+    const validEnrollments = enrollments.filter(enrollment => enrollment.course !== null);
 
     res.json({
       success: true,
-      data: enrollments
+      data: validEnrollments
     });
   } catch (error) {
     console.error('Get enrollments error:', error);

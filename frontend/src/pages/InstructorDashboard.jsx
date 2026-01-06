@@ -333,10 +333,15 @@ const InstructorDashboard = () => {
       if (selectedCourseFilter !== 'all') params.course = selectedCourseFilter;
       
       const response = await instructorAPI.getStudents(params);
-      setStudents(response.data.students);
-      setInstructorCourses(response.data.courses);
+      const studentsData = response.data.students || [];
+      const coursesData = response.data.courses || [];
+      
+      setStudents(studentsData);
+      setInstructorCourses(coursesData);
     } catch (error) {
       console.error('Error fetching students:', error);
+      setStudents([]);
+      setInstructorCourses([]);
       showNotification('error', 'Error', 'Failed to fetch students');
     } finally {
       setStudentsLoading(false);
@@ -356,10 +361,16 @@ const InstructorDashboard = () => {
 
   const fetchInstructorCourses = async () => {
     try {
+      setLoading(true);
       const response = await courseAPI.getInstructorCourses();
-      setCourses(response.data.courses);
+      const activeCourses = response.data.courses || [];
+      setCourses(activeCourses);
     } catch (error) {
       console.error('Error fetching courses:', error);
+      setCourses([]);
+      showNotification('error', 'Error', 'Failed to fetch courses');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -555,7 +566,7 @@ const InstructorDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">My Courses</p>
-              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{courses.length}</p>
+              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{courses?.length || 0}</p>
               <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Active courses</p>
             </div>
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl">
@@ -568,7 +579,7 @@ const InstructorDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Students</p>
-              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{courses.reduce((sum, course) => sum + (course.students?.length || 0), 0)}</p>
+              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{courses?.reduce((sum, course) => sum + (course.students?.length || 0), 0) || 0}</p>
               <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Enrolled students</p>
             </div>
             <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-xl">
@@ -662,8 +673,8 @@ const InstructorDashboard = () => {
 
   const renderCourses = () => {
     const sortedCourses = sortByLikes 
-      ? [...courses].sort((a, b) => (b.stars?.length || 0) - (a.stars?.length || 0))
-      : courses;
+      ? [...(courses || [])].sort((a, b) => (b.stars?.length || 0) - (a.stars?.length || 0))
+      : (courses || []);
 
     return (
       <div className="space-y-6">
@@ -680,48 +691,61 @@ const InstructorDashboard = () => {
             {sortByLikes ? 'Show All' : 'Sort by Likes'}
           </button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-          {sortedCourses.map((course) => (
-            <div key={course._id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 lg:p-6">
-              <div className="h-24 lg:h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mb-4 overflow-hidden">
-                {course.image ? (
-                  <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600"></div>
-                )}
-              </div>
-              <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white mb-2">{course.title}</h3>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm text-gray-600 dark:text-gray-400">{course.students?.length || 0} Students Enrolled</p>
-                <div className="flex items-center gap-1 text-red-500">
-                  <Heart className="h-4 w-4" />
-                  <span className="text-sm font-medium">{course.stars?.length || 0}</span>
+        
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : sortedCourses.length === 0 ? (
+          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+            <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Courses Assigned</h3>
+            <p className="text-gray-500 dark:text-gray-400">You don't have any active courses assigned to you yet.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+            {sortedCourses.map((course) => (
+              <div key={course._id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 lg:p-6">
+                <div className="h-24 lg:h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mb-4 overflow-hidden">
+                  {course.image ? (
+                    <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600"></div>
+                  )}
+                </div>
+                <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white mb-2">{course.title}</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{course.students?.length || 0} Students Enrolled</p>
+                  <div className="flex items-center gap-1 text-red-500">
+                    <Heart className="h-4 w-4" />
+                    <span className="text-sm font-medium">{course.stars?.length || 0}</span>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4"></p>
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={() => {
+                      setSelectedCourse(course);
+                      setActiveTab('materials');
+                    }}
+                    className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 text-sm"
+                  >
+                    Manage
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setSelectedCourse(course);
+                      setActiveTab('course-videos');
+                    }}
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <Video className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4"></p>
-              <div className="flex space-x-2">
-                <button 
-                  onClick={() => {
-                    setSelectedCourse(course);
-                    setActiveTab('materials');
-                  }}
-                  className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 text-sm"
-                >
-                  Manage
-                </button>
-                <button 
-                  onClick={() => {
-                    setSelectedCourse(course);
-                    setActiveTab('course-videos');
-                  }}
-                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  <Video className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -863,11 +887,11 @@ const InstructorDashboard = () => {
         <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Course Schedules</h2>
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <Calendar className="h-4 w-4" />
-          <span>{courses.length} courses</span>
+          <span>{courses?.length || 0} courses</span>
         </div>
       </div>
       
-      {courses.length === 0 ? (
+      {(courses?.length || 0) === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
           <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Courses Available</h3>
@@ -875,7 +899,7 @@ const InstructorDashboard = () => {
         </div>
       ) : (
         <div className="space-y-4 lg:space-y-6">
-          {courses.map((course) => (
+          {(courses || []).map((course) => (
             <div key={course._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
               <div className="flex flex-col gap-4 mb-4 lg:mb-6">
                 <div className="flex items-center gap-3">
@@ -1921,11 +1945,11 @@ const InstructorDashboard = () => {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Exams</h2>
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <CheckCircle className="h-4 w-4" />
-          <span>{courses.length} courses available</span>
+          <span>{courses?.length || 0} courses available</span>
         </div>
       </div>
       
-      {courses.length === 0 ? (
+      {(courses?.length || 0) === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
           <CheckCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Courses Available</h3>
@@ -1944,7 +1968,7 @@ const InstructorDashboard = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-              {courses.map((course) => (
+              {(courses || []).map((course) => (
                 <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
@@ -2020,11 +2044,11 @@ const InstructorDashboard = () => {
         <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Send Notifications</h2>
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <Bell className="h-4 w-4" />
-          <span>{courses.length} courses</span>
+          <span>{courses?.length || 0} courses</span>
         </div>
       </div>
       
-      {courses.length === 0 ? (
+      {(courses?.length || 0) === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
           <Bell className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Courses Available</h3>
@@ -2044,7 +2068,7 @@ const InstructorDashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                {courses.map((course) => (
+                {(courses || []).map((course) => (
                   <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
@@ -2087,7 +2111,7 @@ const InstructorDashboard = () => {
 
           {/* Mobile Cards */}
           <div className="lg:hidden space-y-4">
-            {courses.map((course) => (
+            {(courses || []).map((course) => (
               <div key={course._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4">
                 <div className="flex items-start gap-3 mb-4">
                   <img 

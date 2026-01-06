@@ -570,9 +570,11 @@ const StudentDashboard = () => {
     try {
       setCoursesLoading(true);
       const response = await enrollmentAPI.getMyCourses();
-      setEnrolledCourses(response.data.courses);
+      const activeCourses = response.data.courses || [];
+      setEnrolledCourses(activeCourses);
     } catch (error) {
       console.error('Fetch enrolled courses error:', error);
+      setEnrolledCourses([]);
       showNotification('error', 'Error', 'Failed to fetch enrolled courses');
     } finally {
       setCoursesLoading(false);
@@ -854,7 +856,7 @@ const StudentDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total My Courses</p>
-              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{enrolledCourses.length}</p>
+              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{enrolledCourses?.length || 0}</p>
               <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Enrolled courses</p>
             </div>
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl">
@@ -960,8 +962,8 @@ const StudentDashboard = () => {
   const renderCourses = () => {
     // Mock liked courses for demo - replace with actual API data
     const displayedCourses = showLikedOnly 
-      ? enrolledCourses.filter(course => course.stars?.includes(user?._id))
-      : enrolledCourses;
+      ? (enrolledCourses || []).filter(course => course.stars?.includes(user?._id))
+      : (enrolledCourses || []);
 
     return (
       <div className="space-y-6">
@@ -996,7 +998,7 @@ const StudentDashboard = () => {
             </div>
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Total My Courses</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">{enrolledCourses.length}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{enrolledCourses?.length || 0}</p>
             </div>
           </div>
         </div>
@@ -1985,7 +1987,7 @@ const renderPayments = () => (
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Exams</h2>
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <CheckCircle className="h-4 w-4" />
-          <span>{enrolledCourses.length} courses available</span>
+          <span>{enrolledCourses?.length || 0} courses available</span>
         </div>
       </div>
       
@@ -1993,7 +1995,7 @@ const renderPayments = () => (
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
-      ) : enrolledCourses.length === 0 ? (
+      ) : (enrolledCourses?.length || 0) === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
           <CheckCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Courses Available</h3>
@@ -2030,7 +2032,7 @@ const renderPayments = () => (
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                {enrolledCourses.map((course) => (
+                {(enrolledCourses || []).map((course) => (
                   <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
@@ -2101,7 +2103,7 @@ const renderPayments = () => (
 
           {/* Mobile Card View */}
           <div className="lg:hidden space-y-4">
-            {enrolledCourses.map((course) => (
+            {(enrolledCourses || []).map((course) => (
               <div key={course._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
                 {/* Course Header */}
                 <div className="flex items-start gap-3 mb-4">
