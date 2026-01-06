@@ -179,6 +179,18 @@ const InstructorDashboard = () => {
       fetchSubscriptionStatus();
       fetchNotifications();
     }
+    
+    // Set up periodic notification check (every 30 seconds)
+    const notificationInterval = setInterval(() => {
+      if (userData) {
+        fetchNotifications();
+      }
+    }, 30000);
+    
+    // Cleanup interval on unmount
+    return () => {
+      clearInterval(notificationInterval);
+    };
   }, []);
 
   // Fetch notifications
@@ -186,8 +198,19 @@ const InstructorDashboard = () => {
     try {
       setNotificationsLoading(true);
       const response = await notificationAPI.getMyNotifications();
-      setNotifications(response.data.notifications);
-      setHasNewNotifications(response.data.unreadCount > 0);
+      const newNotifications = response.data.notifications;
+      const newUnreadCount = response.data.unreadCount;
+      
+      // Check if there are new notifications since last fetch
+      const hasNewNotifications = newUnreadCount > (notifications.filter(n => !n.read).length);
+      
+      setNotifications(newNotifications);
+      setHasNewNotifications(newUnreadCount > 0);
+      
+      // Play notification sound if there are new notifications
+      if (hasNewNotifications && newUnreadCount > 0) {
+        playNotificationSound();
+      }
     } catch (error) {
       console.error('Fetch notifications error:', error);
     } finally {

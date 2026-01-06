@@ -125,22 +125,35 @@ const StudentDashboard = () => {
 
   // Play notification sound
   const playNotificationSound = () => {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
-    oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
-    
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.3);
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Check if AudioContext is allowed
+      if (audioContext.state === 'suspended') {
+        return; // Don't play sound if not allowed
+      }
+      
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Create a pleasant notification sound (two-tone chime)
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.15);
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.3);
+      
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (error) {
+      // Silently fail if audio is not supported or blocked
+      console.log('Audio notification blocked by browser');
+    }
   };
 
   // Fetch notifications
@@ -148,8 +161,19 @@ const StudentDashboard = () => {
     try {
       setNotificationsLoading(true);
       const response = await notificationAPI.getMyNotifications();
-      setNotifications(response.data.notifications);
-      setHasNewNotifications(response.data.unreadCount > 0);
+      const newNotifications = response.data.notifications;
+      const newUnreadCount = response.data.unreadCount;
+      
+      // Check if there are new notifications since last fetch
+      const hasNewNotifications = newUnreadCount > (notifications.filter(n => !n.read).length);
+      
+      setNotifications(newNotifications);
+      setHasNewNotifications(newUnreadCount > 0);
+      
+      // Play notification sound if there are new notifications
+      if (hasNewNotifications && newUnreadCount > 0) {
+        playNotificationSound();
+      }
     } catch (error) {
       console.error('Fetch notifications error:', error);
     } finally {
@@ -647,6 +671,16 @@ const StudentDashboard = () => {
     fetchGrades();
     // Fetch notifications
     fetchNotifications();
+    
+    // Set up periodic notification check (every 30 seconds)
+    const notificationInterval = setInterval(() => {
+      fetchNotifications();
+    }, 30000);
+    
+    // Cleanup interval on unmount
+    return () => {
+      clearInterval(notificationInterval);
+    };
   }, [searchParams]);
 
   // Fetch payments when user is loaded
