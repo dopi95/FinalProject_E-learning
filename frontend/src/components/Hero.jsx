@@ -72,7 +72,7 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative h-screen md:h-[calc(100vh-80px)] flex items-center justify-center overflow-hidden">
+    <section className="relative h-[100dvh] md:h-[calc(100vh-80px)] flex flex-col overflow-hidden">
       {/* Background Image Slider */}
       <div className="absolute inset-0">
         {heroImages.map((image, index) => (
@@ -92,51 +92,56 @@ const Hero = () => {
         ))}
       </div>
 
-
-
-      {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div className="mb-8">
-          <span className="inline-flex items-center px-6 py-3 rounded-full text-sm font-medium bg-white/10 backdrop-blur-md text-white border border-white/20 shadow-lg">
-            {t('hero.welcomeBadge')}
-          </span>
-        </div>
+      {/* Content Container - Full height with proper spacing */}
+      <div className="relative z-10 h-full flex flex-col justify-between px-4 sm:px-6 lg:px-8 text-center max-w-7xl mx-auto w-full py-8 sm:py-12">
         
-        <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 md:mb-8 leading-tight min-h-[120px] sm:min-h-[150px] md:min-h-[200px] flex items-center justify-center">
-          <span className="text-white drop-shadow-2xl text-center">
-            {displayText}
-          </span>
-        </h1>
+        {/* Top spacer */}
+        <div></div>
         
-        <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-8 md:mb-12 max-w-4xl mx-auto leading-relaxed drop-shadow-lg font-medium px-4">
-          {t('hero.subtitle')}
-        </p>
-        
-        <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center items-center px-4">
-          <button 
-            onClick={handleGetStarted}
-            className="w-full sm:w-auto group bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center space-x-3 shadow-2xl hover:shadow-blue-500/25 transform hover:-translate-y-1 font-semibold text-base md:text-lg border border-white/20"
-          >
-            <span>{t('hero.getStarted')}</span>
-            <ArrowRight className="h-4 w-4 md:h-5 md:w-5 group-hover:translate-x-1 transition-transform" />
-          </button>
+        {/* Main content */}
+        <div className="flex-1 flex flex-col justify-center">
+          <div className="mb-2 sm:mb-4">
+            <span className="inline-flex items-center px-3 py-1.5 sm:px-6 sm:py-3 rounded-full text-xs sm:text-sm font-medium bg-white/10 backdrop-blur-md text-white border border-white/20 shadow-lg">
+              {t('hero.welcomeBadge')}
+            </span>
+          </div>
           
-          <button 
-            onClick={handleBrowseCourses}
-            className="w-full sm:w-auto group border-2 border-white/80 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl hover:bg-white/10 backdrop-blur-sm transition-all duration-300 flex items-center justify-center space-x-3 font-semibold text-base md:text-lg shadow-xl"
-          >
-            <Play className="h-4 w-4 md:h-5 md:w-5 group-hover:scale-110 transition-transform" />
-            <span>{t('hero.browseCourses')}</span>
-          </button>
+          <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold mb-2 sm:mb-4 leading-tight min-h-[50px] sm:min-h-[80px] md:min-h-[120px] flex items-center justify-center">
+            <span className="text-white drop-shadow-2xl text-center">
+              {displayText}
+            </span>
+          </h1>
+          
+          <p className="text-sm sm:text-lg md:text-xl text-white/95 mb-4 sm:mb-6 max-w-3xl mx-auto leading-relaxed drop-shadow-lg font-medium">
+            {t('hero.subtitle')}
+          </p>
+          
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 justify-center items-center max-w-md sm:max-w-none mx-auto">
+            <button 
+              onClick={handleGetStarted}
+              className="w-full sm:w-auto group bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 sm:px-8 sm:py-4 rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center space-x-2 shadow-2xl hover:shadow-blue-500/25 transform hover:-translate-y-1 font-semibold text-base border border-white/20 min-h-[56px]"
+            >
+              <span>{t('hero.getStarted')}</span>
+              <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+            
+            <button 
+              onClick={handleBrowseCourses}
+              className="w-full sm:w-auto group border-2 border-white/80 text-white px-8 py-4 sm:px-8 sm:py-4 rounded-2xl hover:bg-white/10 backdrop-blur-sm transition-all duration-300 flex items-center justify-center space-x-2 font-semibold text-base shadow-xl min-h-[56px]"
+            >
+              <Play className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              <span>{t('hero.browseCourses')}</span>
+            </button>
+          </div>
         </div>
         
-        {/* Slide Indicators */}
-        <div className="flex justify-center mt-8 space-x-4">
+        {/* Slide Indicators - Always at bottom */}
+        <div className="flex justify-center mt-4">
           {heroImages.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 mx-1 sm:mx-1.5 ${
                 index === currentSlide
                   ? 'bg-white scale-125'
                   : 'bg-white/50 hover:bg-white/75'
@@ -146,10 +151,10 @@ const Hero = () => {
         </div>
       </div>
 
-      {/* Animated Background Elements */}
-      <div className="absolute top-20 left-10 w-20 h-20 bg-white/10 rounded-full animate-float backdrop-blur-sm"></div>
-      <div className="absolute top-40 right-20 w-16 h-16 bg-white/10 rounded-full animate-float animation-delay-2000 backdrop-blur-sm"></div>
-      <div className="absolute bottom-40 left-20 w-24 h-24 bg-white/10 rounded-full animate-float animation-delay-4000 backdrop-blur-sm"></div>
+      {/* Animated Background Elements - Hidden on mobile */}
+      <div className="hidden md:block absolute top-20 left-10 w-20 h-20 bg-white/10 rounded-full animate-float backdrop-blur-sm"></div>
+      <div className="hidden md:block absolute top-40 right-20 w-16 h-16 bg-white/10 rounded-full animate-float animation-delay-2000 backdrop-blur-sm"></div>
+      <div className="hidden md:block absolute bottom-40 left-20 w-24 h-24 bg-white/10 rounded-full animate-float animation-delay-4000 backdrop-blur-sm"></div>
     </section>
   );
 };
