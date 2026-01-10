@@ -373,7 +373,7 @@ const StudentDashboard = () => {
                   </div>
                   <div class="info-row">
                     <span>Student ID:</span>
-                    <span>${payment.user.systemId || payment.user._id.slice(-8).toUpperCase()}</span>
+                    <span>${payment.user.studentId || payment.user.systemId || payment.user._id.slice(-8).toUpperCase()}</span>
                   </div>
                   <div class="info-row">
                     <span>Gender:</span>
@@ -503,17 +503,17 @@ const StudentDashboard = () => {
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px;">
               <div>
                 <h3 style="font-size: 18px; font-weight: bold; color: #000; margin-bottom: 16px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px;">Student Information</h3>
-                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Name:</span><span style="color: #000; font-weight: 500;">Elyas Yenealem</span></div>
-                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Email:</span><span style="color: #000; font-weight: 500;">elyasat594@gmail.com</span></div>
-                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Student ID:</span><span style="color: #000; font-weight: 500;">AAU/0001/26</span></div>
-                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Gender:</span><span style="color: #000; font-weight: 500;">Male</span></div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Name:</span><span style="color: #000; font-weight: 500;">${payment.user.name}</span></div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Email:</span><span style="color: #000; font-weight: 500;">${payment.user.email}</span></div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Student ID:</span><span style="color: #000; font-weight: 500;">${payment.user.studentId || payment.user.systemId || payment.user._id.slice(-8).toUpperCase()}</span></div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Gender:</span><span style="color: #000; font-weight: 500;">${payment.user.gender ? payment.user.gender.charAt(0).toUpperCase() + payment.user.gender.slice(1) : 'Not specified'}</span></div>
               </div>
               
               <div>
                 <h3 style="font-size: 18px; font-weight: bold; color: #000; margin-bottom: 16px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px;">Payment Information</h3>
-                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Date:</span><span style="color: #000; font-weight: 500;">1/1/2026</span></div>
-                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Method:</span><span style="color: #000; font-weight: 500;">cbe</span></div>
-                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Transaction ID:</span><span style="color: #000; font-weight: 500;">demo_tx-1767255232584-205c7bbe-ba82-4034-8d2e-76a3136b96b6</span></div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Date:</span><span style="color: #000; font-weight: 500;">${new Date(payment.createdAt).toLocaleDateString()}</span></div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Method:</span><span style="color: #000; font-weight: 500;">${payment.paymentMethod === 'telebirr' ? 'Telebirr' : payment.paymentMethod === 'cbe' ? 'CBE' : payment.paymentMethod}</span></div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;"><span style="color: #6b7280;">Transaction ID:</span><span style="color: #000; font-weight: 500;">${payment.transactionId}</span></div>
               </div>
             </div>
             
