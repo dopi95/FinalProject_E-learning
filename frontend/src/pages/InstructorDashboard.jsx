@@ -703,7 +703,7 @@ const InstructorDashboard = () => {
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">My Courses</h2>
           <button
             onClick={() => setSortByLikes(!sortByLikes)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors w-fit ${
               sortByLikes 
                 ? 'bg-red-600 text-white hover:bg-red-700' 
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
@@ -724,57 +724,77 @@ const InstructorDashboard = () => {
             <p className="text-gray-500 dark:text-gray-400">You don't have any active courses assigned to you yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-            {sortedCourses.map((course) => (
-              <div key={course._id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 lg:p-6">
-                <div className="h-24 lg:h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mb-4 overflow-hidden">
-                  {course.image ? (
-                    <img 
-                      src={course.image} 
-                      alt={course.title} 
-                      className="w-full h-full object-cover" 
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-xs font-medium">No Image</span></div>';
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                      <span className="text-white text-xs font-medium">No Image</span>
-                    </div>
-                  )}
-                </div>
-                <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white mb-2">{course.title}</h3>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{course.students?.length || 0} Students Enrolled</p>
-                  <div className="flex items-center gap-1 text-red-500">
-                    <Heart className="h-4 w-4" />
-                    <span className="text-sm font-medium">{course.stars?.length || 0}</span>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4"></p>
-                <div className="flex space-x-2">
-                  <button 
-                    onClick={() => {
-                      setSelectedCourse(course);
-                      setActiveTab('materials');
-                    }}
-                    className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 text-sm"
-                  >
-                    Manage
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setSelectedCourse(course);
-                      setActiveTab('course-videos');
-                    }}
-                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    <Video className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b-2 border-gray-200 dark:border-gray-600">
+                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
+                      Course
+                    </th>
+                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
+                      Students
+                    </th>
+                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
+                      Likes
+                    </th>
+                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y-2 divide-gray-200 dark:divide-gray-600">
+                  {sortedCourses.map((course, index) => (
+                    <tr key={course._id} className={`hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-200 dark:border-gray-600 ${
+                      index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-750'
+                    }`}>
+                      <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
+                        <div className="text-xs lg:text-sm font-semibold text-gray-900 dark:text-white">{course.title}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{course.category || 'General'}</div>
+                      </td>
+                      <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
+                        <div className="flex items-center">
+                          <Users className="h-3 w-3 lg:h-4 lg:w-4 text-gray-400 mr-1 lg:mr-2" />
+                          <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white">
+                            {course.students?.length || 0}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
+                        <div className="flex items-center">
+                          <Heart className="h-3 w-3 lg:h-4 lg:w-4 text-red-500 mr-1 lg:mr-2" />
+                          <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white">
+                            {course.stars?.length || 0}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-3 lg:px-6 py-3 lg:py-4">
+                        <div className="flex items-center space-x-1 lg:space-x-2">
+                          <button 
+                            onClick={() => {
+                              setSelectedCourse(course);
+                              setActiveTab('materials');
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-2 lg:px-3 py-1 lg:py-1.5 rounded-lg text-xs font-medium transition-colors"
+                          >
+                            Manage
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setSelectedCourse(course);
+                              setActiveTab('course-videos');
+                            }}
+                            className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-2 lg:px-3 py-1 lg:py-1.5 rounded-lg text-xs font-medium transition-colors"
+                          >
+                            <Video className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -934,23 +954,6 @@ const InstructorDashboard = () => {
             <div key={course._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
               <div className="flex flex-col gap-4 mb-4 lg:mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0">
-                    {course.image ? (
-                      <img 
-                        src={course.image}
-                        alt={course.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-xs font-bold">' + (course.title ? course.title.charAt(0).toUpperCase() : 'C') + '</span></div>';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">{course.title ? course.title.charAt(0).toUpperCase() : 'C'}</span>
-                      </div>
-                    )}
-                  </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white truncate">{course.title}</h3>
                     <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{course.students?.length || 0} students enrolled</p>
@@ -2114,28 +2117,9 @@ const InstructorDashboard = () => {
                 {(courses || []).map((course) => (
                   <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-12 h-12 rounded-lg mr-4 overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0">
-                          {course.image ? (
-                            <img 
-                              src={course.image}
-                              alt={course.title}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-xs font-bold">' + (course.title ? course.title.charAt(0).toUpperCase() : 'C') + '</span></div>';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">{course.title ? course.title.charAt(0).toUpperCase() : 'C'}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">{course.title}</p>
-                          <p className="text-xs text-gray-500">{course.category}</p>
-                        </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{course.title}</p>
+                        <p className="text-xs text-gray-500">{course.category}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -2169,11 +2153,6 @@ const InstructorDashboard = () => {
             {(courses || []).map((course) => (
               <div key={course._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4">
                 <div className="flex items-start gap-3 mb-4">
-                  <img 
-                    src={course.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=60'}
-                    alt={course.title}
-                    className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
-                  />
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1 truncate">{course.title}</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{course.category}</p>

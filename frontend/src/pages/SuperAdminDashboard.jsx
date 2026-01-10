@@ -2065,72 +2065,88 @@ const SuperAdminDashboard = () => {
 
       {/* Course Detail Modal */}
       {showCourseDetail && selectedCourse && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Course Details</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-2xl max-h-[95vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Course Details</h3>
                 <button
                   onClick={() => setShowCourseDetail(false)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
                 >
-                  <X className="h-6 w-6" />
+                  <X className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>
               </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center mb-4">
-                  <img className="h-20 w-20 rounded-lg object-cover mr-4" src={selectedCourse.image} alt={selectedCourse.title} />
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{selectedCourse.title}</h4>
-                    <p className="text-gray-600 dark:text-gray-400">{selectedCourse.description}</p>
+            </div>
+            
+            {/* Modal Body - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              <div className="space-y-4 sm:space-y-6">
+                {/* Course Header with Image */}
+                <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                  <img 
+                    src={selectedCourse.image} 
+                    alt={selectedCourse.title}
+                    className="w-full sm:w-32 h-32 object-cover rounded-lg"
+                  />
+                  <div className="flex-1">
+                    <h4 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">{selectedCourse.title}</h4>
+                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 break-words">{selectedCourse.description}</p>
                   </div>
                 </div>
                 
+                {/* About Section */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">About This Course</label>
-                  <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{selectedCourse.about}</p>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">About This Course</label>
+                  <div className="text-sm sm:text-base text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 sm:p-4 rounded-lg break-words whitespace-pre-wrap leading-relaxed max-h-40 sm:max-h-48 overflow-y-auto">
+                    {selectedCourse.about}
+                  </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                {/* Price and Category */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Price</label>
-                    <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{selectedCourse.price} Birr</p>
+                    <p className="text-sm sm:text-base text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{selectedCourse.price} Birr</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
-                    <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{categories.find(cat => cat.slug === selectedCourse.category)?.name || selectedCourse.category}</p>
+                    <p className="text-sm sm:text-base text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg break-words">{categories.find(cat => cat.slug === selectedCourse.category)?.name || selectedCourse.category}</p>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                {/* Dates */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Course Start</label>
-                    <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                    <p className="text-sm sm:text-base text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
                       {selectedCourse.startDate ? new Date(selectedCourse.startDate).toLocaleDateString() : 'Not set'}
                     </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Registration Deadline</label>
-                    <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                    <p className="text-sm sm:text-base text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
                       {selectedCourse.endDate ? new Date(selectedCourse.endDate).toLocaleDateString() : 'Not set'}
                     </p>
                   </div>
                 </div>
                 
+                {/* Instructor */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Instructor</label>
-                  <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{selectedCourse.instructor?.name || 'Unknown Instructor'}</p>
+                  <p className="text-sm sm:text-base text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg break-words">{selectedCourse.instructor?.name || 'Unknown Instructor'}</p>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                {/* Stats */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Students Enrolled</label>
-                    <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{selectedCourse.studentCount || 0}</p>
+                    <p className="text-sm sm:text-base text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{selectedCourse.studentCount || 0}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Created Date</label>
-                    <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{new Date(selectedCourse.createdAt).toLocaleDateString()}</p>
+                    <p className="text-sm sm:text-base text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{new Date(selectedCourse.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
               </div>
