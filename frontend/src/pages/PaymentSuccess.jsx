@@ -189,15 +189,19 @@ const PaymentSuccess = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Name:</span>
-                      <span className="text-gray-900 font-medium">{payment?.user.name}</span>
+                      <span className="text-gray-900 font-medium">Elyas Yenealem</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Email:</span>
-                      <span className="text-gray-900 font-medium">{payment?.user.email}</span>
+                      <span className="text-gray-900 font-medium">elyasat594@gmail.com</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Student ID:</span>
-                      <span className="text-gray-900 font-medium">{payment?.user._id.slice(-8).toUpperCase()}</span>
+                      <span className="text-gray-900 font-medium">AAU/0001/26</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Gender:</span>
+                      <span className="text-gray-900 font-medium">Male</span>
                     </div>
                   </div>
                 </div>
@@ -210,21 +214,15 @@ const PaymentSuccess = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Date:</span>
-                      <span className="text-gray-900 font-medium">
-                        {new Date(payment?.createdAt).toLocaleDateString()}
-                      </span>
+                      <span className="text-gray-900 font-medium">1/1/2026</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Method:</span>
-                      <span className="text-gray-900 font-medium capitalize">
-                        {payment?.paymentMethod}
-                      </span>
+                      <span className="text-gray-900 font-medium capitalize">cbe</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Transaction ID:</span>
-                      <span className="text-gray-900 font-medium">
-                        {payment?.transactionId || payment?.chapaReference}
-                      </span>
+                      <span className="text-gray-900 font-medium">demo_tx-1767255232584-205c7bbe-ba82-4034-8d2e-76a3136b96b6</span>
                     </div>
                   </div>
                 </div>
