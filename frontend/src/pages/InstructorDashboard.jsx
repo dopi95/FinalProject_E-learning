@@ -1163,22 +1163,28 @@ const InstructorDashboard = () => {
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
+      ) : filteredStudents.length === 0 ? (
+        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+          <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Students Found</h3>
+          <p className="text-gray-500 dark:text-gray-400">Try adjusting your search or filters.</p>
+        </div>
       ) : (
         <>
-          {/* Desktop Table View */}
-          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+          {/* Students Table - Responsive */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Enrolled Courses</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      {selectedCourseFilter === 'all' ? 'Avg Attendance' : `Attendance on ${instructorCourses.find(c => c._id === selectedCourseFilter)?.title || 'Course'}`}
+                    <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student</th>
+                    <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                    <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Courses</th>
+                    <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Attendance
                     </th>
                     {selectedCourseFilter !== 'all' && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                      <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                     )}
                   </tr>
                 </thead>
@@ -1190,30 +1196,30 @@ const InstructorDashboard = () => {
                     
                     return (
                       <tr key={student._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        <td className="px-6 py-4">
+                        <td className="px-3 lg:px-6 py-4">
                           <div className="flex items-center">
-                            <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-3 overflow-hidden flex-shrink-0">
+                            <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-2 lg:mr-3 overflow-hidden flex-shrink-0">
                               {student.profileImage ? (
                                 <img src={student.profileImage} alt={student.name} className="w-full h-full object-cover" />
                               ) : (
-                                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                <span className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-300">
                                   {student.name?.charAt(0)?.toUpperCase() || 'S'}
                                 </span>
                               )}
                             </div>
                             <div className="min-w-0">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{student.name}</div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{student.email}</div>
+                              <div className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white truncate">{student.name}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 truncate lg:block hidden">{student.email}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                        <td className="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-900 dark:text-white">
                           {student.systemId || 'N/A'}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                        <td className="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-900 dark:text-white">
                           {student.totalCourses}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-3 lg:px-6 py-4">
                           <div className="flex items-center">
                             <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-2">
                               <div 
@@ -1224,120 +1230,25 @@ const InstructorDashboard = () => {
                                 style={{ width: `${avgAttendance}%` }}
                               ></div>
                             </div>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{avgAttendance}%</span>
+                            <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white">{avgAttendance}%</span>
                           </div>
                         </td>
                         {selectedCourseFilter !== 'all' && (
-                          <td className="px-6 py-4">
+                          <td className="px-3 lg:px-6 py-4">
                             <button
                               onClick={() => setSelectedStudentForGrading(student)}
-                              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                              className="bg-blue-600 text-white px-2 lg:px-3 py-1 rounded text-xs lg:text-sm hover:bg-blue-700"
                             >
-                              Submit Grade
+                              Grade
                             </button>
                           </td>
                         )}
-
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
-          </div>
-
-          {/* Mobile Card View */}
-          <div className="lg:hidden">
-            {filteredStudents.length === 0 ? (
-              <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
-                <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Students Found</h3>
-                <p className="text-gray-500 dark:text-gray-400">Try adjusting your search or filters.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredStudents.map((student) => {
-                  const avgAttendance = student.courses.length > 0 
-                    ? Math.round(student.courses.reduce((sum, course) => sum + course.attendance, 0) / student.courses.length)
-                    : 0;
-                  
-                  return (
-                    <div key={student._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
-                      {/* Student Header */}
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="h-12 w-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
-                          {student.profileImage ? (
-                            <img src={student.profileImage} alt={student.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                              {student.name?.charAt(0)?.toUpperCase() || 'S'}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
-                            {student.name}
-                          </h3>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                            {student.email}
-                          </p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
-                            ID: {student.systemId || 'N/A'}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Stats */}
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">{student.totalCourses}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Courses</p>
-                        </div>
-                        <div className="text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
-                          <div className="flex items-center justify-center gap-2 mb-1">
-                            <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                              <div 
-                                className={`h-2 rounded-full ${
-                                  avgAttendance >= 80 ? 'bg-green-500' :
-                                  avgAttendance >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                                }`}
-                                style={{ width: `${avgAttendance}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-xs font-medium text-gray-900 dark:text-white">{avgAttendance}%</span>
-                          </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {selectedCourseFilter === 'all' ? 'Attendance' : `Attendance on ${instructorCourses.find(c => c._id === selectedCourseFilter)?.title || 'Course'}`}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Course Buttons */}
-                      <div className="flex flex-wrap gap-2">
-                        {selectedCourseFilter === 'all' ? (
-                          student.courses.map((course) => (
-                            <button
-                              key={course._id}
-                              onClick={() => setSelectedStudentCourse({ student, course })}
-                              className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-                            >
-                              {course.title}
-                            </button>
-                          ))
-                        ) : (
-                          <button
-                            onClick={() => setSelectedStudentForGrading(student)}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm"
-                          >
-                            Submit Grade
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         </>
       )}
@@ -2102,77 +2013,48 @@ const InstructorDashboard = () => {
         </div>
       ) : (
         <>
-          {/* Desktop Table */}
-          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Course</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Students</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Category</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                {(courses || []).map((course) => (
-                  <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{course.title}</p>
-                        <p className="text-xs text-gray-500">{course.category}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <Users className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{course.students?.length || 0}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">{course.category}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => {
-                          setSelectedNotificationCourse(course);
-                          setShowNotificationForm(true);
-                        }}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium"
-                      >
-                        Send to Students
-                      </button>
-                    </td>
+          {/* Send Notification Table - Responsive */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-3 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Course</th>
+                    <th className="px-3 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Students</th>
+                    <th className="px-3 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Cards */}
-          <div className="lg:hidden space-y-4">
-            {(courses || []).map((course) => (
-              <div key={course._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4">
-                <div className="flex items-start gap-3 mb-4">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1 truncate">{course.title}</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{course.category}</p>
-                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                      <Users className="h-3 w-3" />
-                      <span className="text-xs">{course.students?.length || 0} students</span>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setSelectedNotificationCourse(course);
-                    setShowNotificationForm(true);
-                  }}
-                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 text-sm font-medium"
-                >
-                  Send to Students
-                </button>
-              </div>
-            ))}
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                  {(courses || []).map((course) => (
+                    <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-3 lg:px-6 py-4">
+                        <div>
+                          <p className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white">{course.title}</p>
+                          <p className="text-xs text-gray-500">{course.category}</p>
+                        </div>
+                      </td>
+                      <td className="px-3 lg:px-6 py-4">
+                        <div className="flex items-center">
+                          <Users className="h-3 w-3 lg:h-4 lg:w-4 text-gray-400 mr-1 lg:mr-2" />
+                          <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white">{course.students?.length || 0}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 lg:px-6 py-4">
+                        <button
+                          onClick={() => {
+                            setSelectedNotificationCourse(course);
+                            setShowNotificationForm(true);
+                          }}
+                          className="bg-blue-600 text-white px-2 lg:px-4 py-1 lg:py-2 rounded-lg hover:bg-blue-700 text-xs lg:text-sm font-medium"
+                        >
+                          Send
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}
