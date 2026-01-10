@@ -1024,7 +1024,7 @@ const StudentDashboard = () => {
           </div>
           <button 
             onClick={() => window.location.href = '/courses'}
-            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+            className="w-fit bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 text-xs font-medium transition-colors"
           >
             <BookOpen className="h-4 w-4" />
             Browse Courses
@@ -1064,85 +1064,52 @@ const StudentDashboard = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayedCourses.map((course) => (
-            <div key={course._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 dark:border-gray-700">
-              <div className="relative">
-                <div className="h-48 bg-gradient-to-r from-blue-500 to-purple-600 rounded-t-2xl overflow-hidden">
-                  {course.image ? (
-                    <img 
-                      src={course.image}
-                      alt={course.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-lg font-bold">' + (course.title ? course.title.charAt(0).toUpperCase() : 'C') + '</span></div>';
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                      <span className="text-white text-lg font-bold">{course.title ? course.title.charAt(0).toUpperCase() : 'C'}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="p-4 sm:p-6">
-                <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-3 line-clamp-2 leading-tight">
-                  {course.title}
-                </h3>
-                
-                {/* Course Description */}
-                {course.description && (
-                  <div className="mb-4">
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed break-words overflow-hidden">
-                      <span className="line-clamp-3">
-                        {course.description.length > 120 
-                          ? `${course.description.substring(0, 120)}...` 
-                          : course.description
-                        }
-                      </span>
-                    </p>
-                  </div>
-                )}
-                
-                <div className="flex items-center mb-4">
-                  <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-full mr-3 overflow-hidden flex-shrink-0">
-                    {course.instructor?.profileImage ? (
-                      <img 
-                        src={course.instructor.profileImage} 
-                        alt={course.instructor.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center">
-                        <span className="text-white text-xs sm:text-sm font-semibold">
-                          {course.instructor?.name ? course.instructor.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'IN'}
-                        </span>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b-2 border-gray-200 dark:border-gray-600">
+                  <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
+                    Course
+                  </th>
+                  <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
+                    Instructor
+                  </th>
+                  <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y-2 divide-gray-200 dark:divide-gray-600">
+                {displayedCourses.map((course, index) => (
+                  <tr key={course._id} className={`hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-200 dark:border-gray-600 ${
+                    index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-750'
+                  }`}>
+                    <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
+                      <div className="text-xs lg:text-sm font-semibold text-gray-900 dark:text-white truncate max-w-xs">{course.title}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{course.category || 'General'}</div>
+                    </td>
+                    <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
+                      <div className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white">
+                        {course.instructor?.name || 'Instructor'}
                       </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm truncate">{course.instructor?.name || 'Instructor'}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Instructor</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{course.enrolledStudents || 0} students</p>
-                  </div>
-                </div>
-                
-                <button 
-                  onClick={() => {
-                    setSelectedCourse(course);
-                    setActiveTab('course-materials');
-                  }}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2.5 sm:py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-sm sm:text-base"
-                >
-                  View Course Materials
-                </button>
-              </div>
-            </div>
-          ))}
+                    </td>
+                    <td className="px-3 lg:px-6 py-3 lg:py-4">
+                      <button 
+                        onClick={() => {
+                          setSelectedCourse(course);
+                          setActiveTab('course-materials');
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+                      >
+                        View Materials
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
@@ -1172,78 +1139,45 @@ const renderPayments = () => (
       ) : (
         <>
           {/* Desktop Table View */}
-          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b-2 border-gray-200 dark:border-gray-600">
+                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
                       Course
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
                       Amount
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Payment Method
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
                       Status
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                  {payments.map((payment) => (
-                    <tr key={payment._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 mr-4">
-                          {payment.course?.image ? (
-                            <img 
-                              src={payment.course.image}
-                              alt={payment.course.title}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-xs font-bold">' + (payment.course?.title ? payment.course.title.charAt(0).toUpperCase() : 'C') + '</span></div>';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">{payment.course?.title ? payment.course.title.charAt(0).toUpperCase() : 'C'}</span>
-                            </div>
-                          )}
+                <tbody className="divide-y-2 divide-gray-200 dark:divide-gray-600">
+                  {payments.map((payment, index) => (
+                    <tr key={payment._id} className={`hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-200 dark:border-gray-600 ${
+                      index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-750'
+                    }`}>
+                      <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
+                        <div className="text-xs lg:text-sm font-semibold text-gray-900 dark:text-white truncate max-w-xs">
+                          {payment.course?.title || 'Course'}
                         </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">
-                              {payment.course?.title || 'Course'}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Receipt: {payment.receiptNumber}
-                            </p>
-                          </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Receipt: {payment.receiptNumber}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-lg font-bold text-gray-900 dark:text-white">
+                      <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
+                        <span className="text-xs lg:text-sm font-bold text-gray-900 dark:text-white">
                           {payment.amount} Birr
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 capitalize">
-                          {payment.paymentMethod}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                        {new Date(payment.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                      <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           payment.status === 'success' 
                             ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300'
                             : payment.status === 'pending'
@@ -1254,21 +1188,21 @@ const renderPayments = () => (
                           {payment.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
+                      <td className="px-3 lg:px-6 py-3 lg:py-4">
+                        <div className="flex items-center gap-1 lg:gap-2">
                           <button
                             onClick={() => handleViewReceipt(payment._id)}
-                            className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            className="p-1.5 lg:p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                             title="View Receipt"
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-3 w-3 lg:h-4 lg:w-4" />
                           </button>
                           <button
                             onClick={() => handleDownloadReceipt(payment._id)}
-                            className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                            className="p-1.5 lg:p-2 text-green-600 hover:text-green-800 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                             title="Download Receipt"
                           >
-                            <Download className="h-4 w-4" />
+                            <Download className="h-3 w-3 lg:h-4 lg:w-4" />
                           </button>
                         </div>
                       </td>
@@ -1277,103 +1211,6 @@ const renderPayments = () => (
                 </tbody>
               </table>
             </div>
-          </div>
-
-          {/* Mobile Card View */}
-          <div className="lg:hidden space-y-4">
-            {payments.map((payment) => (
-              <div key={payment._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
-                {/* Header with Course Info */}
-                <div className="flex items-start gap-3 mb-4">
-                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0">
-                    {payment.course?.image ? (
-                      <img 
-                        src={payment.course.image}
-                        alt={payment.course.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-sm font-bold">' + (payment.course?.title ? payment.course.title.charAt(0).toUpperCase() : 'C') + '</span></div>';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                        <span className="text-white text-sm font-bold">{payment.course?.title ? payment.course.title.charAt(0).toUpperCase() : 'C'}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight mb-1">
-                      {payment.course?.title || 'Course'}
-                    </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                      Receipt: {payment.receiptNumber}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        payment.status === 'success' 
-                          ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300'
-                          : payment.status === 'pending'
-                          ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300'
-                          : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300'
-                      }`}>
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        {payment.status}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Payment Details Grid */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Amount</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">{payment.amount} Birr</p>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Date</p>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {new Date(payment.createdAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Payment Method */}
-                <div className="mb-4">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Payment Method</p>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                      <CreditCard className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">
-                      {payment.paymentMethod}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleViewReceipt(payment._id)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 py-2.5 px-4 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
-                  >
-                    <Eye className="h-4 w-4" />
-                    View Receipt
-                  </button>
-                  <button
-                    onClick={() => handleDownloadReceipt(payment._id)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 py-2.5 px-4 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-sm font-medium"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download
-                  </button>
-                </div>
-              </div>
-            ))}
           </div>
         </>
       )}
@@ -1494,33 +1331,25 @@ const renderPayments = () => (
       ) : (
         <>
           {/* Desktop Table View */}
-          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Course</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Instructor</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Enrolled Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Grade</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+              <table className="min-w-full">
+                <thead>
+                  <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b-2 border-gray-200 dark:border-gray-600">
+                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">Course</th>
+                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">Grade</th>
+                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {grades.map((grade) => (
-                    <tr key={grade._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">{grade.course.title}</div>
+                <tbody className="divide-y-2 divide-gray-200 dark:divide-gray-600">
+                  {grades.map((grade, index) => (
+                    <tr key={grade._id} className={`hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-200 dark:border-gray-600 ${
+                      index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-750'
+                    }`}>
+                      <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
+                        <div className="text-xs lg:text-sm font-semibold text-gray-900 dark:text-white truncate max-w-xs">{grade.course.title}</div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 dark:text-white">{grade.course.instructor.name}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 dark:text-white">
-                          {new Date(grade.enrollmentDate).toLocaleDateString()}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                           grade.gradeLetter === 'A' || grade.gradeLetter === 'A+' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
                           grade.gradeLetter === 'B' || grade.gradeLetter === 'B+' || grade.gradeLetter === 'B-' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
@@ -1530,16 +1359,15 @@ const renderPayments = () => (
                           {grade.gradeLetter}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 lg:px-6 py-3 lg:py-4">
                         <button
                           onClick={() => {
                             setSelectedGrade(grade);
                             setShowGradeDetail(true);
                           }}
-                          className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                          title="View Assessment Details"
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
                         >
-                          <Eye className="h-4 w-4" />
+                          View Assessment
                         </button>
                       </td>
                     </tr>
@@ -1547,45 +1375,6 @@ const renderPayments = () => (
                 </tbody>
               </table>
             </div>
-          </div>
-
-          {/* Mobile Card View */}
-          <div className="lg:hidden space-y-4">
-            {grades.map((grade) => (
-              <div key={grade._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
-                      {grade.course.title}
-                    </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                      Instructor: {grade.course.instructor.name}
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Enrolled: {new Date(grade.enrollmentDate).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    grade.gradeLetter === 'A' || grade.gradeLetter === 'A+' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
-                    grade.gradeLetter === 'B' || grade.gradeLetter === 'B+' || grade.gradeLetter === 'B-' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
-                    grade.gradeLetter === 'C' || grade.gradeLetter === 'C+' || grade.gradeLetter === 'C-' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
-                    'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
-                  }`}>
-                    {grade.gradeLetter}
-                  </span>
-                </div>
-                <button
-                  onClick={() => {
-                    setSelectedGrade(grade);
-                    setShowGradeDetail(true);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 py-2 px-3 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
-                >
-                  <Eye className="h-4 w-4" />
-                  View Assessment Details
-                </button>
-              </div>
-            ))}
           </div>
         </>
       )}
