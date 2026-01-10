@@ -78,6 +78,9 @@ const SuperAdminDashboard = () => {
   const [showNotificationForm, setShowNotificationForm] = useState(false);
   const [notificationForm, setNotificationForm] = useState({ title: '', message: '', role: 'all' });
 
+  // Newsletter state
+  const [showNewsletterForm, setShowNewsletterForm] = useState(false);
+
   // Admin management state
   const [showCreateAdmin, setShowCreateAdmin] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState(null);
@@ -1449,104 +1452,7 @@ const SuperAdminDashboard = () => {
 
 
 
-      {/* Quick Actions */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
-        <div className="flex items-center mb-4 lg:mb-6">
-          <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg mr-3">
-            <Settings className="h-5 w-5 lg:h-6 lg:w-6 text-purple-600" />
-          </div>
-          <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">Quick Actions</h3>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          {/* Admin Management - Only for superadmin */}
-          {user?.role === 'superadmin' && (
-            <button 
-              onClick={() => setActiveTab('admins')}
-              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 transition-all duration-200 group border border-purple-200 dark:border-purple-700"
-            >
-              <Shield className="h-6 w-6 lg:h-8 lg:w-8 text-purple-600 mb-2 group-hover:scale-110 transition-transform" />
-              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Manage Admins</span>
-            </button>
-          )}
-          
-          {/* Users Management - Show if user has permission */}
-          {(user?.role === 'superadmin' || user?.permissions?.includes('users')) && (
-            <button 
-              onClick={() => setActiveTab('users')}
-              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 transition-all duration-200 group border border-blue-200 dark:border-blue-700"
-            >
-              <Users className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600 mb-2 group-hover:scale-110 transition-transform" />
-              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">All Users</span>
-            </button>
-          )}
-          
-          {/* Course Management - Show if user has permission */}
-          {(user?.role === 'superadmin' || user?.permissions?.includes('courses')) && (
-            <button 
-              onClick={() => setActiveTab('courses')}
-              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30 transition-all duration-200 group border border-green-200 dark:border-green-700"
-            >
-              <BookOpen className="h-6 w-6 lg:h-8 lg:w-8 text-green-600 mb-2 group-hover:scale-110 transition-transform" />
-              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Manage Courses</span>
-            </button>
-          )}
-          
-          {/* Contact Management - Show if user has permission */}
-          {(user?.role === 'superadmin' || user?.permissions?.includes('contacts')) && (
-            <button 
-              onClick={() => setActiveTab('contacts')}
-              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl hover:from-orange-100 hover:to-red-100 dark:hover:from-orange-900/30 dark:hover:to-red-900/30 transition-all duration-200 group border border-orange-200 dark:border-orange-700"
-            >
-              <MessageSquare className="h-6 w-6 lg:h-8 lg:w-8 text-orange-600 mb-2 group-hover:scale-110 transition-transform" />
-              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Manage Contacts</span>
-            </button>
-          )}
-          
-          {/* Schedule Management - Show if user has permission */}
-          {(user?.role === 'superadmin' || user?.permissions?.includes('schedules')) && (
-            <button 
-              onClick={() => setActiveTab('schedules')}
-              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl hover:from-indigo-100 hover:to-purple-100 dark:hover:from-indigo-900/30 dark:hover:to-purple-900/30 transition-all duration-200 group border border-indigo-200 dark:border-indigo-700"
-            >
-              <Calendar className="h-6 w-6 lg:h-8 lg:w-8 text-indigo-600 mb-2 group-hover:scale-110 transition-transform" />
-              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Assign Schedule</span>
-            </button>
-          )}
-          
-          {/* Reviews Management - Show if user has permission */}
-          {(user?.role === 'superadmin' || user?.permissions?.includes('reviews')) && (
-            <button 
-              onClick={() => setActiveTab('reviews')}
-              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl hover:from-yellow-100 hover:to-orange-100 dark:hover:from-yellow-900/30 dark:hover:to-orange-900/30 transition-all duration-200 group border border-yellow-200 dark:border-yellow-700"
-            >
-              <Star className="h-6 w-6 lg:h-8 lg:w-8 text-yellow-600 mb-2 group-hover:scale-110 transition-transform" />
-              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Review Management</span>
-            </button>
-          )}
-          
-          {/* Subscriptions Management - Show if user has permission */}
-          {(user?.role === 'superadmin' || user?.permissions?.includes('subscriptions')) && (
-            <button 
-              onClick={() => setActiveTab('subscriptions')}
-              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 rounded-xl hover:from-teal-100 hover:to-cyan-100 dark:hover:from-teal-900/30 dark:hover:to-cyan-900/30 transition-all duration-200 group border border-teal-200 dark:border-teal-700"
-            >
-              <Mail className="h-6 w-6 lg:h-8 lg:w-8 text-teal-600 mb-2 group-hover:scale-110 transition-transform" />
-              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Email Subscriptions</span>
-            </button>
-          )}
-          
-          {/* Settings - Show if user has permission */}
-          {(user?.role === 'superadmin' || user?.permissions?.includes('settings')) && (
-            <button 
-              onClick={() => setActiveTab('settings')}
-              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20 rounded-xl hover:from-gray-100 hover:to-slate-100 dark:hover:from-gray-900/30 dark:hover:to-slate-900/30 transition-all duration-200 group border border-gray-200 dark:border-gray-700"
-            >
-              <Settings className="h-6 w-6 lg:h-8 lg:w-8 text-gray-600 mb-2 group-hover:scale-110 transition-transform" />
-              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Global Settings</span>
-            </button>
-          )}
-        </div>
-      </div>
+
 
       {/* Recent Activities */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
@@ -1703,6 +1609,90 @@ const SuperAdminDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
+        <div className="flex items-center mb-4 lg:mb-6">
+          <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg mr-3">
+            <Settings className="h-5 w-5 lg:h-6 lg:w-6 text-purple-600" />
+          </div>
+          <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">Quick Actions</h3>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+          {/* Create Admin - Only for superadmin */}
+          {user?.role === 'superadmin' && (
+            <button 
+              onClick={() => setShowCreateAdmin(true)}
+              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 transition-all duration-200 group border border-purple-200 dark:border-purple-700"
+            >
+              <Shield className="h-6 w-6 lg:h-8 lg:w-8 text-purple-600 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Create Admin</span>
+            </button>
+          )}
+          
+          {/* Add Course - Show if user has permission */}
+          {(user?.role === 'superadmin' || user?.permissions?.includes('courses')) && (
+            <button 
+              onClick={() => {
+                setActiveTab('courses');
+                setShowAddCourse(true);
+              }}
+              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30 transition-all duration-200 group border border-green-200 dark:border-green-700"
+            >
+              <Plus className="h-6 w-6 lg:h-8 lg:w-8 text-green-600 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Add Course</span>
+            </button>
+          )}
+          
+          {/* Assign Schedule - Show if user has permission */}
+          {(user?.role === 'superadmin' || user?.permissions?.includes('schedules')) && (
+            <button 
+              onClick={() => setActiveTab('schedules')}
+              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl hover:from-indigo-100 hover:to-purple-100 dark:hover:from-indigo-900/30 dark:hover:to-purple-900/30 transition-all duration-200 group border border-indigo-200 dark:border-indigo-700"
+            >
+              <Calendar className="h-6 w-6 lg:h-8 lg:w-8 text-indigo-600 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Assign Schedule</span>
+            </button>
+          )}
+          
+          {/* Global Settings - Show if user has permission */}
+          {(user?.role === 'superadmin' || user?.permissions?.includes('settings')) && (
+            <button 
+              onClick={() => setActiveTab('settings')}
+              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20 rounded-xl hover:from-gray-100 hover:to-slate-100 dark:hover:from-gray-900/30 dark:hover:to-slate-900/30 transition-all duration-200 group border border-gray-200 dark:border-gray-700"
+            >
+              <Settings className="h-6 w-6 lg:h-8 lg:w-8 text-gray-600 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Global Settings</span>
+            </button>
+          )}
+          
+          {/* Send Notifications - Show if user has permission */}
+          {(user?.role === 'superadmin' || user?.permissions?.includes('notifications')) && (
+            <button 
+              onClick={() => setActiveTab('notifications')}
+              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 transition-all duration-200 group border border-blue-200 dark:border-blue-700"
+            >
+              <Bell className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Send Notifications</span>
+            </button>
+          )}
+          
+          {/* Send Newsletter - Show if user has permission */}
+          {(user?.role === 'superadmin' || user?.permissions?.includes('subscriptions')) && (
+            <button 
+              onClick={() => {
+                setActiveTab('subscriptions');
+                setShowNewsletterForm(true);
+              }}
+              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 rounded-xl hover:from-teal-100 hover:to-cyan-100 dark:hover:from-teal-900/30 dark:hover:to-cyan-900/30 transition-all duration-200 group border border-teal-200 dark:border-teal-700"
+            >
+              <Mail className="h-6 w-6 lg:h-8 lg:w-8 text-teal-600 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">Send Newsletter</span>
+            </button>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 
@@ -5474,7 +5464,7 @@ const SuperAdminDashboard = () => {
       case 'schedules': return renderSchedules();
       case 'contacts': return renderContacts();
       case 'reviews': return renderReviews();
-      case 'subscriptions': return <SubscriptionManagement />;
+      case 'subscriptions': return <SubscriptionManagement showNewsletterForm={showNewsletterForm} setShowNewsletterForm={setShowNewsletterForm} />;
       case 'notifications': return renderSendNotification();
       case 'admins': return renderAdmins();
       case 'users': return renderUsers();
