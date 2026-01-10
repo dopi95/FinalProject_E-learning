@@ -1685,12 +1685,9 @@ const SuperAdminDashboard = () => {
               {courses.map((course) => (
                 <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-4">
-                    <div className="flex items-center">
-                      <img className="h-10 w-10 rounded-lg object-cover mr-3 flex-shrink-0" src={course.image} alt={course.title} />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{course.title}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{categories.find(cat => cat.slug === course.category)?.name || course.category}</div>
-                      </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{course.title}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{categories.find(cat => cat.slug === course.category)?.name || course.category}</div>
                     </div>
                   </td>
                   <td className="px-3 py-4">
@@ -1780,11 +1777,6 @@ const SuperAdminDashboard = () => {
                 <div key={course._id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   {/* Course Header */}
                   <div className="flex items-start gap-3 mb-3">
-                    <img 
-                      className="h-16 w-16 rounded-xl object-cover flex-shrink-0" 
-                      src={course.image} 
-                      alt={course.title} 
-                    />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight mb-1">
                         {course.title}
@@ -2395,12 +2387,9 @@ const SuperAdminDashboard = () => {
                 return (
                   <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <img className="h-12 w-12 rounded-lg object-cover mr-4 flex-shrink-0" src={course.image} alt={course.title} />
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{course.title}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{categories.find(cat => cat.slug === course.category)?.name || course.category}</div>
-                        </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{course.title}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{categories.find(cat => cat.slug === course.category)?.name || course.category}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -2515,11 +2504,6 @@ const SuperAdminDashboard = () => {
                   <div key={course._id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     {/* Course Header */}
                     <div className="flex items-start gap-3 mb-3">
-                      <img 
-                        className="h-16 w-16 rounded-xl object-cover flex-shrink-0" 
-                        src={course.image} 
-                        alt={course.title} 
-                      />
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight mb-1">
                           {course.title}
@@ -3488,16 +3472,16 @@ const SuperAdminDashboard = () => {
       </div>
 
       {/* Notification Form */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
-        <div className="max-w-2xl mx-auto">
-          <div className="space-y-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="space-y-4 sm:space-y-6">
             {/* Role Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Send To</label>
+              <label className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">Send To</label>
               <select
                 value={notificationForm.role}
                 onChange={(e) => setNotificationForm(prev => ({ ...prev, role: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base"
               >
                 {user?.role === 'superadmin' ? (
                   <>
@@ -3518,30 +3502,30 @@ const SuperAdminDashboard = () => {
 
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Title</label>
+              <label className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">Title</label>
               <input
                 type="text"
                 value={notificationForm.title}
                 onChange={(e) => setNotificationForm(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="Notification title"
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm sm:text-base"
               />
             </div>
 
             {/* Message */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Message</label>
+              <label className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">Message</label>
               <textarea
-                rows="6"
+                rows="4"
                 value={notificationForm.message}
                 onChange={(e) => setNotificationForm(prev => ({ ...prev, message: e.target.value }))}
                 placeholder="Notification message"
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white resize-none"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white resize-none text-sm sm:text-base min-h-[100px] sm:min-h-[120px]"
               />
             </div>
 
             {/* Send Button */}
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
               <button
                 onClick={async () => {
                   try {
@@ -3566,14 +3550,14 @@ const SuperAdminDashboard = () => {
                   }
                 }}
                 disabled={!notificationForm.title || !notificationForm.message || loading}
-                className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                className="flex-1 bg-blue-600 text-white py-3 sm:py-4 px-4 sm:px-6 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm sm:text-base transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 {loading ? 'Sending...' : 'Send Notification'}
               </button>
               <button
                 onClick={() => setNotificationForm({ title: '', message: '', role: 'all' })}
                 disabled={loading}
-                className="flex-1 bg-gray-500 text-white py-3 px-6 rounded-lg hover:bg-gray-600 font-medium disabled:opacity-50"
+                className="flex-1 bg-gray-500 text-white py-3 sm:py-4 px-4 sm:px-6 rounded-lg hover:bg-gray-600 font-medium disabled:opacity-50 text-sm sm:text-base transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 Clear
               </button>

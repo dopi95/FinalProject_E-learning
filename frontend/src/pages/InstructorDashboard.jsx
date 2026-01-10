@@ -729,9 +729,19 @@ const InstructorDashboard = () => {
               <div key={course._id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 lg:p-6">
                 <div className="h-24 lg:h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mb-4 overflow-hidden">
                   {course.image ? (
-                    <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
+                    <img 
+                      src={course.image} 
+                      alt={course.title} 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-xs font-medium">No Image</span></div>';
+                      }}
+                    />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600"></div>
+                    <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                      <span className="text-white text-xs font-medium">No Image</span>
+                    </div>
                   )}
                 </div>
                 <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white mb-2">{course.title}</h3>
@@ -924,11 +934,23 @@ const InstructorDashboard = () => {
             <div key={course._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
               <div className="flex flex-col gap-4 mb-4 lg:mb-6">
                 <div className="flex items-center gap-3">
-                  <img 
-                    src={course.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=60'}
-                    alt={course.title}
-                    className="w-10 h-10 lg:w-12 lg:h-12 rounded-lg object-cover flex-shrink-0"
-                  />
+                  <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0">
+                    {course.image ? (
+                      <img 
+                        src={course.image}
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-xs font-bold">' + (course.title ? course.title.charAt(0).toUpperCase() : 'C') + '</span></div>';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">{course.title ? course.title.charAt(0).toUpperCase() : 'C'}</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white truncate">{course.title}</h3>
                     <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{course.students?.length || 0} students enrolled</p>
@@ -2093,11 +2115,23 @@ const InstructorDashboard = () => {
                   <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <img 
-                          src={course.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=50'}
-                          alt={course.title}
-                          className="w-12 h-12 rounded-lg object-cover mr-4"
-                        />
+                        <div className="w-12 h-12 rounded-lg mr-4 overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0">
+                          {course.image ? (
+                            <img 
+                              src={course.image}
+                              alt={course.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-xs font-bold">' + (course.title ? course.title.charAt(0).toUpperCase() : 'C') + '</span></div>';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">{course.title ? course.title.charAt(0).toUpperCase() : 'C'}</span>
+                            </div>
+                          )}
+                        </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{course.title}</p>
                           <p className="text-xs text-gray-500">{course.category}</p>

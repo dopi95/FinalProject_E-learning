@@ -1068,11 +1068,23 @@ const StudentDashboard = () => {
           {displayedCourses.map((course) => (
             <div key={course._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 dark:border-gray-700">
               <div className="relative">
-                <img 
-                  src={course.image || `https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=200&fit=crop`}
-                  alt={course.title}
-                  className="w-full h-48 object-cover"
-                />
+                <div className="h-48 bg-gradient-to-r from-blue-500 to-purple-600 rounded-t-2xl overflow-hidden">
+                  {course.image ? (
+                    <img 
+                      src={course.image}
+                      alt={course.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-lg font-bold">' + (course.title ? course.title.charAt(0).toUpperCase() : 'C') + '</span></div>';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                      <span className="text-white text-lg font-bold">{course.title ? course.title.charAt(0).toUpperCase() : 'C'}</span>
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="p-4 sm:p-6">
@@ -1190,11 +1202,23 @@ const renderPayments = () => (
                     <tr key={payment._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <img 
-                            src={payment.course?.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=50'}
-                            alt={payment.course?.title}
-                            className="w-12 h-12 rounded-lg object-cover mr-4"
-                          />
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 mr-4">
+                          {payment.course?.image ? (
+                            <img 
+                              src={payment.course.image}
+                              alt={payment.course.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-xs font-bold">' + (payment.course?.title ? payment.course.title.charAt(0).toUpperCase() : 'C') + '</span></div>';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">{payment.course?.title ? payment.course.title.charAt(0).toUpperCase() : 'C'}</span>
+                            </div>
+                          )}
+                        </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900 dark:text-white">
                               {payment.course?.title || 'Course'}
@@ -1261,11 +1285,23 @@ const renderPayments = () => (
               <div key={payment._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
                 {/* Header with Course Info */}
                 <div className="flex items-start gap-3 mb-4">
-                  <img 
-                    src={payment.course?.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=60'}
-                    alt={payment.course?.title}
-                    className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
-                  />
+                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0">
+                    {payment.course?.image ? (
+                      <img 
+                        src={payment.course.image}
+                        alt={payment.course.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-sm font-bold">' + (payment.course?.title ? payment.course.title.charAt(0).toUpperCase() : 'C') + '</span></div>';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                        <span className="text-white text-sm font-bold">{payment.course?.title ? payment.course.title.charAt(0).toUpperCase() : 'C'}</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight mb-1">
                       {payment.course?.title || 'Course'}
@@ -2090,11 +2126,23 @@ const renderPayments = () => (
                   <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <img 
-                          src={course.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=50'}
-                          alt={course.title}
-                          className="w-12 h-12 rounded-lg object-cover mr-4"
-                        />
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 mr-4">
+                          {course.image ? (
+                            <img 
+                              src={course.image}
+                              alt={course.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-xs font-bold">' + (course.title ? course.title.charAt(0).toUpperCase() : 'C') + '</span></div>';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">{course.title ? course.title.charAt(0).toUpperCase() : 'C'}</span>
+                            </div>
+                          )}
+                        </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">
                             {course.title}
@@ -2161,11 +2209,23 @@ const renderPayments = () => (
               <div key={course._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
                 {/* Course Header */}
                 <div className="flex items-start gap-3 mb-4">
-                  <img 
-                    src={course.image || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=60'}
-                    alt={course.title}
-                    className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
-                  />
+                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0">
+                    {course.image ? (
+                      <img 
+                        src={course.image}
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-sm font-bold">' + (course.title ? course.title.charAt(0).toUpperCase() : 'C') + '</span></div>';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                        <span className="text-white text-sm font-bold">{course.title ? course.title.charAt(0).toUpperCase() : 'C'}</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight mb-1">
                       {course.title}
@@ -2261,11 +2321,23 @@ const renderPayments = () => (
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
         <div className="flex items-center gap-6">
-          <img 
-            src={selectedCourse?.image || `https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&h=150&fit=crop`}
-            alt={selectedCourse?.title}
-            className="w-32 h-24 object-cover rounded-xl"
-          />
+          <div className="w-32 h-24 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-600">
+            {selectedCourse?.image ? (
+              <img 
+                src={selectedCourse.image}
+                alt={selectedCourse.title}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-lg font-bold">' + (selectedCourse?.title ? selectedCourse.title.charAt(0).toUpperCase() : 'C') + '</span></div>';
+                }}
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                <span className="text-white text-lg font-bold">{selectedCourse?.title ? selectedCourse.title.charAt(0).toUpperCase() : 'C'}</span>
+              </div>
+            )}
+          </div>
           <div className="flex-1">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
               {selectedCourse?.title || 'Course Title'}
