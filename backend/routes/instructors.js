@@ -56,7 +56,7 @@ router.get('/students', auth, async (req, res) => {
     const students = await User.find({ 
       _id: { $in: allStudentIds },
       role: 'student'
-    }).select('name email systemId profileImage');
+    }).select('name email systemId profileImage gender');
 
     // Map students with their course info
     const studentsWithCourses = students.map(student => {
@@ -75,6 +75,7 @@ router.get('/students', auth, async (req, res) => {
         email: student.email,
         systemId: student.systemId,
         profileImage: student.profileImage,
+        gender: student.gender,
         courses: studentCourses,
         totalCourses: studentCourses.length
       };

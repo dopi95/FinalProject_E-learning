@@ -110,7 +110,8 @@ router.post('/verify-email', [
         fieldOfStudy: user.fieldOfStudy,
         yearOfStudy: user.yearOfStudy,
         institution: user.institution,
-        bio: user.bio
+        bio: user.bio,
+        gender: user.gender
       }
     });
   } catch (error) {
@@ -213,7 +214,8 @@ router.post('/login', [
         fieldOfStudy: user.fieldOfStudy,
         yearOfStudy: user.yearOfStudy,
         institution: user.institution,
-        bio: user.bio
+        bio: user.bio,
+        gender: user.gender
       }
     });
   } catch (error) {

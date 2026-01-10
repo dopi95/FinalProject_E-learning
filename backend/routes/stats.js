@@ -22,4 +22,38 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get gender distribution statistics
+router.get('/gender-distribution', async (req, res) => {
+  try {
+    const [studentGenderStats, instructorGenderStats] = await Promise.all([
+      User.aggregate([
+        { $match: { role: 'student', isVerified: true } },
+        { $group: { _id: '$gender', count: { $sum: 1 } } }
+      ]),
+      User.aggregate([
+        { $match: { role: 'instructor', isVerified: true } },
+        { $group: { _id: '$gender', count: { $sum: 1 } } }
+      ])
+    ]);
+
+    // Format the data
+    const formatGenderData = (stats) => {
+      const result = { male: 0, female: 0 };
+      stats.forEach(stat => {
+        if (stat._id === 'male' || stat._id === 'female') {
+          result[stat._id] = stat.count;
+        }
+      });
+      return result;
+    };
+
+    res.json({
+      students: formatGenderData(studentGenderStats),
+      instructors: formatGenderData(instructorGenderStats)
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

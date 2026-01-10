@@ -45,6 +45,7 @@ router.put('/update', auth, [
   body('yearOfStudy').optional().trim(),
   body('institution').optional().trim(),
   body('bio').optional().trim(),
+  body('gender').optional().isIn(['male', 'female']).withMessage('Gender must be either male or female'),
   body('department').optional().trim(),
   body('specialization').optional().trim(),
   body('experience').optional().trim(),

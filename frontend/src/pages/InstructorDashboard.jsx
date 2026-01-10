@@ -13,6 +13,8 @@ const InstructorDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [students, setStudents] = useState([]);
   const [instructorCourses, setInstructorCourses] = useState([]);
+  const [genderStats, setGenderStats] = useState({ male: 0, female: 0 });
+  const [topCourses, setTopCourses] = useState([]);
   const [selectedCourseFilter, setSelectedCourseFilter] = useState('all');
   const [selectedGenderFilter, setSelectedGenderFilter] = useState('all');
   const [studentsLoading, setStudentsLoading] = useState(false);
@@ -358,6 +360,15 @@ const InstructorDashboard = () => {
       
       setStudents(studentsData);
       setInstructorCourses(coursesData);
+      
+      // Calculate gender statistics
+      const genderCount = studentsData.reduce((acc, student) => {
+        if (student.gender === 'male') acc.male++;
+        else if (student.gender === 'female') acc.female++;
+        return acc;
+      }, { male: 0, female: 0 });
+      setGenderStats(genderCount);
+      
     } catch (error) {
       console.error('Error fetching students:', error);
       setStudents([]);
@@ -391,6 +402,13 @@ const InstructorDashboard = () => {
       const response = await courseAPI.getInstructorCourses();
       const activeCourses = response.data.courses || [];
       setCourses(activeCourses);
+      
+      // Calculate top 3 courses by enrollment
+      const sortedCourses = activeCourses
+        .sort((a, b) => (b.students?.length || 0) - (a.students?.length || 0))
+        .slice(0, 3);
+      setTopCourses(sortedCourses);
+      
     } catch (error) {
       console.error('Error fetching courses:', error);
       setCourses([]);
@@ -652,6 +670,155 @@ const InstructorDashboard = () => {
                 Later Today
               </span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Analytics Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Gender Distribution Chart */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+          <div className="flex items-center mb-6">
+            <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg mr-3">
+              <Users className="h-5 w-5 lg:h-6 lg:w-6 text-purple-600" />
+            </div>
+            <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">Student Gender Distribution</h3>
+          </div>
+          
+          <div className="flex items-center justify-center">
+            <div className="relative w-48 h-48">
+              {/* Donut Chart */}
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="none"
+                  stroke="#e5e7eb"
+                  strokeWidth="8"
+                  className="dark:stroke-gray-600"
+                />
+                {genderStats.male + genderStats.female > 0 && (
+                  <>
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="#3b82f6"
+                      strokeWidth="8"
+                      strokeDasharray={`${(genderStats.male / (genderStats.male + genderStats.female)) * 251.2} 251.2`}
+                      strokeLinecap="round"
+                      className="transition-all duration-1000 ease-out"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="#ec4899"
+                      strokeWidth="8"
+                      strokeDasharray={`${(genderStats.female / (genderStats.male + genderStats.female)) * 251.2} 251.2`}
+                      strokeDashoffset={`-${(genderStats.male / (genderStats.male + genderStats.female)) * 251.2}`}
+                      strokeLinecap="round"
+                      className="transition-all duration-1000 ease-out"
+                    />
+                  </>
+                )}
+              </svg>
+              
+              {/* Center Text */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {genderStats.male + genderStats.female}
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Total</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Legend */}
+          <div className="mt-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Male Students</span>
+              </div>
+              <div className="text-sm font-bold text-gray-900 dark:text-white">
+                {genderStats.male} ({genderStats.male + genderStats.female > 0 ? Math.round((genderStats.male / (genderStats.male + genderStats.female)) * 100) : 0}%)
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-pink-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Female Students</span>
+              </div>
+              <div className="text-sm font-bold text-gray-900 dark:text-white">
+                {genderStats.female} ({genderStats.male + genderStats.female > 0 ? Math.round((genderStats.female / (genderStats.male + genderStats.female)) * 100) : 0}%)
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Top Courses Chart */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+          <div className="flex items-center mb-6">
+            <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-lg mr-3">
+              <BookOpen className="h-5 w-5 lg:h-6 lg:w-6 text-green-600" />
+            </div>
+            <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">Top 3 Courses by Enrollment</h3>
+          </div>
+          
+          <div className="space-y-4">
+            {topCourses.length === 0 ? (
+              <div className="text-center py-8">
+                <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500 dark:text-gray-400">No courses available</p>
+              </div>
+            ) : (
+              topCourses.map((course, index) => {
+                const maxStudents = Math.max(...topCourses.map(c => c.students?.length || 0));
+                const percentage = maxStudents > 0 ? ((course.students?.length || 0) / maxStudents) * 100 : 0;
+                const colors = ['bg-green-500', 'bg-blue-500', 'bg-purple-500'];
+                const bgColors = ['bg-green-100 dark:bg-green-900/20', 'bg-blue-100 dark:bg-blue-900/20', 'bg-purple-100 dark:bg-purple-900/20'];
+                
+                return (
+                  <div key={course._id} className={`p-4 rounded-xl ${bgColors[index]} border border-gray-200 dark:border-gray-600`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center">
+                        <div className={`w-8 h-8 ${colors[index]} rounded-lg flex items-center justify-center text-white font-bold text-sm mr-3`}>
+                          {index + 1}
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
+                            {course.title}
+                          </h4>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            {course.category || 'General'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-gray-900 dark:text-white">
+                          {course.students?.length || 0}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">students</div>
+                      </div>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full ${colors[index]} transition-all duration-1000 ease-out`}
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>

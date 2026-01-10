@@ -114,6 +114,10 @@ const PublicReceipt = () => {
                     <span className="text-gray-600">Student ID:</span>
                     <span className="text-black font-medium">{receipt.user.systemId || receipt.user._id.slice(-8).toUpperCase()}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Gender:</span>
+                    <span className="text-black font-medium capitalize">{receipt.user.gender || 'Not specified'}</span>
+                  </div>
                 </div>
               </div>
               
@@ -126,7 +130,7 @@ const PublicReceipt = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Method:</span>
-                    <span className="text-black font-medium capitalize">{receipt.paymentMethod}</span>
+                    <span className="text-black font-medium capitalize">{receipt.paymentMethod === 'telebirr' ? 'Telebirr' : receipt.paymentMethod === 'cbe' ? 'CBE' : receipt.paymentMethod}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Transaction ID:</span>

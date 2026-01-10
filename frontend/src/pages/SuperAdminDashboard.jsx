@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown, Heart, Download, Calendar, Clock, MapPin, Save, Bell, BellRing } from 'lucide-react';
-import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI, notificationAPI } from '../services/api';
+import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI, notificationAPI, statsAPI } from '../services/api';
 import api from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import SubscriptionManagement from '../components/SubscriptionManagement';
@@ -135,6 +135,12 @@ const SuperAdminDashboard = () => {
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
 
+  // Gender distribution state
+  const [genderStats, setGenderStats] = useState({
+    students: { male: 0, female: 0 },
+    instructors: { male: 0, female: 0 }
+  });
+
   // Play notification sound
   const playNotificationSound = () => {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -166,6 +172,16 @@ const SuperAdminDashboard = () => {
       console.error('Fetch notifications error:', error);
     } finally {
       setNotificationsLoading(false);
+    }
+  };
+
+  // Fetch gender distribution
+  const fetchGenderDistribution = async () => {
+    try {
+      const response = await statsAPI.getGenderDistribution();
+      setGenderStats(response.data);
+    } catch (error) {
+      console.error('Fetch gender distribution error:', error);
     }
   };
 
@@ -290,6 +306,7 @@ const SuperAdminDashboard = () => {
     fetchReviews();
     fetchUsers();
     fetchNotifications();
+    fetchGenderDistribution();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -690,19 +707,19 @@ const SuperAdminDashboard = () => {
                   <h3>Student Information</h3>
                   <div class="info-row">
                     <span>Name:</span>
-                    <span>Elyas Yenealem</span>
+                    <span>${payment.user.name}</span>
                   </div>
                   <div class="info-row">
                     <span>Email:</span>
-                    <span>elyasat594@gmail.com</span>
+                    <span>${payment.user.email}</span>
                   </div>
                   <div class="info-row">
                     <span>Student ID:</span>
-                    <span>AAU/0001/26</span>
+                    <span>${payment.user.systemId || payment.user._id.slice(-8).toUpperCase()}</span>
                   </div>
                   <div class="info-row">
                     <span>Gender:</span>
-                    <span>Male</span>
+                    <span>${payment.user.gender ? payment.user.gender.charAt(0).toUpperCase() + payment.user.gender.slice(1) : 'Not specified'}</span>
                   </div>
                 </div>
                 
@@ -710,15 +727,15 @@ const SuperAdminDashboard = () => {
                   <h3>Payment Information</h3>
                   <div class="info-row">
                     <span>Date:</span>
-                    <span>1/1/2026</span>
+                    <span>${new Date(payment.createdAt).toLocaleDateString()}</span>
                   </div>
                   <div class="info-row">
                     <span>Method:</span>
-                    <span>cbe</span>
+                    <span>${payment.paymentMethod === 'telebirr' ? 'Telebirr' : payment.paymentMethod === 'cbe' ? 'CBE' : payment.paymentMethod}</span>
                   </div>
                   <div class="info-row">
                     <span>Transaction ID:</span>
-                    <span>demo_tx-1767255232584-205c7bbe-ba82-4034-8d2e-76a3136b96b6</span>
+                    <span>${payment.transactionId}</span>
                   </div>
                 </div>
               </div>
@@ -1523,7 +1540,7 @@ const SuperAdminDashboard = () => {
                   fill="none" 
                   stroke="#3b82f6" 
                   strokeWidth="8" 
-                  strokeDasharray={`${(users.filter(u => u.role === 'student' && u.gender === 'male').length / Math.max(users.filter(u => u.role === 'student').length, 1)) * 251.2} 251.2`}
+                  strokeDasharray={`${(genderStats.students.male / Math.max(genderStats.students.male + genderStats.students.female, 1)) * 251.2} 251.2`}
                   strokeLinecap="round"
                   className="transition-all duration-1000"
                 />
@@ -1534,15 +1551,15 @@ const SuperAdminDashboard = () => {
                   fill="none" 
                   stroke="#ec4899" 
                   strokeWidth="8" 
-                  strokeDasharray={`${(users.filter(u => u.role === 'student' && u.gender === 'female').length / Math.max(users.filter(u => u.role === 'student').length, 1)) * 251.2} 251.2`}
-                  strokeDashoffset={`-${(users.filter(u => u.role === 'student' && u.gender === 'male').length / Math.max(users.filter(u => u.role === 'student').length, 1)) * 251.2}`}
+                  strokeDasharray={`${(genderStats.students.female / Math.max(genderStats.students.male + genderStats.students.female, 1)) * 251.2} 251.2`}
+                  strokeDashoffset={`-${(genderStats.students.male / Math.max(genderStats.students.male + genderStats.students.female, 1)) * 251.2}`}
                   strokeLinecap="round"
                   className="transition-all duration-1000"
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{users.filter(u => u.role === 'student').length}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{genderStats.students.male + genderStats.students.female}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Students</p>
                 </div>
               </div>
@@ -1551,11 +1568,11 @@ const SuperAdminDashboard = () => {
           <div className="flex justify-center space-x-6 mt-4">
             <div className="flex items-center">
               <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Male ({users.filter(u => u.role === 'student' && u.gender === 'male').length})</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Male ({genderStats.students.male})</span>
             </div>
             <div className="flex items-center">
               <div className="w-3 h-3 bg-pink-500 rounded-full mr-2"></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Female ({users.filter(u => u.role === 'student' && u.gender === 'female').length})</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Female ({genderStats.students.female})</span>
             </div>
           </div>
         </div>
@@ -1579,7 +1596,7 @@ const SuperAdminDashboard = () => {
                   fill="none" 
                   stroke="#10b981" 
                   strokeWidth="8" 
-                  strokeDasharray={`${(users.filter(u => u.role === 'instructor' && u.gender === 'male').length / Math.max(users.filter(u => u.role === 'instructor').length, 1)) * 251.2} 251.2`}
+                  strokeDasharray={`${(genderStats.instructors.male / Math.max(genderStats.instructors.male + genderStats.instructors.female, 1)) * 251.2} 251.2`}
                   strokeLinecap="round"
                   className="transition-all duration-1000"
                 />
@@ -1590,15 +1607,15 @@ const SuperAdminDashboard = () => {
                   fill="none" 
                   stroke="#f59e0b" 
                   strokeWidth="8" 
-                  strokeDasharray={`${(users.filter(u => u.role === 'instructor' && u.gender === 'female').length / Math.max(users.filter(u => u.role === 'instructor').length, 1)) * 251.2} 251.2`}
-                  strokeDashoffset={`-${(users.filter(u => u.role === 'instructor' && u.gender === 'male').length / Math.max(users.filter(u => u.role === 'instructor').length, 1)) * 251.2}`}
+                  strokeDasharray={`${(genderStats.instructors.female / Math.max(genderStats.instructors.male + genderStats.instructors.female, 1)) * 251.2} 251.2`}
+                  strokeDashoffset={`-${(genderStats.instructors.male / Math.max(genderStats.instructors.male + genderStats.instructors.female, 1)) * 251.2}`}
                   strokeLinecap="round"
                   className="transition-all duration-1000"
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{users.filter(u => u.role === 'instructor').length}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{genderStats.instructors.male + genderStats.instructors.female}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Instructors</p>
                 </div>
               </div>
@@ -1607,11 +1624,11 @@ const SuperAdminDashboard = () => {
           <div className="flex justify-center space-x-6 mt-4">
             <div className="flex items-center">
               <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Male ({users.filter(u => u.role === 'instructor' && u.gender === 'male').length})</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Male ({genderStats.instructors.male})</span>
             </div>
             <div className="flex items-center">
               <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Female ({users.filter(u => u.role === 'instructor' && u.gender === 'female').length})</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Female ({genderStats.instructors.female})</span>
             </div>
           </div>
         </div>

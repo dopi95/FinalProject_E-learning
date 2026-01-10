@@ -77,6 +77,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  gender: {
+    type: String,
+    enum: ['male', 'female'],
+    trim: true
+  },
   // Additional profile fields
   department: {
     type: String,

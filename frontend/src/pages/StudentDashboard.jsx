@@ -365,19 +365,19 @@ const StudentDashboard = () => {
                   <h3>Student Information</h3>
                   <div class="info-row">
                     <span>Name:</span>
-                    <span>Elyas Yenealem</span>
+                    <span>${payment.user.name}</span>
                   </div>
                   <div class="info-row">
                     <span>Email:</span>
-                    <span>elyasat594@gmail.com</span>
+                    <span>${payment.user.email}</span>
                   </div>
                   <div class="info-row">
                     <span>Student ID:</span>
-                    <span>AAU/0001/26</span>
+                    <span>${payment.user.systemId || payment.user._id.slice(-8).toUpperCase()}</span>
                   </div>
                   <div class="info-row">
                     <span>Gender:</span>
-                    <span>Male</span>
+                    <span>${payment.user.gender ? payment.user.gender.charAt(0).toUpperCase() + payment.user.gender.slice(1) : 'Not specified'}</span>
                   </div>
                 </div>
                 
@@ -385,15 +385,15 @@ const StudentDashboard = () => {
                   <h3>Payment Information</h3>
                   <div class="info-row">
                     <span>Date:</span>
-                    <span>1/1/2026</span>
+                    <span>${new Date(payment.createdAt).toLocaleDateString()}</span>
                   </div>
                   <div class="info-row">
                     <span>Method:</span>
-                    <span>cbe</span>
+                    <span>${payment.paymentMethod === 'telebirr' ? 'Telebirr' : payment.paymentMethod === 'cbe' ? 'CBE' : payment.paymentMethod}</span>
                   </div>
                   <div class="info-row">
                     <span>Transaction ID:</span>
-                    <span>demo_tx-1767255232584-205c7bbe-ba82-4034-8d2e-76a3136b96b6</span>
+                    <span>${payment.transactionId}</span>
                   </div>
                 </div>
               </div>

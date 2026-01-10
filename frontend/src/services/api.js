@@ -118,6 +118,9 @@ export const categoryAPI = {
 export const statsAPI = {
   // Get platform statistics
   getStats: () => api.get('/stats'),
+  
+  // Get gender distribution statistics
+  getGenderDistribution: () => api.get('/stats/gender-distribution'),
 };
 
 // Contact API functions

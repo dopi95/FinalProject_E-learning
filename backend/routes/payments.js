@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 const axios = require('axios');
 const auth = require('../middleware/auth');
 const Payment = require('../models/Payment');
@@ -134,7 +134,7 @@ router.post('/verify/:tx_ref', auth, async (req, res) => {
     const payment = await Payment.findOne({ chapaReference: tx_ref })
       .populate('course', 'title image instructor')
       .populate('courses', 'title image instructor')
-      .populate('user', 'name email')
+      .populate('user', 'name email gender')
       .populate({
         path: 'course',
         populate: {
@@ -223,7 +223,7 @@ router.get('/receipt/:payment_id', auth, async (req, res) => {
     const { payment_id } = req.params;
     
     const payment = await Payment.findById(payment_id)
-      .populate('user', 'name email systemId')
+      .populate('user', 'name email systemId gender')
       .populate('course', 'title instructor price')
       .populate('courses', 'title instructor price')
       .populate({
@@ -274,7 +274,7 @@ router.get('/public-receipt/:tx_ref', async (req, res) => {
     const { tx_ref } = req.params;
     
     const payment = await Payment.findOne({ chapaReference: tx_ref })
-      .populate('user', 'name email systemId')
+      .populate('user', 'name email systemId gender')
       .populate('course', 'title instructor price')
       .populate('courses', 'title instructor price')
       .populate({
