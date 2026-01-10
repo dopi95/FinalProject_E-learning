@@ -20,6 +20,7 @@ const Register = () => {
     password: '',
     confirmPassword: '',
     role: 'student',
+    gender: '',
     agreeToTerms: false
   });
   const [registrationData, setRegistrationData] = useState(null);
@@ -67,7 +68,8 @@ const Register = () => {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        role: formData.role
+        role: formData.role,
+        gender: formData.gender
       });
 
       showNotification('success', '', t('register.registrationSuccess'));
@@ -272,7 +274,7 @@ const Register = () => {
 
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('register.fullName')}
+                {t('register.fullName')} (with your grandfather name)
               </label>
               <input
                 type="text"
@@ -282,7 +284,7 @@ const Register = () => {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
-                placeholder={t('register.enterFullName')}
+                placeholder="e.g. Abebe Belay Damtie"
               />
             </div>
 
@@ -300,6 +302,24 @@ const Register = () => {
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                 placeholder={t('register.enterEmail')}
               />
+            </div>
+
+            <div>
+              <label htmlFor="gender" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Gender
+              </label>
+              <select
+                id="gender"
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+              >
+                <option value="">Select Gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
             </div>
 
             <div>
