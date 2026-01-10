@@ -184,6 +184,12 @@ const TestimonialCard = ({ testimonial }) => {
     return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  const getDisplayName = (name) => {
+    if (!name) return '';
+    const nameParts = name.split(' ');
+    return nameParts.slice(0, 2).join(' ');
+  };
+
   return (
     <div className="group bg-white dark:bg-gray-900 rounded-3xl p-8 transition-all duration-500 transform hover:-translate-y-3 border border-gray-100 dark:border-gray-700 h-full">
       <div className="flex items-center mb-6">
@@ -209,7 +215,7 @@ const TestimonialCard = ({ testimonial }) => {
         </div>
         <div>
           <h4 className="font-bold text-gray-900 dark:text-white text-lg">
-            {testimonial.user?.name || testimonial.name}
+            {getDisplayName(testimonial.user?.name || testimonial.name)}
           </h4>
           <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
             {getRoleDisplay(testimonial.user?.role || testimonial.role)}
