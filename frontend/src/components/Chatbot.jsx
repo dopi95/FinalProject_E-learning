@@ -2,6 +2,100 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Send, Bot, MessageSquare } from 'lucide-react';
 
+// Add custom styles
+const chatbotStyles = `
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes typing {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.5; }
+  }
+  
+  @keyframes wave {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(20deg); }
+    75% { transform: rotate(-10deg); }
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  @keyframes slideUp {
+    from { transform: translateY(100px) scale(0.8); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-20px); }
+    60% { transform: translateY(-10px); }
+  }
+  
+  @keyframes blink {
+    0%, 90%, 100% { transform: scaleY(1); }
+    95% { transform: scaleY(0.1); }
+  }
+  
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(5deg); }
+    75% { transform: rotate(-5deg); }
+  }
+  
+  @keyframes heartbeat {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+  
+  .animate-fadeIn {
+    animation: fadeIn 0.6s ease-out forwards;
+  }
+  
+  .animate-typing {
+    animation: typing 2s infinite;
+  }
+  
+  .animate-wave {
+    animation: wave 1s ease-in-out 3;
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-slideUp {
+    animation: slideUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  
+  .animate-bounce {
+    animation: bounce 2s infinite;
+  }
+  
+  .animate-blink {
+    animation: blink 3s infinite;
+  }
+  
+  .animate-wiggle {
+    animation: wiggle 1s ease-in-out infinite;
+  }
+  
+  .animate-heartbeat {
+    animation: heartbeat 1.5s ease-in-out infinite;
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = chatbotStyles;
+  document.head.appendChild(styleSheet);
+}
+
 const Chatbot = () => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
@@ -10,6 +104,8 @@ const Chatbot = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isInHeroSection, setIsInHeroSection] = useState(false);
+  const [showCharacter, setShowCharacter] = useState(false);
+  const [characterMessage, setCharacterMessage] = useState('');
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -58,12 +154,29 @@ const Chatbot = () => {
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      setMessages([{
-        id: 1,
-        text: t('chatbot.welcome'),
-        sender: 'bot',
-        timestamp: new Date()
-      }]);
+      // Show character animation first
+      setShowCharacter(true);
+      
+      // Character greeting sequence
+      setTimeout(() => {
+        setCharacterMessage('👋 Hi there!');
+      }, 800);
+      
+      setTimeout(() => {
+        setCharacterMessage('What can I help you with?');
+      }, 2500);
+      
+      // Add initial message after character animation
+      setTimeout(() => {
+        setMessages([{
+          id: 1,
+          text: "Hello! I'm your AAU E-Learning assistant. Feel free to ask me about courses, enrollment, pricing, or anything else!",
+          sender: 'bot',
+          timestamp: new Date(),
+          animated: true
+        }]);
+        setShowCharacter(false);
+      }, 4000);
     }
   }, [isOpen, t]);
 
@@ -135,14 +248,20 @@ const Chatbot = () => {
       {!isMobileMenuOpen && !(isInHeroSection && window.innerWidth < 768) && (
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 ${
-            isOpen ? 'rotate-180' : ''
+          className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-500 transform hover:scale-110 group overflow-hidden ${
+            isOpen ? 'rotate-180' : 'animate-bounce'
           }`}
         >
-          {isOpen ? (
-            <X className="h-5 w-5 sm:h-6 sm:w-6 mx-auto" />
-          ) : (
-            <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 mx-auto" />
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-full animate-pulse"></div>
+          <div className="relative z-10">
+            {isOpen ? (
+              <X className="h-5 w-5 sm:h-6 sm:w-6 mx-auto transform group-hover:rotate-90 transition-transform duration-300" />
+            ) : (
+              <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 mx-auto transform group-hover:scale-110 transition-transform duration-300" />
+            )}
+          </div>
+          {!isOpen && (
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-ping"></div>
           )}
         </button>
       )}
@@ -151,38 +270,104 @@ const Chatbot = () => {
       {!isMobileMenuOpen && !(isInHeroSection && window.innerWidth < 768) && (
         <div className={`fixed bottom-20 right-4 sm:bottom-24 sm:right-6 z-40 w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} style={{ maxHeight: 'calc(100vh - 12rem)' }}>
         {/* Chat Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-t-2xl flex-shrink-0 relative z-10">
-          <div className="flex items-center justify-between">
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-t-2xl flex-shrink-0 relative z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 animate-pulse"></div>
+          <div className="flex items-center justify-between relative z-10">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                <Bot className="h-6 w-6" />
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm animate-pulse">
+                <Bot className="h-6 w-6 animate-bounce" style={{animationDelay: '0.5s'}} />
               </div>
               <div>
-                <h3 className="font-bold text-lg">{t('chatbot.title')}</h3>
-                <div className="text-sm opacity-90 flex items-center">
+                <h3 className="font-bold text-lg animate-fadeIn">{t('chatbot.title')}</h3>
+                <div className="text-sm opacity-90 flex items-center animate-fadeIn" style={{animationDelay: '0.3s'}}>
                   <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
-                  Online
+                  <span className="animate-typing">Hey! What can I help you with?</span>
                 </div>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors relative z-20"
+              className="p-2 hover:bg-white/20 rounded-full transition-all duration-300 relative z-20 group"
             >
-              <X className="h-5 w-5" />
+              <X className="h-5 w-5 transform group-hover:rotate-90 transition-transform duration-300" />
             </button>
           </div>
         </div>
 
         {/* Messages Area */}
-        <div className="overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 flex-1" style={{ height: 'calc(60vh - 8rem)', minHeight: '250px', maxHeight: '400px' }}>
-          {messages.map((message) => (
+        <div className="overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 flex-1 relative" style={{ height: 'calc(60vh - 8rem)', minHeight: '250px', maxHeight: '400px' }}>
+          
+          {/* Animated Character */}
+          {showCharacter && (
+            <div className="flex justify-center items-center h-full animate-slideUp">
+              <div className="text-center">
+                {/* Cartoon Character */}
+                <div className="relative mb-4 animate-bounce">
+                  {/* Character Body */}
+                  <div className="w-24 h-24 mx-auto bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-2xl animate-float relative overflow-hidden">
+                    {/* Character Face */}
+                    <div className="relative z-10">
+                      {/* Eyes */}
+                      <div className="flex space-x-2 mb-1">
+                        <div className="w-3 h-3 bg-white rounded-full flex items-center justify-center animate-blink">
+                          <div className="w-2 h-2 bg-black rounded-full animate-wiggle"></div>
+                        </div>
+                        <div className="w-3 h-3 bg-white rounded-full flex items-center justify-center animate-blink">
+                          <div className="w-2 h-2 bg-black rounded-full animate-wiggle"></div>
+                        </div>
+                      </div>
+                      {/* Mouth */}
+                      <div className="w-4 h-2 bg-white rounded-full mx-auto animate-heartbeat"></div>
+                    </div>
+                    
+                    {/* Shine Effect */}
+                    <div className="absolute top-2 left-2 w-4 h-4 bg-white/30 rounded-full animate-pulse"></div>
+                    
+                    {/* Floating Particles */}
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
+                    <div className="absolute -bottom-1 -left-1 w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse" style={{animationDelay: '0.5s'}}></div>
+                  </div>
+                  
+                  {/* Character Arms */}
+                  <div className="absolute top-8 -left-2 w-6 h-2 bg-blue-500 rounded-full transform -rotate-45 animate-wave"></div>
+                  <div className="absolute top-8 -right-2 w-6 h-2 bg-blue-500 rounded-full transform rotate-45 animate-wave" style={{animationDelay: '0.3s'}}></div>
+                  
+                  {/* Magic Sparkles */}
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <div className="flex space-x-1">
+                      <span className="text-yellow-400 animate-ping text-xs">✨</span>
+                      <span className="text-pink-400 animate-pulse text-xs" style={{animationDelay: '0.2s'}}>⭐</span>
+                      <span className="text-blue-400 animate-ping text-xs" style={{animationDelay: '0.4s'}}>💫</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Speech Bubble */}
+                {characterMessage && (
+                  <div className="relative animate-fadeIn">
+                    <div className="bg-white dark:bg-gray-700 px-6 py-3 rounded-2xl shadow-xl border-2 border-blue-200 dark:border-gray-600 animate-heartbeat">
+                      <p className="text-lg font-bold text-gray-800 dark:text-white bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        {characterMessage}
+                      </p>
+                    </div>
+                    {/* Speech Bubble Tail */}
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                      <div className="w-0 h-0 border-l-4 border-r-4 border-t-8 border-transparent border-t-white dark:border-t-gray-700"></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {!showCharacter && messages.map((message, index) => (
             <div
               key={message.id}
-              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}
+              style={{animationDelay: `${index * 0.2}s`}}
             >
               <div
-                className={`max-w-[85%] sm:max-w-xs px-4 py-3 rounded-2xl text-sm shadow-sm ${
+                className={`max-w-[85%] sm:max-w-xs px-4 py-3 rounded-2xl text-sm shadow-sm transform transition-all duration-300 hover:scale-105 ${
                   message.sender === 'user'
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white ml-auto'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600'

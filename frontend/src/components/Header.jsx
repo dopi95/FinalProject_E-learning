@@ -304,13 +304,16 @@ const Header = () => {
               {/* Mobile Menu Button */}
               <button
                 onClick={toggleMobileMenu}
-                className="lg:hidden p-3 rounded-xl text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300"
+                className="lg:hidden relative p-3 rounded-xl text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 group overflow-hidden"
               >
-                {isMobileMenuOpen ? (
-                  <X className="h-6 w-6 transform rotate-90 transition-transform duration-300" />
-                ) : (
-                  <Menu className="h-6 w-6 transform group-hover:scale-110 transition-transform" />
-                )}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-50/0 group-hover:from-blue-50/50 to-indigo-50/0 group-hover:to-indigo-50/50 dark:from-blue-900/0 dark:group-hover:from-blue-900/30 dark:to-indigo-900/0 dark:group-hover:to-indigo-900/30 rounded-xl transition-all duration-300"></div>
+                <div className="relative z-10">
+                  {isMobileMenuOpen ? (
+                    <X className="h-6 w-6 transform rotate-0 group-hover:rotate-90 transition-all duration-500" />
+                  ) : (
+                    <Menu className="h-6 w-6 transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300" />
+                  )}
+                </div>
               </button>
             </div>
           </div>
@@ -326,28 +329,37 @@ const Header = () => {
       )}
 
       {/* Mobile Menu Overlay */}
-      <div className={`fixed inset-0 z-40 lg:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeMobileMenu}></div>
+      <div className={`fixed inset-0 z-40 lg:hidden transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={closeMobileMenu}></div>
         
         {/* Mobile Menu Panel */}
-        <div className={`absolute top-0 right-0 h-full w-80 max-w-[85vw] bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-500 ease-out ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-          <div className="flex flex-col h-full">
+        <div className={`absolute top-0 right-0 h-full w-80 max-w-[85vw] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl border-l border-gray-200/50 dark:border-gray-700/50 transform transition-all duration-700 ease-out ${isMobileMenuOpen ? 'translate-x-0 scale-100' : 'translate-x-full scale-95'}`}>
+          <div className="flex flex-col h-full relative overflow-hidden">
+            {/* Animated Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-transparent to-indigo-50/50 dark:from-blue-900/20 dark:via-transparent dark:to-indigo-900/20"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/10 to-indigo-400/10 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-400/10 to-purple-400/10 rounded-full blur-2xl animate-pulse" style={{animationDelay: '1s'}}></div>
+            
             {/* Mobile Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className={`flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm relative z-10 transform transition-all duration-500 ${isMobileMenuOpen ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'}`} style={{transitionDelay: '200ms'}}>
               <div className="flex items-center space-x-3">
-                <img src="/assets/images/aaulogo.png" alt="AAU" className="h-8 w-auto" />
-                <span className="text-lg font-bold text-gray-900 dark:text-white">Menu</span>
+                <div className="relative">
+                  <img src="/assets/images/aaulogo.png" alt="AAU" className="h-8 w-auto" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-indigo-400/20 rounded-full blur-lg animate-pulse"></div>
+                </div>
+                <span className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">Menu</span>
               </div>
               <button
                 onClick={closeMobileMenu}
-                className="p-2 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="relative p-2 rounded-xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-gray-800/50 transition-all duration-300 group backdrop-blur-sm"
               >
-                <X className="h-6 w-6" />
+                <X className="h-6 w-6 transform group-hover:rotate-90 transition-transform duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-r from-red-400/0 group-hover:from-red-400/10 to-pink-400/0 group-hover:to-pink-400/10 rounded-xl transition-all duration-300"></div>
               </button>
             </div>
 
             {/* Mobile Navigation */}
-            <nav className="flex-1 px-6 py-8 space-y-2">
+            <nav className="flex-1 px-6 py-8 space-y-3 relative z-10">
               {[
                 { to: '/', label: t('nav.home'), onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
                 { to: '/about', label: t('nav.about') },
@@ -361,39 +373,45 @@ const Header = () => {
                     closeMobileMenu();
                     if (item.onClick) item.onClick();
                   }}
-                  className={`flex items-center p-4 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 transform hover:scale-105 animate-slideIn`}
-                  style={{ animationDelay: `${index * 100}ms` }}
+                  className={`group flex items-center p-4 rounded-2xl text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-indigo-50/80 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-500 transform hover:scale-105 hover:shadow-lg backdrop-blur-sm border border-transparent hover:border-blue-200/50 dark:hover:border-blue-700/50 ${isMobileMenuOpen ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}
+                  style={{ transitionDelay: `${300 + index * 100}ms` }}
                 >
-                  <span className="text-lg font-medium">{item.label}</span>
+                  <div className="flex-1">
+                    <span className="text-lg font-medium block transform group-hover:translate-x-1 transition-transform duration-300">{item.label}</span>
+                    <div className="h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left mt-1 rounded-full"></div>
+                  </div>
+                  <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full opacity-0 group-hover:opacity-100 transform scale-0 group-hover:scale-100 transition-all duration-300"></div>
                 </Link>
               ))}
             </nav>
 
             {/* Mobile Footer */}
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
-              <div className="flex items-center justify-between">
+            <div className={`p-6 border-t border-gray-200/50 dark:border-gray-700/50 space-y-4 backdrop-blur-sm relative z-10 transform transition-all duration-500 ${isMobileMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`} style={{transitionDelay: '600ms'}}>
+              <div className="flex items-center justify-between group">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Theme</span>
                 <button
                   onClick={toggleTheme}
-                  className="flex items-center space-x-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  className="flex items-center space-x-2 p-3 rounded-xl bg-gradient-to-r from-gray-100/80 to-gray-200/80 dark:from-gray-800/80 dark:to-gray-700/80 text-gray-600 dark:text-gray-400 hover:from-blue-100/80 hover:to-indigo-100/80 dark:hover:from-blue-900/50 dark:hover:to-indigo-900/50 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 backdrop-blur-sm border border-gray-300/30 dark:border-gray-600/30 hover:border-blue-300/50 dark:hover:border-blue-600/50 transform hover:scale-105 hover:shadow-lg"
                 >
-                  {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                  <span className="text-sm">{isDark ? 'Light' : 'Dark'}</span>
+                  <div className="transform transition-transform duration-500 hover:rotate-180">
+                    {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  </div>
+                  <span className="text-sm font-medium">{isDark ? 'Light' : 'Dark'}</span>
                 </button>
               </div>
               
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between group">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Language</span>
                 <button
                   onClick={toggleLanguage}
-                  className="flex items-center space-x-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  className="flex items-center space-x-2 p-3 rounded-xl bg-gradient-to-r from-gray-100/80 to-gray-200/80 dark:from-gray-800/80 dark:to-gray-700/80 text-gray-600 dark:text-gray-400 hover:from-blue-100/80 hover:to-indigo-100/80 dark:hover:from-blue-900/50 dark:hover:to-indigo-900/50 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 backdrop-blur-sm border border-gray-300/30 dark:border-gray-600/30 hover:border-blue-300/50 dark:hover:border-blue-600/50 transform hover:scale-105 hover:shadow-lg"
                 >
                   <img 
                     src={i18n.language === 'en' ? '/assets/flags/us.svg' : '/assets/flags/et.svg'}
                     alt={i18n.language === 'en' ? 'English' : 'Amharic'}
-                    className="w-4 h-3 rounded-sm"
+                    className="w-4 h-3 rounded-sm shadow-sm transform transition-transform duration-300 hover:scale-110"
                   />
-                  <span className="text-sm">{i18n.language === 'en' ? 'English' : 'አማርኛ'}</span>
+                  <span className="text-sm font-medium">{i18n.language === 'en' ? 'English' : 'አማርኛ'}</span>
                 </button>
               </div>
             </div>
