@@ -72,7 +72,7 @@ router.get('/approved', async (req, res) => {
   try {
     const reviews = await Review.find({ status: 'approved' })
       .populate('user', 'name role profileImage')
-      .sort({ createdAt: -1 });
+      .sort({ reviewedAt: -1 });
     
     res.json({ reviews });
   } catch (error) {
