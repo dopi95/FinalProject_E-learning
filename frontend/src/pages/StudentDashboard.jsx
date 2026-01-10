@@ -791,19 +791,21 @@ const StudentDashboard = () => {
     <div className="space-y-6">
       {/* Dashboard Header */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl mr-4">
-              <BookOpen className="h-8 w-8 text-blue-600" />
+        <div className="flex items-start sm:items-center justify-between mb-4 gap-3">
+          <div className="flex items-start sm:items-center flex-1 min-w-0">
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 sm:p-3 rounded-xl mr-3 sm:mr-4 flex-shrink-0">
+              <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
             </div>
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Student Dashboard</h1>
-              <p className="text-gray-600 dark:text-gray-400">Welcome back{user ? `, ${user.name}` : ''}, track your learning progress</p>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white leading-tight">Student Dashboard</h1>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
+                Welcome back{user ? `, ${user.name}` : ''}, track your learning progress
+              </p>
             </div>
           </div>
           
           {/* Notifications */}
-          <div className="relative">
+          <div className="relative flex-shrink-0">
             <button
               onClick={() => {
                 setShowNotifications(!showNotifications);
@@ -811,15 +813,15 @@ const StudentDashboard = () => {
                   setHasNewNotifications(false);
                 }
               }}
-              className="relative p-3 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 dark:border-gray-700"
+              className="relative p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 dark:border-gray-700"
             >
               {hasNewNotifications ? (
-                <BellRing className="h-6 w-6 text-blue-600 animate-pulse" />
+                <BellRing className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 animate-pulse" />
               ) : (
-                <Bell className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+                <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600 dark:text-gray-400" />
               )}
               {hasNewNotifications && (
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 h-3 w-3 sm:h-4 sm:w-4 bg-red-500 rounded-full flex items-center justify-center">
                   <span className="text-xs text-white font-bold">{notifications.filter(n => !n.read).length}</span>
                 </span>
               )}
