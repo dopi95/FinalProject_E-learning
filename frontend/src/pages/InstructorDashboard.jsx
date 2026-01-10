@@ -14,6 +14,7 @@ const InstructorDashboard = () => {
   const [students, setStudents] = useState([]);
   const [instructorCourses, setInstructorCourses] = useState([]);
   const [selectedCourseFilter, setSelectedCourseFilter] = useState('all');
+  const [selectedGenderFilter, setSelectedGenderFilter] = useState('all');
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudentForGrading, setSelectedStudentForGrading] = useState(null);
@@ -372,10 +373,16 @@ const InstructorDashboard = () => {
   }, [selectedCourseFilter]);
 
   const filteredStudents = students.filter(student => {
-    if (!searchTerm) return true;
-    return student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           (student.systemId && student.systemId.toLowerCase().includes(searchTerm.toLowerCase()));
+    if (!searchTerm && selectedGenderFilter === 'all') return true;
+    
+    const matchesSearch = !searchTerm || 
+      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (student.systemId && student.systemId.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesGender = selectedGenderFilter === 'all' || student.gender === selectedGenderFilter;
+    
+    return matchesSearch && matchesGender;
   });
 
   const fetchInstructorCourses = async () => {
@@ -1133,7 +1140,7 @@ const InstructorDashboard = () => {
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="relative">
             <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
@@ -1155,6 +1162,15 @@ const InstructorDashboard = () => {
                 {course.title}
               </option>
             ))}
+          </select>
+          <select 
+            value={selectedGenderFilter}
+            onChange={(e) => setSelectedGenderFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+          >
+            <option value="all">All Genders</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
           </select>
         </div>
       </div>
@@ -1179,6 +1195,7 @@ const InstructorDashboard = () => {
                   <tr>
                     <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student</th>
                     <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                    <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Gender</th>
                     <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Courses</th>
                     <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                       Attendance
@@ -1215,6 +1232,15 @@ const InstructorDashboard = () => {
                         </td>
                         <td className="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-900 dark:text-white">
                           {student.systemId || 'N/A'}
+                        </td>
+                        <td className="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-900 dark:text-white">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            student.gender === 'male' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
+                            student.gender === 'female' ? 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-400' :
+                            'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                          }`}>
+                            {student.gender ? student.gender.charAt(0).toUpperCase() + student.gender.slice(1) : 'N/A'}
+                          </span>
                         </td>
                         <td className="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-900 dark:text-white">
                           {student.totalCourses}

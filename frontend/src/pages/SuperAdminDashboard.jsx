@@ -58,6 +58,7 @@ const SuperAdminDashboard = () => {
   const [showUserDetail, setShowUserDetail] = useState(false);
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
+  const [selectedGenderFilter, setSelectedGenderFilter] = useState('all');
   const [selectedCourseFilter, setSelectedCourseFilter] = useState('all');
   const [userEnrollments, setUserEnrollments] = useState([]);
   const [userPayments, setUserPayments] = useState([]);
@@ -543,18 +544,24 @@ const SuperAdminDashboard = () => {
       if (userSearchTerm) params.search = userSearchTerm;
       if (selectedRole !== 'all') params.role = selectedRole;
       if (selectedCourseFilter !== 'all') params.course = selectedCourseFilter;
+      if (selectedGenderFilter !== 'all') params.gender = selectedGenderFilter;
       
       const response = await usersAPI.getUsers(params);
       const fetchedUsers = response.data.users || [];
       
       // Filter to show only real registered users (exclude any test/demo data)
-      const realUsers = fetchedUsers.filter(user => 
+      let realUsers = fetchedUsers.filter(user => 
         user.email && 
         user.name && 
         user.createdAt && 
         !user.email.includes('test') && 
         !user.email.includes('demo')
       );
+      
+      // Apply gender filter on frontend if not handled by backend
+      if (selectedGenderFilter !== 'all') {
+        realUsers = realUsers.filter(user => user.gender === selectedGenderFilter);
+      }
       
       setUsers(realUsers);
       
@@ -1015,7 +1022,7 @@ const SuperAdminDashboard = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, [userSearchTerm, selectedRole, selectedCourseFilter]);
+  }, [userSearchTerm, selectedRole, selectedCourseFilter, selectedGenderFilter]);
 
   const handleProfileSave = async () => {
     try {
@@ -1580,6 +1587,119 @@ const SuperAdminDashboard = () => {
               <p className="text-sm font-medium text-gray-900 dark:text-white">Contact messages reviewed</p>
               <p className="text-xs text-gray-600 dark:text-gray-400">{contacts.filter(c => c.status === 'pending').length} pending messages, {contacts.filter(c => c.status === 'replied').length} replied • 8 hours ago</p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Analytics Dashboard */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Gender Distribution Chart */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+          <div className="flex items-center mb-6">
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg mr-3">
+              <Users className="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
+            </div>
+            <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">Student Gender Distribution</h3>
+          </div>
+          <div className="flex items-center justify-center h-64">
+            <div className="relative w-48 h-48">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" strokeWidth="8" className="dark:stroke-gray-600" />
+                <circle 
+                  cx="50" 
+                  cy="50" 
+                  r="40" 
+                  fill="none" 
+                  stroke="#3b82f6" 
+                  strokeWidth="8" 
+                  strokeDasharray={`${(users.filter(u => u.role === 'student' && u.gender === 'male').length / Math.max(users.filter(u => u.role === 'student').length, 1)) * 251.2} 251.2`}
+                  strokeLinecap="round"
+                  className="transition-all duration-1000"
+                />
+                <circle 
+                  cx="50" 
+                  cy="50" 
+                  r="40" 
+                  fill="none" 
+                  stroke="#ec4899" 
+                  strokeWidth="8" 
+                  strokeDasharray={`${(users.filter(u => u.role === 'student' && u.gender === 'female').length / Math.max(users.filter(u => u.role === 'student').length, 1)) * 251.2} 251.2`}
+                  strokeDashoffset={`-${(users.filter(u => u.role === 'student' && u.gender === 'male').length / Math.max(users.filter(u => u.role === 'student').length, 1)) * 251.2}`}
+                  strokeLinecap="round"
+                  className="transition-all duration-1000"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{users.filter(u => u.role === 'student').length}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Students</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-center space-x-6 mt-4">
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Male ({users.filter(u => u.role === 'student' && u.gender === 'male').length})</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-pink-500 rounded-full mr-2"></div>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Female ({users.filter(u => u.role === 'student' && u.gender === 'female').length})</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Top Courses Chart */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+          <div className="flex items-center mb-6">
+            <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-lg mr-3">
+              <BookOpen className="h-5 w-5 lg:h-6 lg:w-6 text-green-600" />
+            </div>
+            <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">Top 3 Courses by Enrollment</h3>
+          </div>
+          <div className="space-y-4">
+            {courses
+              .sort((a, b) => (b.studentCount || 0) - (a.studentCount || 0))
+              .slice(0, 3)
+              .map((course, index) => {
+                const maxStudents = Math.max(...courses.map(c => c.studentCount || 0), 1);
+                const percentage = ((course.studentCount || 0) / maxStudents) * 100;
+                const colors = ['bg-yellow-500', 'bg-gray-400', 'bg-orange-500'];
+                const bgColors = ['bg-yellow-100 dark:bg-yellow-900/20', 'bg-gray-100 dark:bg-gray-700/20', 'bg-orange-100 dark:bg-orange-900/20'];
+                
+                return (
+                  <div key={course._id} className={`p-4 rounded-xl ${bgColors[index]}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center">
+                        <div className={`w-6 h-6 rounded-full ${colors[index]} flex items-center justify-center mr-3`}>
+                          <span className="text-white text-xs font-bold">{index + 1}</span>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{course.title}</h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{course.instructor?.name || 'Unknown'}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900 dark:text-white">{course.studentCount || 0}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">students</p>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full ${colors[index]} transition-all duration-1000`}
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })
+            }
+            {courses.length === 0 && (
+              <div className="text-center py-8">
+                <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500 dark:text-gray-400">No courses available</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -3677,6 +3797,16 @@ const SuperAdminDashboard = () => {
               <option value="superadmin">Super Admins</option>
             </select>
             
+            <select 
+              value={selectedGenderFilter}
+              onChange={(e) => setSelectedGenderFilter(e.target.value)}
+              className="px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-700 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+            >
+              <option value="all">All Genders</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+            
             {(selectedRole === 'student' || selectedRole === 'instructor') && (
               <select 
                 value={selectedCourseFilter}
@@ -3736,7 +3866,7 @@ const SuperAdminDashboard = () => {
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">User</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Role</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">ID</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Sex</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Joined</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -3774,13 +3904,8 @@ const SuperAdminDashboard = () => {
                       <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                         {user.systemId || 'N/A'}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${
-                          user.isVerified ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 dark:from-green-900/20 dark:to-emerald-900/20 dark:text-green-300' :
-                          'bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 dark:from-yellow-900/20 dark:to-orange-900/20 dark:text-yellow-300'
-                        }`}>
-                          {user.isVerified ? '✓ Verified' : '⏳ Pending'}
-                        </span>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
+                        {user.gender || 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                         {new Date(user.createdAt).toLocaleDateString('en-US', {
@@ -4517,18 +4642,7 @@ const SuperAdminDashboard = () => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
           <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Administrative Information</h4>
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {user?.role === 'student' ? 'Student ID' : 
-                 user?.role === 'instructor' ? 'Instructor ID' : 'System ID'}
-              </label>
-              <input 
-                type="text" 
-                value={profileForm.systemId || ''} 
-                disabled
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 cursor-not-allowed dark:text-white" 
-              />
-            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Access Level</label>
               <select 
@@ -4543,17 +4657,7 @@ const SuperAdminDashboard = () => {
                 <option value="Platform Administrator">Platform Administrator</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Department</label>
-              <input 
-                type="text" 
-                value={profileForm.department || ''} 
-                onChange={(e) => handleFormChange('department', e.target.value)}
-                placeholder="IT Administration" 
-                disabled={!isEditing} 
-                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} 
-              />
-            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Institution</label>
               <input 
@@ -4565,21 +4669,7 @@ const SuperAdminDashboard = () => {
                 className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`} 
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Experience</label>
-              <select 
-                value={profileForm.experience || ''} 
-                onChange={(e) => handleFormChange('experience', e.target.value)}
-                disabled={!isEditing} 
-                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white ${!isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''}`}
-              >
-                <option value="">Select Experience</option>
-                <option value="0-2 years">0-2 years</option>
-                <option value="3-5 years">3-5 years</option>
-                <option value="6-10 years">6-10 years</option>
-                <option value="10+ years">10+ years</option>
-              </select>
-            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bio</label>
               <textarea 
