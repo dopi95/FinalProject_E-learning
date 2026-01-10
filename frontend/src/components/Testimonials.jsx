@@ -3,6 +3,25 @@ import { useTranslation } from 'react-i18next';
 import { Star, Quote, User, Heart } from 'lucide-react';
 import { reviewAPI } from '../services/api';
 
+// Add CSS for fade-in animation
+const fadeInStyle = `
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+    opacity: 0;
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = fadeInStyle;
+  document.head.appendChild(styleSheet);
+}
+
 const Testimonials = () => {
   const { t } = useTranslation();
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -49,14 +68,21 @@ const Testimonials = () => {
   const testimonials = reviews.length > 0 ? reviews : fallbackTestimonials;
   const mobileSlides = testimonials.length;
 
-  // Auto-slide functionality
+  // Auto-slide functionality - show groups with fade animation
   useEffect(() => {
-    if (testimonials.length > 3) {
-      const interval = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % (testimonials.length - 2));
-      }, 5000);
-      return () => clearInterval(interval);
-    }
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => {
+        if (window.innerWidth >= 1024) {
+          // Desktop: cycle through groups of 3
+          const totalGroups = Math.ceil(testimonials.length / 3);
+          return (prev + 1) % totalGroups;
+        } else {
+          // Mobile: cycle through individual cards
+          return (prev + 1) % testimonials.length;
+        }
+      });
+    }, 4000);
+    return () => clearInterval(interval);
   }, [testimonials.length]);
 
   if (loading) {
@@ -105,49 +131,46 @@ const Testimonials = () => {
           </p>
         </div>
 
-        {/* Desktop Slider (horizontal) */}
+        {/* Desktop View - Show 3 cards with fade animation */}
         <div className="hidden lg:block relative">
-          <div className="overflow-hidden">
-            <div 
-              className="flex transition-transform duration-500 ease-in-out gap-8"
-              style={{ transform: `translateX(-${currentSlide * (100/3)}%)` }}
-            >
-              {testimonials.map((testimonial, index) => (
-                <div key={testimonial.id || index} className="w-1/3 flex-shrink-0">
-                  <TestimonialCard testimonial={testimonial} />
-                </div>
-              ))}
-            </div>
+          <div className="grid grid-cols-3 gap-8">
+            {testimonials.slice(currentSlide * 3, (currentSlide + 1) * 3).map((testimonial, index) => (
+              <div 
+                key={`${currentSlide}-${index}`} 
+                className="animate-fade-in"
+                style={{ animationDelay: `${index * 200}ms` }}
+              >
+                <TestimonialCard testimonial={testimonial} />
+              </div>
+            ))}
           </div>
           
           {/* Desktop Dots */}
-          <div className="flex justify-center mt-8 space-x-2">
-            {testimonials.length > 3 && Array.from({ length: Math.max(1, testimonials.length - 2) }).map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentSlide(index)}
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                  currentSlide === index 
-                    ? 'bg-blue-600 w-8' 
-                    : 'bg-gray-300 dark:bg-gray-600 hover:bg-blue-400'
-                }`}
-              />
-            ))}
-          </div>
+          {testimonials.length > 3 && (
+            <div className="flex justify-center mt-8 space-x-3">
+              {Array.from({ length: Math.ceil(testimonials.length / 3) }).map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSlide(index)}
+                  className={`transition-all duration-300 rounded-full ${
+                    currentSlide === index 
+                      ? 'bg-blue-600 w-10 h-3' 
+                      : 'bg-gray-300 dark:bg-gray-600 hover:bg-blue-400 w-3 h-3'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Mobile Slider (1 card) */}
+        {/* Mobile View - Show 1 card with fade animation */}
         <div className="lg:hidden relative">
-          <div className="overflow-hidden">
+          <div className="flex justify-center">
             <div 
-              className="flex transition-transform duration-500 ease-in-out"
-              style={{ transform: `translateX(-${currentSlide * (100 / mobileSlides) * mobileSlides}%)` }}
+              key={currentSlide} 
+              className="w-full px-2 animate-fade-in"
             >
-              {testimonials.map((testimonial, index) => (
-                <div key={testimonial.id || index} className="w-full flex-shrink-0 px-2">
-                  <TestimonialCard testimonial={testimonial} />
-                </div>
-              ))}
+              <TestimonialCard testimonial={testimonials[currentSlide]} />
             </div>
           </div>
           
@@ -191,7 +214,7 @@ const TestimonialCard = ({ testimonial }) => {
   };
 
   return (
-    <div className="group bg-white dark:bg-gray-900 rounded-3xl p-8 transition-all duration-500 transform hover:-translate-y-3 border border-gray-100 dark:border-gray-700 h-full">
+    <div className="group bg-white dark:bg-gray-900 rounded-3xl p-8 transition-all duration-500 transform hover:-translate-y-3 border border-gray-100 dark:border-gray-700 min-h-80 flex flex-col">
       <div className="flex items-center mb-6">
         <Quote className="h-8 w-8 text-blue-600 mr-3 group-hover:scale-110 transition-transform" />
         <div className="flex">
@@ -200,11 +223,11 @@ const TestimonialCard = ({ testimonial }) => {
           ))}
         </div>
       </div>
-      <p className="text-gray-600 dark:text-gray-300 mb-8 italic leading-relaxed text-lg break-words word-wrap">
+      <p className="text-gray-600 dark:text-gray-300 mb-8 italic leading-relaxed text-sm flex-1">
         "{testimonial.message || testimonial.text}"
       </p>
       <div className="flex items-center mt-auto">
-        <div className="w-14 h-14 rounded-full mr-4 bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform overflow-hidden">
+        <div className="w-14 h-14 rounded-full mr-4 bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform overflow-hidden flex-shrink-0">
           {testimonial.user?.profileImage ? (
             <img src={testimonial.user.profileImage} alt={testimonial.user.name || testimonial.name} className="w-full h-full object-cover" />
           ) : (
@@ -213,11 +236,11 @@ const TestimonialCard = ({ testimonial }) => {
             </span>
           )}
         </div>
-        <div>
-          <h4 className="font-bold text-gray-900 dark:text-white text-lg">
+        <div className="min-w-0 flex-1">
+          <h4 className="font-bold text-gray-900 dark:text-white text-lg truncate">
             {getDisplayName(testimonial.user?.name || testimonial.name)}
           </h4>
-          <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+          <p className="text-sm text-blue-600 dark:text-blue-400 font-medium truncate">
             {getRoleDisplay(testimonial.user?.role || testimonial.role)}
           </p>
         </div>
