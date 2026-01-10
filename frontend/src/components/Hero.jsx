@@ -99,24 +99,24 @@ const Hero = () => {
         <div className="hidden md:block"></div>
         
         {/* Main content */}
-        <div className="flex-1 flex flex-col justify-start md:justify-center pt-16 md:pt-0">
+        <div className="flex-1 flex flex-col justify-center pt-4 md:pt-4">
           <div className="mb-2 sm:mb-4">
             <span className="inline-flex items-center px-3 py-1.5 sm:px-6 sm:py-3 rounded-full text-xs sm:text-sm font-medium bg-white/10 backdrop-blur-md text-white border border-white/20 shadow-lg">
               {t('hero.welcomeBadge')}
             </span>
           </div>
           
-          <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold mb-2 sm:mb-4 leading-tight min-h-[50px] sm:min-h-[80px] md:min-h-[120px] flex items-center justify-center">
+          <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6 leading-tight min-h-[50px] sm:min-h-[80px] md:min-h-[120px] flex items-center justify-center">
             <span className="text-white drop-shadow-2xl text-center">
               {displayText}
             </span>
           </h1>
           
-          <p className="text-sm sm:text-lg md:text-xl text-white/95 mb-4 sm:mb-6 max-w-3xl mx-auto leading-relaxed drop-shadow-lg font-medium">
+          <p className="text-sm sm:text-lg md:text-xl text-white/95 mb-6 sm:mb-8 max-w-3xl mx-auto leading-relaxed drop-shadow-lg font-medium">
             {t('hero.subtitle')}
           </p>
           
-          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 justify-center items-center max-w-md sm:max-w-none mx-auto">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 justify-center items-center max-w-md sm:max-w-none mx-auto mt-4">
             <button 
               onClick={handleGetStarted}
               className="w-full sm:w-auto group bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 sm:px-8 sm:py-4 rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center space-x-2 shadow-2xl hover:shadow-blue-500/25 transform hover:-translate-y-1 font-semibold text-base border border-white/20 min-h-[56px]"
@@ -136,7 +136,7 @@ const Hero = () => {
         </div>
         
         {/* Slide Indicators - Fixed at bottom */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex justify-center">
+        <div className="hidden sm:flex absolute bottom-4 left-1/2 transform -translate-x-1/2 justify-center">
           {heroImages.map((_, index) => (
             <button
               key={index}
