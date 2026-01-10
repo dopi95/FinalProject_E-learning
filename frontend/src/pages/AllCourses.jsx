@@ -79,7 +79,10 @@ const AllCourses = () => {
       if (selectedCategory !== 'all') params.category = selectedCategory;
       
       const response = await courseAPI.getCourses(params);
-      setCourses(response.data.courses);
+      // Sort courses by likes (stars) - most liked first
+      const sortedCourses = response.data.courses
+        .sort((a, b) => (b.stars?.length || 0) - (a.stars?.length || 0));
+      setCourses(sortedCourses);
       setTotalPages(response.data.totalPages);
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -457,11 +460,13 @@ const AllCourses = () => {
                       alt={course.title} 
                       className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500" 
                     />
+                    <div className="absolute top-2 left-2 sm:top-4 sm:left-4">
+                      <span className="text-xs sm:text-sm font-medium text-white bg-blue-600 px-2 py-1 rounded">
+                        {categories.find(cat => cat.slug === course.category)?.name || course.category}
+                      </span>
+                    </div>
                     <div className="absolute top-4 right-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-4 py-2 rounded-full">
                       <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{course.price} {t('courses.birr')}</span>
-                    </div>
-                    <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                      {categories.find(cat => cat.slug === course.category)?.name || course.category}
                     </div>
                     <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-1 rounded-full">
                       {(() => {

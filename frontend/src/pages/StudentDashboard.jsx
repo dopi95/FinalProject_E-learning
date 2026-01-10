@@ -719,6 +719,13 @@ const StudentDashboard = () => {
     return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  // Format name to show only first two parts (e.g., "Elyas Yenealem Atalay" -> "Elyas Yenealem")
+  const formatDisplayName = (name) => {
+    if (!name) return 'Student';
+    const nameParts = name.trim().split(' ');
+    return nameParts.slice(0, 2).join(' ');
+  };
+
   const handleProfileSave = async () => {
     try {
       setLoading(true);
@@ -799,7 +806,7 @@ const StudentDashboard = () => {
             <div className="min-w-0 flex-1">
               <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white leading-tight">Student Dashboard</h1>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
-                Welcome back{user ? `, ${user.name}` : ''}, track your learning progress
+                Welcome back{user ? `, ${formatDisplayName(user.name)}` : ''}, track your learning progress
               </p>
             </div>
           </div>
@@ -2236,7 +2243,7 @@ const renderPayments = () => (
               )}
             </div>
             <div className="min-w-0 flex-1 text-center">
-              <h1 className="text-sm lg:text-lg font-bold truncate text-white">{user ? user.name : 'Elyas Yenealem'}</h1>
+              <h1 className="text-sm lg:text-lg font-bold truncate text-white">{user ? formatDisplayName(user.name) : 'Elyas Yenealem'}</h1>
               <p className="text-blue-50 text-xs lg:text-sm flex items-center justify-center">
                 <GraduationCap className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
                 <span className="truncate">{user ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Student'}</span>

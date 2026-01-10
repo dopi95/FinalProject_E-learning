@@ -93,13 +93,13 @@ const Hero = () => {
       </div>
 
       {/* Content Container - Full height with proper spacing */}
-      <div className="relative z-10 h-full flex flex-col justify-between px-4 sm:px-6 lg:px-8 text-center max-w-7xl mx-auto w-full py-8 sm:py-12">
+      <div className="relative z-10 h-full flex flex-col px-4 sm:px-6 lg:px-8 text-center max-w-7xl mx-auto w-full py-8 sm:py-12">
         
-        {/* Top spacer */}
-        <div></div>
+        {/* Top spacer - hidden on mobile */}
+        <div className="hidden md:block"></div>
         
         {/* Main content */}
-        <div className="flex-1 flex flex-col justify-center">
+        <div className="flex-1 flex flex-col justify-start md:justify-center pt-16 md:pt-0">
           <div className="mb-2 sm:mb-4">
             <span className="inline-flex items-center px-3 py-1.5 sm:px-6 sm:py-3 rounded-full text-xs sm:text-sm font-medium bg-white/10 backdrop-blur-md text-white border border-white/20 shadow-lg">
               {t('hero.welcomeBadge')}
@@ -135,8 +135,8 @@ const Hero = () => {
           </div>
         </div>
         
-        {/* Slide Indicators - Always at bottom */}
-        <div className="flex justify-center mt-4">
+        {/* Slide Indicators - Fixed at bottom */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex justify-center">
           {heroImages.map((_, index) => (
             <button
               key={index}
