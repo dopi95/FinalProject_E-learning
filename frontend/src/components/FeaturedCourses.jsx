@@ -26,6 +26,7 @@ const FeaturedCourses = () => {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [showComments, setShowComments] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState(null);
+  const [likingCourse, setLikingCourse] = useState(null);
 
   useEffect(() => {
     fetchFeaturedCourses();
@@ -77,6 +78,13 @@ const FeaturedCourses = () => {
       return;
     }
     
+    // Prevent multiple clicks
+    if (likingCourse === courseId) {
+      return;
+    }
+    
+    setLikingCourse(courseId);
+    
     try {
       const response = await courseAPI.starCourse(courseId);
       setCourses(prevCourses => 
@@ -93,6 +101,8 @@ const FeaturedCourses = () => {
       );
     } catch (error) {
       console.error('Error starring course:', error);
+    } finally {
+      setLikingCourse(null);
     }
   };
 
@@ -245,7 +255,8 @@ const FeaturedCourses = () => {
                   <div className="flex items-center justify-between mb-6">
                     <button 
                       onClick={() => handleStarCourse(course._id)}
-                      className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
+                      disabled={likingCourse === course._id}
+                      className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Heart 
                         className={`h-4 w-4 ${

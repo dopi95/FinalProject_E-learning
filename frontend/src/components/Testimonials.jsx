@@ -27,6 +27,7 @@ const Testimonials = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
 
   const fallbackTestimonials = [
     {
@@ -70,6 +71,8 @@ const Testimonials = () => {
 
   // Auto-slide functionality - show groups with fade animation
   useEffect(() => {
+    if (isPaused) return;
+    
     const interval = setInterval(() => {
       setCurrentSlide((prev) => {
         if (window.innerWidth >= 1024) {
@@ -83,7 +86,7 @@ const Testimonials = () => {
       });
     }, 4000);
     return () => clearInterval(interval);
-  }, [testimonials.length]);
+  }, [testimonials.length, isPaused]);
 
   if (loading) {
     return (
@@ -132,7 +135,7 @@ const Testimonials = () => {
         </div>
 
         {/* Desktop View - Show 3 cards with fade animation */}
-        <div className="hidden lg:block relative">
+        <div className="hidden lg:block relative" onMouseEnter={() => setIsPaused(true)} onMouseLeave={() => setIsPaused(false)}>
           <div className="grid grid-cols-3 gap-8">
             {testimonials.slice(currentSlide * 3, (currentSlide + 1) * 3).map((testimonial, index) => (
               <div 
@@ -164,7 +167,7 @@ const Testimonials = () => {
         </div>
 
         {/* Mobile View - Show 1 card with fade animation */}
-        <div className="lg:hidden relative">
+        <div className="lg:hidden relative" onTouchStart={() => setIsPaused(true)} onTouchEnd={() => setTimeout(() => setIsPaused(false), 2000)}>
           <div className="flex justify-center">
             <div 
               key={currentSlide} 
@@ -207,10 +210,13 @@ const TestimonialCard = ({ testimonial }) => {
     return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const getDisplayName = (name) => {
+  const getDisplayName = (name, role) => {
     if (!name) return '';
+    if (role === 'instructor') {
+      return name; // Show full name for instructors
+    }
     const nameParts = name.split(' ');
-    return nameParts.slice(0, 2).join(' ');
+    return nameParts.slice(0, 2).join(' '); // Truncate student names
   };
 
   return (
@@ -237,10 +243,12 @@ const TestimonialCard = ({ testimonial }) => {
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <h4 className="font-bold text-gray-900 dark:text-white text-lg truncate">
-            {getDisplayName(testimonial.user?.name || testimonial.name)}
+          <h4 className={`font-bold text-gray-900 dark:text-white text-lg ${
+            (testimonial.user?.role || testimonial.role) === 'instructor' ? '' : 'truncate'
+          }`}>
+            {getDisplayName(testimonial.user?.name || testimonial.name, testimonial.user?.role || testimonial.role)}
           </h4>
-          <p className="text-sm text-blue-600 dark:text-blue-400 font-medium truncate">
+          <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
             {getRoleDisplay(testimonial.user?.role || testimonial.role)}
           </p>
         </div>

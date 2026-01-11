@@ -32,6 +32,7 @@ const CourseDetail = () => {
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [registrationModalType, setRegistrationModalType] = useState('');
   const [showComments, setShowComments] = useState(false);
+  const [likingCourse, setLikingCourse] = useState(false);
 
   useEffect(() => {
     const userData = getUserData();
@@ -102,6 +103,12 @@ const CourseDetail = () => {
       return;
     }
     
+    if (likingCourse) {
+      return;
+    }
+    
+    setLikingCourse(true);
+    
     try {
       const response = await courseAPI.starCourse(courseId);
       
@@ -114,6 +121,8 @@ const CourseDetail = () => {
       }));
     } catch (error) {
       console.error('Error starring course:', error);
+    } finally {
+      setLikingCourse(false);
     }
   };
 
@@ -308,7 +317,8 @@ const CourseDetail = () => {
                     <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                       <button 
                         onClick={() => handleStarLike(course._id)}
-                        className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200"
+                        disabled={likingCourse}
+                        className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Heart 
                           className={`h-5 w-5 transition-colors ${

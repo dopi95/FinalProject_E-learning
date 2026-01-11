@@ -281,7 +281,7 @@ const Chatbot = () => {
                 <h3 className="font-bold text-lg animate-fadeIn">{t('chatbot.title')}</h3>
                 <div className="text-sm opacity-90 flex items-center animate-fadeIn" style={{animationDelay: '0.3s'}}>
                   <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
-                  <span className="animate-typing">Hey! What can I help you with?</span>
+                  <span>Online</span>
                 </div>
               </div>
             </div>
