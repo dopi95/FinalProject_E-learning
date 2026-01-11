@@ -81,6 +81,9 @@ app.use('/api/comments', require('./routes/comments'));
 // Notification routes
 app.use('/api/notifications', require('./routes/notifications'));
 
+// Chat History routes
+app.use('/api/chat-history', require('./routes/chatHistory'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

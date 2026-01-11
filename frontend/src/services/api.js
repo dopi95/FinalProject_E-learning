@@ -274,4 +274,28 @@ export const notificationAPI = {
   deleteNotification: (notificationId) => api.delete(`/notifications/${notificationId}`),
 };
 
+// Chat History API functions
+export const chatHistoryAPI = {
+  // Get all chat sessions
+  getChatSessions: () => api.get('/chat-history'),
+  
+  // Get specific chat session
+  getChatSession: (sessionId) => api.get(`/chat-history/${sessionId}`),
+  
+  // Create new chat session
+  createChatSession: (sessionData) => api.post('/chat-history', sessionData),
+  
+  // Add message to chat session
+  addMessage: (sessionId, message) => api.post(`/chat-history/${sessionId}/messages`, { message }),
+  
+  // Update chat session title
+  updateTitle: (sessionId, title) => api.put(`/chat-history/${sessionId}/title`, { title }),
+  
+  // Delete specific chat session
+  deleteChatSession: (sessionId) => api.delete(`/chat-history/${sessionId}`),
+  
+  // Delete all chat sessions
+  deleteAllSessions: () => api.delete('/chat-history'),
+};
+
 export default api;

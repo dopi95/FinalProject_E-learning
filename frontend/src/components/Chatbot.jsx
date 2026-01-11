@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Send, Bot, MessageSquare } from 'lucide-react';
+import { X, Send, Bot, MessageSquare, History, Trash2, Edit2, Plus, Clock } from 'lucide-react';
+import { chatHistoryAPI } from '../services/api';
 
 // Add custom styles
 const chatbotStyles = `
@@ -106,9 +107,23 @@ const Chatbot = () => {
   const [isInHeroSection, setIsInHeroSection] = useState(false);
   const [showCharacter, setShowCharacter] = useState(false);
   const [characterMessage, setCharacterMessage] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
+  const [chatSessions, setChatSessions] = useState([]);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [editingTitle, setEditingTitle] = useState(null);
+  const [newTitle, setNewTitle] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
+    // Check if user is logged in
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    setIsLoggedIn(!!token);
+    
+    if (token) {
+      loadChatSessions();
+    }
+
     const checkMobileMenu = () => {
       const mobileMenuOverlay = document.querySelector('[class*="fixed inset-0 z-40 lg:hidden"]');
       if (mobileMenuOverlay) {
@@ -144,6 +159,87 @@ const Chatbot = () => {
     };
   }, []);
 
+  const loadChatSessions = async () => {
+    try {
+      const response = await chatHistoryAPI.getChatSessions();
+      setChatSessions(response.data);
+    } catch (error) {
+      console.error('Error loading chat sessions:', error);
+    }
+  };
+
+  const createNewSession = () => {
+    const sessionId = `chat_${Date.now()}`;
+    setCurrentSessionId(sessionId);
+    setMessages([{
+      id: 1,
+      text: "Hello! I'm your AAU E-Learning assistant. Feel free to ask me about courses, enrollment, pricing, or anything else!",
+      sender: 'bot',
+      timestamp: new Date()
+    }]);
+    setShowHistory(false);
+    setShowCharacter(false);
+    setCharacterMessage('');
+  };
+
+  const loadChatSession = async (sessionId) => {
+    try {
+      const response = await chatHistoryAPI.getChatSession(sessionId);
+      setMessages(response.data.messages);
+      setCurrentSessionId(sessionId);
+      setShowHistory(false);
+    } catch (error) {
+      console.error('Error loading chat session:', error);
+    }
+  };
+
+  const saveChatMessage = async (message) => {
+    if (!isLoggedIn || !currentSessionId) return;
+    
+    try {
+      await chatHistoryAPI.addMessage(currentSessionId, message);
+      loadChatSessions();
+    } catch (error) {
+      console.error('Error saving message:', error);
+    }
+  };
+
+  const deleteChatSession = async (sessionId) => {
+    try {
+      await chatHistoryAPI.deleteChatSession(sessionId);
+      setChatSessions(prev => prev.filter(session => session.sessionId !== sessionId));
+      if (currentSessionId === sessionId) {
+        setCurrentSessionId(null);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error('Error deleting chat session:', error);
+    }
+  };
+
+  const deleteAllSessions = async () => {
+    try {
+      await chatHistoryAPI.deleteAllSessions();
+      setChatSessions([]);
+      setCurrentSessionId(null);
+      setMessages([]);
+    } catch (error) {
+      console.error('Error deleting all sessions:', error);
+    }
+  };
+
+  const updateSessionTitle = async (sessionId, title) => {
+    try {
+      await chatHistoryAPI.updateTitle(sessionId, title);
+      setChatSessions(prev => prev.map(session => 
+        session.sessionId === sessionId ? { ...session, title } : session
+      ));
+      setEditingTitle(null);
+    } catch (error) {
+      console.error('Error updating title:', error);
+    }
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -153,11 +249,13 @@ const Chatbot = () => {
   }, [messages]);
 
   useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      // Show character animation first
+    if (isOpen && messages.length === 0 && !currentSessionId && !showHistory) {
+      if (isLoggedIn) {
+        createNewSession();
+      }
+      
       setShowCharacter(true);
       
-      // Character greeting sequence
       setTimeout(() => {
         setCharacterMessage('👋 Hi there!');
       }, 800);
@@ -166,19 +264,22 @@ const Chatbot = () => {
         setCharacterMessage('What can I help you with?');
       }, 2500);
       
-      // Add initial message after character animation
       setTimeout(() => {
-        setMessages([{
+        const initialMessage = {
           id: 1,
           text: "Hello! I'm your AAU E-Learning assistant. Feel free to ask me about courses, enrollment, pricing, or anything else!",
           sender: 'bot',
           timestamp: new Date(),
           animated: true
-        }]);
+        };
+        setMessages([initialMessage]);
+        if (isLoggedIn && currentSessionId) {
+          saveChatMessage(initialMessage);
+        }
         setShowCharacter(false);
       }, 4000);
     }
-  }, [isOpen, t]);
+  }, [isOpen, t, currentSessionId, isLoggedIn, showHistory]);
 
   const generateResponse = (userMessage) => {
     const message = userMessage.toLowerCase();
@@ -222,8 +323,13 @@ const Chatbot = () => {
     setInputMessage('');
     setIsTyping(true);
 
+    // Save user message if logged in
+    if (isLoggedIn && currentSessionId) {
+      await saveChatMessage(userMessage);
+    }
+
     // Simulate AI response delay
-    setTimeout(() => {
+    setTimeout(async () => {
       const botResponse = {
         id: Date.now() + 1,
         text: generateResponse(inputMessage),
@@ -233,6 +339,11 @@ const Chatbot = () => {
       
       setMessages(prev => [...prev, botResponse]);
       setIsTyping(false);
+      
+      // Save bot response if logged in
+      if (isLoggedIn && currentSessionId) {
+        await saveChatMessage(botResponse);
+      }
     }, 1500);
   };
 
@@ -285,17 +396,147 @@ const Chatbot = () => {
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="p-2 hover:bg-white/20 rounded-full transition-all duration-300 relative z-20 group"
-            >
-              <X className="h-5 w-5 transform group-hover:rotate-90 transition-transform duration-300" />
-            </button>
+            <div className="flex items-center space-x-2">
+              {isLoggedIn && (
+                <button
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="p-2 hover:bg-white/20 rounded-full transition-all duration-300 relative z-20 group"
+                  title="Chat History"
+                >
+                  <History className="h-5 w-5 transform group-hover:rotate-12 transition-transform duration-300" />
+                </button>
+              )}
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-2 hover:bg-white/20 rounded-full transition-all duration-300 relative z-20 group"
+              >
+                <X className="h-5 w-5 transform group-hover:rotate-90 transition-transform duration-300" />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Messages Area */}
-        <div className="overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 flex-1 relative" style={{ height: 'calc(60vh - 8rem)', minHeight: '250px', maxHeight: '400px' }}>
+        {/* Messages Area or History Panel */}
+        {showHistory ? (
+          <div className="p-4 space-y-4 overflow-y-auto" style={{ height: 'calc(60vh - 8rem)', minHeight: '250px', maxHeight: '400px' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-semibold text-gray-800 dark:text-white">Chat History</h4>
+              <div className="flex space-x-2">
+                <button
+                  onClick={createNewSession}
+                  className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  title="New Chat"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+                {chatSessions.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Delete all chat history?')) {
+                        deleteAllSessions();
+                      }
+                    }}
+                    className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    title="Delete All"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {chatSessions.length === 0 ? (
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>No chat history yet</p>
+                <p className="text-sm">Start a conversation to save your chats</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {chatSessions.map((session) => (
+                  <div
+                    key={session.sessionId}
+                    className={`p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
+                      currentSessionId === session.sessionId
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700'
+                        : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    }`}
+                    onClick={() => loadChatSession(session.sessionId)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        {editingTitle === session.sessionId ? (
+                          <input
+                            type="text"
+                            value={newTitle}
+                            onChange={(e) => setNewTitle(e.target.value)}
+                            onBlur={() => {
+                              if (newTitle.trim()) {
+                                updateSessionTitle(session.sessionId, newTitle.trim());
+                              } else {
+                                setEditingTitle(null);
+                              }
+                            }}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                if (newTitle.trim()) {
+                                  updateSessionTitle(session.sessionId, newTitle.trim());
+                                } else {
+                                  setEditingTitle(null);
+                                }
+                              }
+                            }}
+                            className="w-full text-sm font-medium bg-transparent border-none outline-none text-gray-800 dark:text-white"
+                            autoFocus
+                          />
+                        ) : (
+                          <h5 className="text-sm font-medium text-gray-800 dark:text-white truncate">
+                            {session.title}
+                          </h5>
+                        )}
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
+                          {session.lastMessage}
+                        </p>
+                        <div className="flex items-center text-xs text-gray-400 dark:text-gray-500 mt-1">
+                          <Clock className="h-3 w-3 mr-1" />
+                          <span>{new Date(session.lastActivity).toLocaleDateString()}</span>
+                          <span className="mx-2">•</span>
+                          <span>{session.messageCount} messages</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-1 ml-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingTitle(session.sessionId);
+                            setNewTitle(session.title);
+                          }}
+                          className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                          title="Edit Title"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm('Delete this chat?')) {
+                              deleteChatSession(session.sessionId);
+                            }
+                          }}
+                          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                          title="Delete Chat"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 flex-1 relative" style={{ height: 'calc(60vh - 8rem)', minHeight: '250px', maxHeight: '400px' }}>
           
           {/* Animated Character */}
           {showCharacter && (
@@ -390,28 +631,31 @@ const Chatbot = () => {
             </div>
           )}
           <div ref={messagesEndRef} />
-        </div>
+          </div>
+        )}
 
         {/* Input Area */}
-        <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 relative z-10">
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={t('chatbot.placeholder')}
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-            />
-            <button
-              onClick={handleSendMessage}
-              disabled={!inputMessage.trim()}
-              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0 relative z-20 shadow-sm"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+        {!showHistory && (
+          <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 relative z-10">
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={t('chatbot.placeholder')}
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={!inputMessage.trim()}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0 relative z-20 shadow-sm"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
         </div>
       )}
     </>
