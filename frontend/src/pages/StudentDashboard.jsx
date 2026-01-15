@@ -1016,45 +1016,45 @@ const StudentDashboard = () => {
   );
 
   const renderCourses = () => {
-    // Mock liked courses for demo - replace with actual API data
     const displayedCourses = showLikedOnly 
       ? (enrolledCourses || []).filter(course => course.stars?.includes(user?._id))
       : (enrolledCourses || []);
 
     return (
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">My Courses</h2>
+      <div className="space-y-4 lg:space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">My Courses</h2>
             <button
               onClick={() => setShowLikedOnly(!showLikedOnly)}
-              className={`flex items-center gap-2 text-sm font-medium transition-colors hover:opacity-80 ${
+              className={`flex items-center gap-1.5 text-xs sm:text-sm font-medium transition-colors hover:opacity-80 ${
                 showLikedOnly 
                   ? 'text-red-500' 
                   : 'text-gray-500 dark:text-gray-400'
               }`}
             >
-              <Heart className={`h-5 w-5 ${showLikedOnly ? 'fill-current' : ''}`} />
-              Liked Courses
+              <Heart className={`h-4 w-4 ${showLikedOnly ? 'fill-current' : ''}`} />
+              <span className="hidden sm:inline">Liked Courses</span>
+              <span className="sm:hidden">Liked</span>
             </button>
           </div>
           <button 
             onClick={() => window.location.href = '/courses'}
-            className="w-fit bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 text-xs font-medium transition-colors"
+            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 text-sm font-medium transition-colors"
           >
             <BookOpen className="h-4 w-4" />
             Browse Courses
           </button>
         </div>
         
-        <div className="inline-block bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md border border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow-md border border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
               <BookOpen className="h-5 w-5 text-blue-600" />
             </div>
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Total My Courses</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">{enrolledCourses?.length || 0}</p>
+              <p className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white">{enrolledCourses?.length || 0}</p>
             </div>
           </div>
         </div>
@@ -1064,69 +1064,101 @@ const StudentDashboard = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : displayedCourses.length === 0 ? (
-        <div className="text-center py-12">
-          <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+        <div className="text-center py-8 lg:py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4">
+          <BookOpen className="h-12 lg:h-16 w-12 lg:w-16 text-gray-400 mx-auto mb-3 lg:mb-4" />
+          <h3 className="text-base lg:text-lg font-medium text-gray-900 dark:text-white mb-2">
             {showLikedOnly ? 'No Liked Courses' : 'No Courses Enrolled'}
           </h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             {showLikedOnly ? 'You haven\'t liked any courses yet.' : 'You haven\'t enrolled in any courses yet.'}
           </p>
           <button 
             onClick={() => window.location.href = '/courses'}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 text-sm"
           >
             Browse Courses
           </button>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b-2 border-gray-200 dark:border-gray-600">
-                  <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
-                    Course
-                  </th>
-                  <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
-                    Instructor
-                  </th>
-                  <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y-2 divide-gray-200 dark:divide-gray-600">
-                {displayedCourses.map((course, index) => (
-                  <tr key={course._id} className={`hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-200 dark:border-gray-600 ${
-                    index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-750'
-                  }`}>
-                    <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
-                      <div className="text-xs lg:text-sm font-semibold text-gray-900 dark:text-white truncate max-w-xs">{course.title}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{course.category || 'General'}</div>
-                    </td>
-                    <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
-                      <div className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white">
-                        {course.instructor?.name || 'Instructor'}
-                      </div>
-                    </td>
-                    <td className="px-3 lg:px-6 py-3 lg:py-4">
-                      <button 
-                        onClick={() => {
-                          setSelectedCourse(course);
-                          setActiveTab('course-materials');
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
-                      >
-                        View Materials
-                      </button>
-                    </td>
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b-2 border-gray-200 dark:border-gray-600">
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
+                      Course
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
+                      Instructor
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y-2 divide-gray-200 dark:divide-gray-600">
+                  {displayedCourses.map((course, index) => (
+                    <tr key={course._id} className={`hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-200 dark:border-gray-600 ${
+                      index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-750'
+                    }`}>
+                      <td className="px-6 py-4 border-r border-gray-200 dark:border-gray-600">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white truncate max-w-xs">{course.title}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{course.category || 'General'}</div>
+                      </td>
+                      <td className="px-6 py-4 border-r border-gray-200 dark:border-gray-600">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {course.instructor?.name || 'Instructor'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button 
+                          onClick={() => {
+                            setSelectedCourse(course);
+                            setActiveTab('course-materials');
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+                        >
+                          View Materials
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-3">
+            {displayedCourses.map((course) => (
+              <div key={course._id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{course.title}</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{course.category || 'General'}</p>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Instructor</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{course.instructor?.name || 'Instructor'}</p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setSelectedCourse(course);
+                        setActiveTab('course-materials');
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+                    >
+                      View
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
@@ -1134,9 +1166,9 @@ const StudentDashboard = () => {
 
 const renderPayments = () => (
     <div className="space-y-4 lg:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Payment History</h2>
-        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
           <CreditCard className="h-4 w-4" />
           <span>{payments.length} transactions</span>
         </div>
@@ -1147,29 +1179,29 @@ const renderPayments = () => (
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : payments.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
-          <CreditCard className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Payments Found</h3>
-          <p className="text-gray-500 dark:text-gray-400">You haven't made any payments yet.</p>
+        <div className="text-center py-8 lg:py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4">
+          <CreditCard className="h-12 lg:h-16 w-12 lg:w-16 text-gray-400 mx-auto mb-3 lg:mb-4" />
+          <h3 className="text-base lg:text-lg font-medium text-gray-900 dark:text-white mb-2">No Payments Found</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">You haven't made any payments yet.</p>
         </div>
       ) : (
         <>
           {/* Desktop Table View */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
             <div className="overflow-x-auto">
               <table className="min-w-full">
                 <thead>
                   <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b-2 border-gray-200 dark:border-gray-600">
-                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
                       Course
                     </th>
-                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
                       Amount
                     </th>
-                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
                       Status
                     </th>
-                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -1179,20 +1211,20 @@ const renderPayments = () => (
                     <tr key={payment._id} className={`hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-200 dark:border-gray-600 ${
                       index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-750'
                     }`}>
-                      <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
-                        <div className="text-xs lg:text-sm font-semibold text-gray-900 dark:text-white truncate max-w-xs">
+                      <td className="px-6 py-4 border-r border-gray-200 dark:border-gray-600">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white truncate max-w-xs">
                           {payment.course?.title || 'Course'}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           Receipt: {payment.receiptNumber}
                         </div>
                       </td>
-                      <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
-                        <span className="text-xs lg:text-sm font-bold text-gray-900 dark:text-white">
+                      <td className="px-6 py-4 border-r border-gray-200 dark:border-gray-600">
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">
                           {payment.amount} Birr
                         </span>
                       </td>
-                      <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
+                      <td className="px-6 py-4 border-r border-gray-200 dark:border-gray-600">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           payment.status === 'success' 
                             ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300'
@@ -1204,21 +1236,21 @@ const renderPayments = () => (
                           {payment.status}
                         </span>
                       </td>
-                      <td className="px-3 lg:px-6 py-3 lg:py-4">
-                        <div className="flex items-center gap-1 lg:gap-2">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleViewReceipt(payment._id)}
-                            className="p-1.5 lg:p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                             title="View Receipt"
                           >
-                            <Eye className="h-3 w-3 lg:h-4 lg:w-4" />
+                            <Eye className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDownloadReceipt(payment._id)}
-                            className="p-1.5 lg:p-2 text-green-600 hover:text-green-800 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                            className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                             title="Download Receipt"
                           >
-                            <Download className="h-3 w-3 lg:h-4 lg:w-4" />
+                            <Download className="h-4 w-4" />
                           </button>
                         </div>
                       </td>
@@ -1227,6 +1259,56 @@ const renderPayments = () => (
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-3">
+            {payments.map((payment) => (
+              <div key={payment._id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                      {payment.course?.title || 'Course'}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Receipt: {payment.receiptNumber}</p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Amount</p>
+                      <p className="text-base font-bold text-gray-900 dark:text-white">{payment.amount} Birr</p>
+                    </div>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                      payment.status === 'success' 
+                        ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300'
+                        : payment.status === 'pending'
+                        ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300'
+                        : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300'
+                    }`}>
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      {payment.status}
+                    </span>
+                  </div>
+                  
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={() => handleViewReceipt(payment._id)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-colors text-xs font-medium"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      View
+                    </button>
+                    <button
+                      onClick={() => handleDownloadReceipt(payment._id)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-colors text-xs font-medium"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Download
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </>
       )}
