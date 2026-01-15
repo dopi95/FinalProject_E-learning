@@ -944,18 +944,19 @@ const InstructorDashboard = () => {
       : (courses || []);
 
     return (
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+      <div className="space-y-4 lg:space-y-6">
+        <div className="flex items-center justify-between gap-3">
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">My Courses</h2>
           <button
             onClick={() => setSortByLikes(!sortByLikes)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors w-fit ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
               sortByLikes 
-                ? 'bg-red-600 text-white hover:bg-red-700' 
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' 
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
-            {sortByLikes ? 'Show All' : 'Sort by Likes'}
+            <Heart className={`h-3 w-3 ${sortByLikes ? 'fill-current' : ''}`} />
+            {sortByLikes ? 'All' : 'Likes'}
           </button>
         </div>
         
@@ -970,78 +971,133 @@ const InstructorDashboard = () => {
             <p className="text-gray-500 dark:text-gray-400">You don't have any active courses assigned to you yet.</p>
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b-2 border-gray-200 dark:border-gray-600">
-                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
-                      Course
-                    </th>
-                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
-                      Students
-                    </th>
-                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
-                      Likes
-                    </th>
-                    <th className="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y-2 divide-gray-200 dark:divide-gray-600">
-                  {sortedCourses.map((course, index) => (
-                    <tr key={course._id} className={`hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-200 dark:border-gray-600 ${
-                      index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-750'
-                    }`}>
-                      <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
-                        <div className="text-xs lg:text-sm font-semibold text-gray-900 dark:text-white">{course.title}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{course.category || 'General'}</div>
-                      </td>
-                      <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
-                        <div className="flex items-center">
-                          <Users className="h-3 w-3 lg:h-4 lg:w-4 text-gray-400 mr-1 lg:mr-2" />
-                          <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white">
-                            {course.students?.length || 0}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-3 lg:px-6 py-3 lg:py-4 border-r border-gray-200 dark:border-gray-600">
-                        <div className="flex items-center">
-                          <Heart className="h-3 w-3 lg:h-4 lg:w-4 text-red-500 mr-1 lg:mr-2" />
-                          <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white">
-                            {course.stars?.length || 0}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-3 lg:px-6 py-3 lg:py-4">
-                        <div className="flex items-center space-x-1 lg:space-x-2">
-                          <button 
-                            onClick={() => {
-                              setSelectedCourse(course);
-                              setActiveTab('materials');
-                            }}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-2 lg:px-3 py-1 lg:py-1.5 rounded-lg text-xs font-medium transition-colors"
-                          >
-                            Manage
-                          </button>
-                          <button 
-                            onClick={() => {
-                              setSelectedCourse(course);
-                              setActiveTab('course-videos');
-                            }}
-                            className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-2 lg:px-3 py-1 lg:py-1.5 rounded-lg text-xs font-medium transition-colors"
-                          >
-                            <Video className="h-3 w-3" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <>
+            {/* Mobile Cards View */}
+            <div className="lg:hidden space-y-3">
+              {sortedCourses.map((course) => (
+                <div key={course._id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{course.title}</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{course.category || 'General'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
+                      <div className="flex items-center gap-1 mb-1">
+                        <Users className="h-3 w-3 text-gray-400" />
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Students</p>
+                      </div>
+                      <p className="text-lg font-bold text-gray-900 dark:text-white">{course.students?.length || 0}</p>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
+                      <div className="flex items-center gap-1 mb-1">
+                        <Heart className="h-3 w-3 text-red-500" />
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Likes</p>
+                      </div>
+                      <p className="text-lg font-bold text-gray-900 dark:text-white">{course.stars?.length || 0}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => {
+                        setSelectedCourse(course);
+                        setActiveTab('materials');
+                      }}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Manage
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setSelectedCourse(course);
+                        setActiveTab('course-videos');
+                      }}
+                      className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 p-2 rounded-lg transition-colors"
+                    >
+                      <Video className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b-2 border-gray-200 dark:border-gray-600">
+                      <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
+                        Course
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
+                        Students
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
+                        Likes
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y-2 divide-gray-200 dark:divide-gray-600">
+                    {sortedCourses.map((course, index) => (
+                      <tr key={course._id} className={`hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-200 dark:border-gray-600 ${
+                        index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-750'
+                      }`}>
+                        <td className="px-6 py-4 border-r border-gray-200 dark:border-gray-600">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white">{course.title}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{course.category || 'General'}</div>
+                        </td>
+                        <td className="px-6 py-4 border-r border-gray-200 dark:border-gray-600">
+                          <div className="flex items-center">
+                            <Users className="h-4 w-4 text-gray-400 mr-2" />
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {course.students?.length || 0}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 border-r border-gray-200 dark:border-gray-600">
+                          <div className="flex items-center">
+                            <Heart className="h-4 w-4 text-red-500 mr-2" />
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {course.stars?.length || 0}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-2">
+                            <button 
+                              onClick={() => {
+                                setSelectedCourse(course);
+                                setActiveTab('materials');
+                              }}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              Manage
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setSelectedCourse(course);
+                                setActiveTab('course-videos');
+                              }}
+                              className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              <Video className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
       </div>
     );
@@ -1260,6 +1316,20 @@ const InstructorDashboard = () => {
 
     return (
       <div className="space-y-4 lg:space-y-6">
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            onClick={() => {
+              setActiveTab('courses');
+              setSelectedCourse(null);
+            }}
+            className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium text-sm"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Courses
+          </button>
+        </div>
         <div className="flex flex-col gap-3">
           <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Course Materials</h2>
           {selectedCourse && (
@@ -2185,35 +2255,35 @@ const InstructorDashboard = () => {
       </div>
       
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
-          <p className="text-lg lg:text-2xl font-bold text-blue-600">{students.length}</p>
-          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Total Students</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+        <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow text-center">
+          <p className="text-xl lg:text-2xl font-bold text-blue-600">{students.length}</p>
+          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">Total Students</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
-          <p className="text-lg lg:text-2xl font-bold text-green-600">{instructorCourses.length}</p>
-          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">My Courses</p>
+        <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow text-center">
+          <p className="text-xl lg:text-2xl font-bold text-green-600">{instructorCourses.length}</p>
+          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">My Courses</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
-          <p className="text-lg lg:text-2xl font-bold text-purple-600">
+        <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow text-center">
+          <p className="text-xl lg:text-2xl font-bold text-purple-600">
             {students.reduce((sum, student) => sum + student.totalCourses, 0)}
           </p>
-          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Total Enrollments</p>
+          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">Enrollments</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow text-center">
-          <p className="text-lg lg:text-2xl font-bold text-orange-600">
+        <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow text-center">
+          <p className="text-xl lg:text-2xl font-bold text-orange-600">
             {students.length > 0 ? Math.round(students.reduce((sum, student) => {
               const avgAttendance = student.courses.reduce((acc, course) => acc + course.attendance, 0) / student.courses.length;
               return sum + avgAttendance;
             }, 0) / students.length) : 0}%
           </p>
-          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Avg Attendance</p>
+          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">Avg Attendance</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl lg:rounded-2xl shadow-lg p-3 lg:p-6">
+        <div className="grid grid-cols-1 gap-3 lg:gap-4">
           <div className="relative">
             <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
@@ -2221,30 +2291,32 @@ const InstructorDashboard = () => {
               placeholder="Search by name, email, or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+              className="pl-10 pr-4 py-2.5 w-full border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
             />
           </div>
-          <select 
-            value={selectedCourseFilter}
-            onChange={(e) => setSelectedCourseFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
-          >
-            <option value="all">All My Courses</option>
-            {instructorCourses.map((course) => (
-              <option key={course._id} value={course._id}>
-                {course.title}
-              </option>
-            ))}
-          </select>
-          <select 
-            value={selectedGenderFilter}
-            onChange={(e) => setSelectedGenderFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
-          >
-            <option value="all">All Genders</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <select 
+              value={selectedCourseFilter}
+              onChange={(e) => setSelectedCourseFilter(e.target.value)}
+              className="px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+            >
+              <option value="all">All My Courses</option>
+              {instructorCourses.map((course) => (
+                <option key={course._id} value={course._id}>
+                  {course.title}
+                </option>
+              ))}
+            </select>
+            <select 
+              value={selectedGenderFilter}
+              onChange={(e) => setSelectedGenderFilter(e.target.value)}
+              className="px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+            >
+              <option value="all">All Genders</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -2260,21 +2332,91 @@ const InstructorDashboard = () => {
         </div>
       ) : (
         <>
-          {/* Students Table - Responsive */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+          {/* Mobile Cards View */}
+          <div className="lg:hidden space-y-3">
+            {filteredStudents.map((student) => {
+              const avgAttendance = student.courses.length > 0 
+                ? Math.round(student.courses.reduce((sum, course) => sum + course.attendance, 0) / student.courses.length)
+                : 0;
+              
+              return (
+                <div key={student._id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="h-12 w-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {student.profileImage ? (
+                        <img src={student.profileImage} alt={student.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                          {student.name?.charAt(0)?.toUpperCase() || 'S'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">{student.name}</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{student.email}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">ID: {student.systemId || 'N/A'}</p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                      student.gender === 'male' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
+                      student.gender === 'female' ? 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-400' :
+                      'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                    }`}>
+                      {student.gender ? student.gender.charAt(0).toUpperCase() : 'N/A'}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Courses</p>
+                      <p className="text-lg font-bold text-gray-900 dark:text-white">{student.totalCourses}</p>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Attendance</p>
+                      <p className={`text-lg font-bold ${
+                        avgAttendance >= 80 ? 'text-green-600' :
+                        avgAttendance >= 60 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>{avgAttendance}%</p>
+                    </div>
+                  </div>
+                  
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-3">
+                    <div 
+                      className={`h-2 rounded-full transition-all ${
+                        avgAttendance >= 80 ? 'bg-green-500' :
+                        avgAttendance >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${avgAttendance}%` }}
+                    ></div>
+                  </div>
+                  
+                  {selectedCourseFilter !== 'all' && (
+                    <button
+                      onClick={() => setSelectedStudentForGrading(student)}
+                      className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium"
+                    >
+                      Grade Student
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
-                    <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student</th>
-                    <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
-                    <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Gender</th>
-                    <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Courses</th>
-                    <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Gender</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Courses</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                       Attendance
                     </th>
                     {selectedCourseFilter !== 'all' && (
-                      <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                     )}
                   </tr>
                 </thead>
@@ -2286,27 +2428,27 @@ const InstructorDashboard = () => {
                     
                     return (
                       <tr key={student._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        <td className="px-3 lg:px-6 py-4">
+                        <td className="px-6 py-4">
                           <div className="flex items-center">
-                            <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-2 lg:mr-3 overflow-hidden flex-shrink-0">
+                            <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-3 overflow-hidden flex-shrink-0">
                               {student.profileImage ? (
                                 <img src={student.profileImage} alt={student.name} className="w-full h-full object-cover" />
                               ) : (
-                                <span className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-300">
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                                   {student.name?.charAt(0)?.toUpperCase() || 'S'}
                                 </span>
                               )}
                             </div>
                             <div className="min-w-0">
-                              <div className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white truncate">{student.name}</div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 truncate lg:block hidden">{student.email}</div>
+                              <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{student.name}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{student.email}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                           {student.systemId || 'N/A'}
                         </td>
-                        <td className="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                             student.gender === 'male' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
                             student.gender === 'female' ? 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-400' :
@@ -2315,10 +2457,10 @@ const InstructorDashboard = () => {
                             {student.gender ? student.gender.charAt(0).toUpperCase() + student.gender.slice(1) : 'N/A'}
                           </span>
                         </td>
-                        <td className="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                           {student.totalCourses}
                         </td>
-                        <td className="px-3 lg:px-6 py-4">
+                        <td className="px-6 py-4">
                           <div className="flex items-center">
                             <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-2">
                               <div 
@@ -2329,14 +2471,14 @@ const InstructorDashboard = () => {
                                 style={{ width: `${avgAttendance}%` }}
                               ></div>
                             </div>
-                            <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white">{avgAttendance}%</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">{avgAttendance}%</span>
                           </div>
                         </td>
                         {selectedCourseFilter !== 'all' && (
-                          <td className="px-3 lg:px-6 py-4">
+                          <td className="px-6 py-4">
                             <button
                               onClick={() => setSelectedStudentForGrading(student)}
-                              className="bg-blue-600 text-white px-2 lg:px-3 py-1 rounded text-xs lg:text-sm hover:bg-blue-700"
+                              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
                             >
                               Grade
                             </button>
