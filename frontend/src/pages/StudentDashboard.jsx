@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellRing, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star, Globe, Heart, Settings } from 'lucide-react';
+import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellRing, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star, Globe, Heart, Settings, MapPin } from 'lucide-react';
 import { profileAPI, enrollmentAPI, paymentAPI, subscriptionAPI, notificationAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
@@ -36,6 +36,8 @@ const StudentDashboard = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [schedules, setSchedules] = useState([]);
+  const [schedulesLoading, setSchedulesLoading] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -1263,33 +1265,148 @@ const renderPayments = () => (
     </div>
   );
 
-  const renderSchedule = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Weekly Schedule</h2>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <div className="grid grid-cols-7 gap-4 mb-6">
-          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-            <div key={day} className="text-center font-medium text-gray-900 dark:text-white">{day}</div>
-          ))}
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      if (activeTab === 'schedule') {
+        try {
+          setSchedulesLoading(true);
+          const { scheduleAPI } = await import('../services/api');
+          const response = await scheduleAPI.getSchedules();
+          setSchedules(response.data.schedules || []);
+        } catch (error) {
+          setSchedules([]);
+        } finally {
+          setSchedulesLoading(false);
+        }
+      }
+    };
+    fetchSchedules();
+  }, [activeTab]);
+
+  const renderSchedule = () => {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Weekly Schedule</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Your course schedules</p>
         </div>
-        <div className="space-y-2">
-          <div className="grid grid-cols-7 gap-4">
-            <div className="col-span-2 bg-blue-100 dark:bg-blue-900/20 p-3 rounded">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Advanced Math</p>
-              <p className="text-xs text-blue-700 dark:text-blue-300">10:00 - 11:30 AM</p>
-            </div>
-            <div></div>
-            <div className="col-span-2 bg-green-100 dark:bg-green-900/20 p-3 rounded">
-              <p className="text-sm font-medium text-green-900 dark:text-green-100">Physics Lab</p>
-              <p className="text-xs text-green-700 dark:text-green-300">2:00 - 3:30 PM</p>
-            </div>
-            <div></div>
-            <div></div>
+        
+        {schedulesLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
-        </div>
+        ) : enrolledCourses.length === 0 ? (
+          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+            <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Courses Enrolled</h3>
+            <p className="text-gray-500 dark:text-gray-400">Enroll in courses to see your schedule.</p>
+          </div>
+        ) : (
+          <div className="space-y-4 lg:space-y-6">
+            {enrolledCourses.map((course) => {
+              const courseSchedules = schedules.filter(s => s.course?._id === course._id);
+              const hasSchedule = courseSchedules.length > 0;
+              
+              return (
+                <div key={course._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
+                  <div className="flex items-center justify-between gap-3 mb-4 lg:mb-6">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white truncate">{course.title}</h3>
+                      <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">Instructor: {course.instructor?.name || 'Instructor'}</p>
+                    </div>
+                    {!hasSchedule && (
+                      <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 text-xs rounded-full font-medium">
+                        Not Assigned
+                      </span>
+                    )}
+                  </div>
+                  
+                  {!hasSchedule ? (
+                    <div className="text-center py-8 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                      <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">No schedule assigned for this course yet.</p>
+                      <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">The Program Office will assign a schedule.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Desktop Schedule Grid */}
+                      <div className="hidden lg:block">
+                        <div className="grid grid-cols-7 gap-4 mb-4">
+                          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+                            <div key={day} className="text-center font-medium text-gray-900 dark:text-white text-base">{day}</div>
+                          ))}
+                        </div>
+                        
+                        <div className="grid grid-cols-7 gap-4">
+                          {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
+                            const daySessions = courseSchedules[0].sessions.filter(s => s.day === day);
+                            return (
+                              <div key={day}>
+                                {daySessions.map((session, idx) => {
+                                  const colors = ['bg-blue-100 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100', 
+                                                'bg-green-100 dark:bg-green-900/20 text-green-900 dark:text-green-100',
+                                                'bg-purple-100 dark:bg-purple-900/20 text-purple-900 dark:text-purple-100'];
+                                  const color = colors[idx % 3];
+                                  return (
+                                    <div key={idx} className={`${color} p-3 rounded-lg mb-2`}>
+                                      <div className="flex items-center gap-1 text-xs flex-wrap">
+                                        <Clock className="h-3 w-3 flex-shrink-0" />
+                                        <span className="font-medium">Time:</span>
+                                        <span>{session.startTime} - {session.endTime}</span>
+                                      </div>
+                                      {session.room && (
+                                        <div className="flex items-center gap-1 text-xs mt-1 flex-wrap">
+                                          <MapPin className="h-3 w-3 flex-shrink-0" />
+                                          <span className="font-medium">Room:</span>
+                                          <span>{session.room}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
+                      {/* Mobile Schedule List */}
+                      <div className="lg:hidden space-y-3">
+                        {courseSchedules[0].sessions.map((session, idx) => {
+                          const colors = ['bg-blue-100 dark:bg-blue-900/20', 'bg-green-100 dark:bg-green-900/20', 'bg-purple-100 dark:bg-purple-900/20'];
+                          const textColors = ['text-blue-900 dark:text-blue-100', 'text-green-900 dark:text-green-100', 'text-purple-900 dark:text-purple-100'];
+                          const color = colors[idx % 3];
+                          const textColor = textColors[idx % 3];
+                          
+                          return (
+                            <div key={idx} className={`${color} p-3 rounded-lg`}>
+                              <span className={`text-sm font-medium ${textColor} capitalize block mb-2`}>{session.day}</span>
+                              <div className="flex items-center gap-1 text-xs mb-1 flex-wrap">
+                                <Clock className="h-3 w-3 flex-shrink-0" />
+                                <span className={`font-medium ${textColor}`}>Time:</span>
+                                <span className={`${textColor}`}>{session.startTime} - {session.endTime}</span>
+                              </div>
+                              {session.room && (
+                                <div className="flex items-center gap-1 text-xs flex-wrap">
+                                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                                  <span className={`font-medium ${textColor}`}>Room:</span>
+                                  <span className={`${textColor}`}>{session.room}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderProgress = () => (
     <div className="space-y-6">

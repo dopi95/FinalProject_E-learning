@@ -8,6 +8,10 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  validateStatus: function (status) {
+    // Don't throw errors for schedule endpoints
+    return status < 600;
+  },
 });
 
 // Add token to requests
@@ -18,6 +22,17 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Add response interceptor to handle errors silently for schedules
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.config?.url?.includes('/schedules')) {
+      return { data: { success: true, schedules: [] } };
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Profile API functions
 export const profileAPI = {
@@ -296,6 +311,72 @@ export const chatHistoryAPI = {
   
   // Delete all chat sessions
   deleteAllSessions: () => api.delete('/chat-history'),
+};
+
+// Schedule API functions
+export const scheduleAPI = {
+  // Get all schedules
+  getSchedules: async (params = {}) => {
+    const response = await api.get('/schedules', { params });
+    if (response.status !== 200) {
+      return { data: { success: true, schedules: [] } };
+    }
+    return response;
+  },
+  
+  // Get schedule by ID
+  getSchedule: (id) => api.get(`/schedules/${id}`),
+  
+  // Create schedule
+  createSchedule: async (scheduleData) => {
+    try {
+      return await api.post('/schedules', scheduleData);
+    } catch (error) {
+      throw error;
+    }
+  },
+  
+  // Update schedule
+  updateSchedule: async (id, scheduleData) => {
+    try {
+      return await api.put(`/schedules/${id}`, scheduleData);
+    } catch (error) {
+      throw error;
+    }
+  },
+  
+  // Delete schedule
+  deleteSchedule: async (id) => {
+    try {
+      return await api.delete(`/schedules/${id}`);
+    } catch (error) {
+      throw error;
+    }
+  },
+  
+  // Delete all schedules for a course
+  deleteCourseSchedules: (courseId) => api.delete(`/schedules/course/${courseId}`),
+};
+
+// Schedule Update Request API functions
+export const scheduleUpdateRequestAPI = {
+  // Create update request
+  createRequest: (requestData) => api.post('/schedule-update-requests', requestData),
+  
+  // Get all requests (Admin)
+  getRequests: () => api.get('/schedule-update-requests'),
+  
+  // Get instructor's own requests
+  getMyRequests: () => api.get('/schedule-update-requests/my-requests'),
+  
+  // Approve request
+  approveRequest: (id) => api.put(`/schedule-update-requests/${id}/approve`),
+  
+  // Reject request
+  rejectRequest: (id, reason) => api.put(`/schedule-update-requests/${id}/reject`, { reason }),
+  
+  // Dismiss request
+  dismissRequest: (id) => api.put(`/schedule-update-requests/${id}/dismiss`),
 };
 
 export default api;

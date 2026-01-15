@@ -84,6 +84,12 @@ app.use('/api/notifications', require('./routes/notifications'));
 // Chat History routes
 app.use('/api/chat-history', require('./routes/chatHistory'));
 
+// Schedule routes
+app.use('/api/schedules', require('./routes/schedules'));
+
+// Schedule Update Request routes
+app.use('/api/schedule-update-requests', require('./routes/scheduleUpdateRequests'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

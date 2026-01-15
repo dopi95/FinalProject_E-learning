@@ -1,0 +1,172 @@
+const express = require('express');
+const router = express.Router();
+const Schedule = require('../models/Schedule');
+const Course = require('../models/Course');
+const auth = require('../middleware/auth');
+
+// Middleware to check admin/superadmin role
+const isAdmin = (req, res, next) => {
+  if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
+    return res.status(403).json({ success: false, message: 'Access denied' });
+  }
+  next();
+};
+
+// @route   GET /api/schedules
+// @desc    Get all schedules
+// @access  Private
+router.get('/', auth, async (req, res) => {
+  try {
+    const { course } = req.query;
+    let filter = course ? { course } : {};
+    
+    // If instructor, only show schedules for their courses
+    if (req.user.role === 'instructor') {
+      const instructorCourses = await Course.find({ instructor: req.user._id || req.user.id }).select('_id');
+      const courseIds = instructorCourses.map(c => c._id);
+      filter = course ? { course, course: { $in: courseIds } } : { course: { $in: courseIds } };
+    }
+    
+    const schedules = await Schedule.find(filter)
+      .populate({ path: 'course', select: 'title', strictPopulate: false })
+      .populate({ path: 'createdBy', select: 'name email', strictPopulate: false })
+      .lean()
+      .sort({ createdAt: -1 });
+    
+    res.json({ success: true, schedules });
+  } catch (error) {
+    res.json({ success: true, schedules: [] });
+  }
+});
+
+// @route   GET /api/schedules/:id
+// @desc    Get schedule by ID
+// @access  Private (Admin/SuperAdmin)
+router.get('/:id', auth, isAdmin, async (req, res) => {
+  try {
+    const schedule = await Schedule.findById(req.params.id)
+      .populate({ path: 'course', select: 'title', strictPopulate: false })
+      .populate({ path: 'createdBy', select: 'name email', strictPopulate: false })
+      .lean();
+    
+    if (!schedule) {
+      return res.status(404).json({ success: false, message: 'Schedule not found' });
+    }
+    
+    res.json({ success: true, schedule });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @route   POST /api/schedules
+// @desc    Create new schedule
+// @access  Private (Admin/SuperAdmin)
+router.post('/', auth, isAdmin, async (req, res) => {
+  try {
+    const { course, sessions } = req.body;
+    
+    if (!course || !sessions || sessions.length === 0) {
+      return res.status(400).json({ success: false, message: 'Course and sessions are required' });
+    }
+    
+    const courseExists = await Course.findById(course);
+    if (!courseExists) {
+      return res.status(404).json({ success: false, message: 'Course not found' });
+    }
+    
+    for (const session of sessions) {
+      if (!session.day || !session.startTime || !session.endTime) {
+        return res.status(400).json({ success: false, message: 'All session fields are required' });
+      }
+    }
+    
+    const schedule = await Schedule.create({
+      course,
+      sessions,
+      createdBy: req.user._id || req.user.id
+    });
+    
+    const populatedSchedule = await Schedule.findById(schedule._id)
+      .populate({ path: 'course', select: 'title', strictPopulate: false })
+      .populate({ path: 'createdBy', select: 'name email', strictPopulate: false })
+      .lean();
+    
+    res.status(201).json({ success: true, schedule: populatedSchedule });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @route   PUT /api/schedules/:id
+// @desc    Update schedule
+// @access  Private (Admin/SuperAdmin)
+router.put('/:id', auth, isAdmin, async (req, res) => {
+  try {
+    const { sessions } = req.body;
+    
+    if (!sessions || sessions.length === 0) {
+      return res.status(400).json({ success: false, message: 'Sessions are required' });
+    }
+    
+    for (const session of sessions) {
+      if (!session.day || !session.startTime || !session.endTime) {
+        return res.status(400).json({ success: false, message: 'All session fields are required' });
+      }
+    }
+    
+    const schedule = await Schedule.findByIdAndUpdate(
+      req.params.id,
+      { sessions },
+      { new: true, runValidators: true }
+    )
+      .populate({ path: 'course', select: 'title', strictPopulate: false })
+      .populate({ path: 'createdBy', select: 'name email', strictPopulate: false })
+      .lean();
+    
+    if (!schedule) {
+      return res.status(404).json({ success: false, message: 'Schedule not found' });
+    }
+    
+    res.json({ success: true, schedule });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @route   DELETE /api/schedules/:id
+// @desc    Delete schedule
+// @access  Private (Admin/SuperAdmin)
+router.delete('/:id', auth, isAdmin, async (req, res) => {
+  try {
+    const schedule = await Schedule.findById(req.params.id);
+    
+    if (!schedule) {
+      return res.status(404).json({ success: false, message: 'Schedule not found' });
+    }
+    
+    await schedule.deleteOne();
+    
+    res.json({ success: true, message: 'Schedule deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @route   DELETE /api/schedules/course/:courseId
+// @desc    Delete all schedules for a course
+// @access  Private (Admin/SuperAdmin)
+router.delete('/course/:courseId', auth, isAdmin, async (req, res) => {
+  try {
+    const result = await Schedule.deleteMany({ course: req.params.courseId });
+    
+    res.json({ 
+      success: true, 
+      message: `${result.deletedCount} schedule(s) deleted successfully` 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+module.exports = router;

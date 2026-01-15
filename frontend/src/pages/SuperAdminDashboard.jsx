@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown, Heart, Download, Calendar, Clock, MapPin, Save, Bell, BellRing } from 'lucide-react';
-import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI, notificationAPI, statsAPI } from '../services/api';
+import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI, notificationAPI, statsAPI, scheduleAPI, scheduleUpdateRequestAPI } from '../services/api';
 import api from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import SubscriptionManagement from '../components/SubscriptionManagement';
@@ -73,6 +73,11 @@ const SuperAdminDashboard = () => {
   const [scheduleForm, setScheduleForm] = useState({
     sessions: [{ day: 'monday', startTime: '', endTime: '', room: '' }]
   });
+  const [scheduleRequests, setScheduleRequests] = useState([]);
+  const [showRequestDetail, setShowRequestDetail] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [showRejectModal, setShowRejectModal] = useState(false);
 
   // Notification state
   const [showNotificationForm, setShowNotificationForm] = useState(false);
@@ -307,6 +312,8 @@ const SuperAdminDashboard = () => {
     fetchUsers();
     fetchNotifications();
     fetchGenderDistribution();
+    fetchSchedules();
+    fetchScheduleRequests();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -344,7 +351,6 @@ const SuperAdminDashboard = () => {
       let filteredCourses = response.data.courses;
       
       // Debug: Log course data to see what fields are available
-      console.log('Course data:', filteredCourses[0]);
       
       // Map courses to ensure student count is available
       const coursesWithStudentCount = filteredCourses.map(course => ({
@@ -1122,41 +1128,134 @@ const SuperAdminDashboard = () => {
     }));
   };
 
-  const handleCreateSchedule = () => {
+  const fetchSchedules = async () => {
+    try {
+      const response = await scheduleAPI.getSchedules();
+      if (response.data && response.data.schedules) {
+        const fetchedSchedules = response.data.schedules.map(schedule => ({
+          id: schedule._id,
+          courseId: schedule.course?._id || schedule.course,
+          courseTitle: schedule.course?.title || 'Unknown Course',
+          sessions: schedule.sessions,
+          createdAt: schedule.createdAt
+        }));
+        setSchedules(fetchedSchedules);
+      }
+    } catch (error) {
+      setSchedules([]);
+    }
+  };
+
+  const fetchScheduleRequests = async () => {
+    try {
+      const response = await scheduleUpdateRequestAPI.getRequests();
+      if (response.data && response.data.requests) {
+        setScheduleRequests(response.data.requests);
+      }
+    } catch (error) {
+      console.error('Error fetching schedule requests:', error);
+      setScheduleRequests([]);
+    }
+  };
+
+  const handleApproveRequest = async (requestId) => {
+    try {
+      setLoading(true);
+      await scheduleUpdateRequestAPI.approveRequest(requestId);
+      setScheduleRequests(prev => prev.map(req => 
+        req._id === requestId ? { ...req, status: 'approved' } : req
+      ));
+      fetchSchedules();
+      showNotification('success', 'Request Approved!', 'Schedule has been updated successfully');
+      setShowRequestDetail(false);
+    } catch (error) {
+      showNotification('error', 'Error', error.response?.data?.message || 'Failed to approve request');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectRequest = async () => {
+    if (!selectedRequest || !rejectionReason.trim()) {
+      showNotification('error', 'Error', 'Please provide a reason for rejection');
+      return;
+    }
+    try {
+      setLoading(true);
+      await scheduleUpdateRequestAPI.rejectRequest(selectedRequest._id, rejectionReason);
+      setScheduleRequests(prev => prev.map(req => 
+        req._id === selectedRequest._id ? { ...req, status: 'rejected', rejectionReason } : req
+      ));
+      showNotification('success', 'Request Rejected!', 'Schedule update request has been rejected');
+      setShowRejectModal(false);
+      setShowRequestDetail(false);
+      setRejectionReason('');
+    } catch (error) {
+      showNotification('error', 'Error', error.response?.data?.message || 'Failed to reject request');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateSchedule = async () => {
     if (!selectedCourseForSchedule || scheduleForm.sessions.some(s => !s.day || !s.startTime || !s.endTime)) {
       showNotification('error', 'Error', 'Please fill all required fields');
       return;
     }
 
-    if (scheduleForm.id) {
-      // Update existing schedule
-      setSchedules(prev => prev.map(schedule => 
-        schedule.id === scheduleForm.id 
-          ? { ...schedule, sessions: scheduleForm.sessions }
-          : schedule
-      ));
-      showNotification('success', 'Schedule Updated!', 'Class schedule has been successfully updated');
-    } else {
-      // Create new schedule
-      const newSchedule = {
-        id: Date.now(),
-        courseId: selectedCourseForSchedule._id,
-        courseTitle: selectedCourseForSchedule.title,
-        sessions: scheduleForm.sessions,
-        createdAt: new Date().toISOString()
-      };
-      setSchedules(prev => [...prev, newSchedule]);
-      showNotification('success', 'Schedule Created!', 'Class schedule has been successfully created');
-    }
+    try {
+      setLoading(true);
+      if (scheduleForm.id) {
+        const response = await scheduleAPI.updateSchedule(scheduleForm.id, {
+          sessions: scheduleForm.sessions
+        });
+        setSchedules(prev => prev.map(schedule => 
+          schedule.id === scheduleForm.id 
+            ? {
+                id: response.data.schedule._id,
+                courseId: response.data.schedule.course?._id || response.data.schedule.course,
+                courseTitle: response.data.schedule.course?.title || 'Unknown Course',
+                sessions: response.data.schedule.sessions,
+                createdAt: response.data.schedule.createdAt
+              }
+            : schedule
+        ));
+        showNotification('success', 'Schedule Updated!', 'Class schedule has been successfully updated');
+      } else {
+        const response = await scheduleAPI.createSchedule({
+          course: selectedCourseForSchedule._id,
+          sessions: scheduleForm.sessions
+        });
+        const newSchedule = {
+          id: response.data.schedule._id,
+          courseId: response.data.schedule.course?._id || response.data.schedule.course,
+          courseTitle: response.data.schedule.course?.title || selectedCourseForSchedule.title,
+          sessions: response.data.schedule.sessions,
+          createdAt: response.data.schedule.createdAt
+        };
+        setSchedules(prev => [...prev, newSchedule]);
+        showNotification('success', 'Schedule Created!', 'Class schedule has been successfully created');
+      }
 
-    setScheduleForm({ sessions: [{ day: 'monday', startTime: '', endTime: '', room: '' }] });
-    setShowScheduleForm(false);
+      setScheduleForm({ sessions: [{ day: 'monday', startTime: '', endTime: '', room: '' }] });
+      setShowScheduleForm(false);
+    } catch (error) {
+      showNotification('error', 'Error', 'Failed to save schedule');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteSchedule = (scheduleId) => {
+  const handleDeleteSchedule = async (scheduleId) => {
     if (!window.confirm('Are you sure you want to delete this schedule?')) return;
-    setSchedules(prev => prev.filter(s => s.id !== scheduleId));
-    showNotification('success', 'Schedule Deleted!', 'Schedule has been removed successfully');
+    
+    try {
+      await scheduleAPI.deleteSchedule(scheduleId);
+      setSchedules(prev => prev.filter(s => s.id !== scheduleId));
+      showNotification('success', 'Schedule Deleted!', 'Schedule has been removed successfully');
+    } catch (error) {
+      showNotification('error', 'Error', 'Failed to delete schedule');
+    }
   };
 
   // Settings functions
@@ -2541,6 +2640,74 @@ const SuperAdminDashboard = () => {
         </div>
       </div>
 
+      {/* Schedule Update Requests Section */}
+      {scheduleRequests.filter(req => req.status === 'pending').length > 0 && (
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-2xl p-4 lg:p-6 border-2 border-yellow-200 dark:border-yellow-700">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+              <Bell className="h-5 w-5 text-yellow-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                Pending Schedule Update Requests
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {scheduleRequests.filter(req => req.status === 'pending').length} request(s) awaiting approval
+              </p>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            {scheduleRequests.filter(req => req.status === 'pending').map((request) => (
+              <div key={request._id} className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-yellow-200 dark:border-yellow-700 hover:shadow-lg transition-all duration-200">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                      {request.course?.title || 'Unknown Course'}
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Requested by: {request.requestedBy?.name || 'Unknown'} • {new Date(request.createdAt).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                      {request.newSessions?.length || 0} session(s) proposed
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedRequest(request);
+                        setShowRequestDetail(true);
+                      }}
+                      className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                    >
+                      <Eye className="h-4 w-4" />
+                      View
+                    </button>
+                    <button
+                      onClick={() => handleApproveRequest(request._id)}
+                      className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 px-4 py-2 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-sm font-medium"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedRequest(request);
+                        setShowRejectModal(true);
+                      }}
+                      className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm font-medium"
+                    >
+                      <X className="h-4 w-4" />
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Courses Table with Schedule Management */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
         <div className="px-4 lg:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -3105,6 +3272,109 @@ const SuperAdminDashboard = () => {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Request Detail Modal */}
+      {showRequestDetail && selectedRequest && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-3xl max-h-[95vh] overflow-hidden">
+            <div className="bg-gradient-to-r from-yellow-600 to-orange-600 p-4 sm:p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <Calendar className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-bold text-white">Schedule Update Request</h3>
+                    <p className="text-yellow-100 text-sm">{selectedRequest.course?.title}</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowRequestDetail(false)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                  <X className="h-5 w-5 text-white" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(95vh-200px)]">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Requested By</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedRequest.requestedBy?.name}</p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Request Date</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{new Date(selectedRequest.createdAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Reason for Update</p>
+                  <p className="text-sm text-gray-900 dark:text-white">{selectedRequest.reason}</p>
+                </div>
+
+                <div>
+                  <h4 className="text-base font-bold text-gray-900 dark:text-white mb-3">Proposed Sessions</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {selectedRequest.newSessions?.map((session, index) => (
+                      <div key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Calendar className="h-4 w-4 text-blue-600" />
+                          <span className="font-semibold text-blue-800 dark:text-blue-300 capitalize">{session.day}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3 w-3 text-gray-500" />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">{session.startTime} - {session.endTime}</span>
+                          </div>
+                          {session.room && (
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-3 w-3 text-gray-500" />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{session.room}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6 bg-gray-50 dark:bg-gray-900">
+              <div className="flex gap-3">
+                <button onClick={() => setShowRequestDetail(false)} className="flex-1 bg-gray-500 text-white py-3 px-4 rounded-lg hover:bg-gray-600 font-medium">
+                  Close
+                </button>
+                <button onClick={() => { setShowRequestDetail(false); setShowRejectModal(true); }} className="flex-1 bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 font-medium flex items-center justify-center gap-2">
+                  <X className="h-4 w-4" /> Reject
+                </button>
+                <button onClick={() => handleApproveRequest(selectedRequest._id)} className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 font-medium flex items-center justify-center gap-2">
+                  <CheckCircle className="h-4 w-4" /> Approve
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {showRejectModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Reject Request</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Please provide a reason for rejecting this schedule update request. The instructor will see this message.</p>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Reason for rejection *</label>
+              <textarea value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} rows="4" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white" placeholder="Enter reason for rejection..."></textarea>
+              {!rejectionReason.trim() && <p className="text-xs text-red-500 mt-1">Reason is required</p>}
+              <div className="flex gap-3 mt-4">
+                <button onClick={() => { setShowRejectModal(false); setRejectionReason(''); }} className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600">Cancel</button>
+                <button onClick={handleRejectRequest} disabled={!rejectionReason.trim() || loading} className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">{loading ? 'Rejecting...' : 'Reject Request'}</button>
+              </div>
             </div>
           </div>
         </div>

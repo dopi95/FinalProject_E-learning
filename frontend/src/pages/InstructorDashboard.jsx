@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, BellRing, BellOff, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe, Heart } from 'lucide-react';
-import { profileAPI, courseAPI, instructorAPI, subscriptionAPI, notificationAPI } from '../services/api';
+import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, BellRing, BellOff, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe, Heart, MapPin, Edit } from 'lucide-react';
+import { profileAPI, courseAPI, instructorAPI, subscriptionAPI, notificationAPI, scheduleAPI, scheduleUpdateRequestAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 import { useTranslation } from 'react-i18next';
@@ -39,6 +39,13 @@ const InstructorDashboard = () => {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courses, setCourses] = useState([]);
   const [sortByLikes, setSortByLikes] = useState(false);
+  const [schedules, setSchedules] = useState([]);
+  const [schedulesLoading, setSchedulesLoading] = useState(false);
+  const [showUpdateScheduleModal, setShowUpdateScheduleModal] = useState(false);
+  const [selectedScheduleForUpdate, setSelectedScheduleForUpdate] = useState(null);
+  const [updateSessions, setUpdateSessions] = useState([]);
+  const [myRequests, setMyRequests] = useState([]);
+  const [updateReason, setUpdateReason] = useState('');
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -178,6 +185,8 @@ const InstructorDashboard = () => {
     fetchUserProfile();
     fetchInstructorCourses();
     fetchInstructorStudents();
+    fetchSchedules();
+    fetchMyRequests();
     if (userData) {
       fetchSubscriptionStatus();
       fetchNotifications();
@@ -415,6 +424,27 @@ const InstructorDashboard = () => {
       showNotification('error', 'Error', 'Failed to fetch courses');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSchedules = async () => {
+    try {
+      setSchedulesLoading(true);
+      const response = await scheduleAPI.getSchedules();
+      setSchedules(response.data.schedules || []);
+    } catch (error) {
+      setSchedules([]);
+    } finally {
+      setSchedulesLoading(false);
+    }
+  };
+
+  const fetchMyRequests = async () => {
+    try {
+      const response = await scheduleUpdateRequestAPI.getMyRequests();
+      setMyRequests(response.data.requests || []);
+    } catch (error) {
+      setMyRequests([]);
     }
   };
 
@@ -1111,160 +1141,379 @@ const InstructorDashboard = () => {
   const renderSchedule = () => (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Course Schedules</h2>
+        <div>
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Course Schedules</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">These schedules are created by the Program Office. Contact them if you need any updates.</p>
+        </div>
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <Calendar className="h-4 w-4" />
           <span>{courses?.length || 0} courses</span>
         </div>
       </div>
+
+      {/* My Update Requests */}
+      {myRequests.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">My Update Requests</h3>
+          <div className="space-y-3">
+            {myRequests.map((request) => (
+              <div key={request._id} className={`p-4 rounded-lg border-2 relative ${
+                request.status === 'approved' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' :
+                request.status === 'rejected' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700' :
+                'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700'
+              }`}>
+                <button
+                  onClick={async () => {
+                    try {
+                      await scheduleUpdateRequestAPI.dismissRequest(request._id);
+                      setMyRequests(prev => prev.filter(r => r._id !== request._id));
+                    } catch (error) {
+                      console.error('Dismiss request error:', error);
+                    }
+                  }}
+                  className="absolute top-3 right-3 p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                >
+                  <X className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+                </button>
+                <div className="flex items-start justify-between gap-3 pr-8">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-1">{request.course?.title}</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      Requested: {new Date(request.createdAt).toLocaleDateString()}
+                    </p>
+                    {request.status === 'approved' && (
+                      <div className="text-green-700 dark:text-green-300">
+                        <div className="flex items-center gap-2 mb-1">
+                          <CheckCircle className="h-4 w-4" />
+                          <span className="text-sm font-medium">Approved by Program Office</span>
+                        </div>
+                        <p className="text-sm ml-6">Your request to update the schedule has been approved. You can now teach with the new schedule.</p>
+                      </div>
+                    )}
+                    {request.status === 'rejected' && (
+                      <div className="text-red-700 dark:text-red-300">
+                        <div className="flex items-center gap-2 mb-1">
+                          <X className="h-4 w-4" />
+                          <span className="text-sm font-medium">Rejected by Program Office</span>
+                        </div>
+                        <p className="text-sm ml-6">Your schedule update request has been rejected. Reason: {request.rejectionReason}</p>
+                      </div>
+                    )}
+                    {request.status === 'pending' && (
+                      <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
+                        <Clock className="h-4 w-4" />
+                        <span className="text-sm font-medium">Pending approval from Program Office</span>
+                      </div>
+                    )}
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    request.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                    request.status === 'rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                  }`}>
+                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       
-      {(courses?.length || 0) === 0 ? (
+      {schedulesLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (courses?.length || 0) === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
           <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Courses Available</h3>
-          <p className="text-gray-500 dark:text-gray-400">Create courses to manage schedules.</p>
+          <p className="text-gray-500 dark:text-gray-400">You don't have any courses assigned yet.</p>
         </div>
       ) : (
         <div className="space-y-4 lg:space-y-6">
-          {(courses || []).map((course) => (
-            <div key={course._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
-              <div className="flex flex-col gap-4 mb-4 lg:mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white truncate">{course.title}</h3>
-                    <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{course.students?.length || 0} students enrolled</p>
+          {(courses || []).map((course) => {
+            const courseSchedules = schedules.filter(s => s.course?._id === course._id);
+            const hasSchedule = courseSchedules.length > 0;
+            
+            return (
+              <div key={course._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
+                <div className="flex flex-col gap-4 mb-4 lg:mb-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white truncate">{course.title}</h3>
+                      <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{course.students?.length || 0} students enrolled</p>
+                    </div>
+                    {!hasSchedule ? (
+                      <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 text-xs rounded-full font-medium">
+                        Not Assigned
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setSelectedScheduleForUpdate(courseSchedules[0]);
+                          setUpdateSessions(JSON.parse(JSON.stringify(courseSchedules[0].sessions)));
+                          setShowUpdateScheduleModal(true);
+                        }}
+                        className="p-2 bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/30 transition-colors"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
-                <button 
-                  onClick={() => alert(`Edit schedule for ${course.title}`)}
-                  className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium"
-                >
-                  Edit Schedule
-                </button>
-              </div>
-              
-              {/* Desktop Schedule Grid */}
-              <div className="hidden lg:block">
-                <div className="grid grid-cols-7 gap-4 mb-4">
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-                    <div key={day} className="text-center font-medium text-gray-900 dark:text-white text-base">{day}</div>
-                  ))}
-                </div>
                 
-                <div className="grid grid-cols-7 gap-4">
-                  {course.title.includes('Math') ? (
-                    <>
-                      <div className="col-span-2 bg-blue-100 dark:bg-blue-900/20 p-3 rounded">
-                        <p className="text-sm font-medium text-blue-900 dark:text-blue-100">{course.title}</p>
-                        <p className="text-xs text-blue-700 dark:text-blue-300">10:00 - 11:30 AM</p>
-                        <p className="text-xs text-blue-600 dark:text-blue-400">Room 101</p>
-                      </div>
-                      <div></div>
-                      <div className="bg-blue-100 dark:bg-blue-900/20 p-3 rounded">
-                        <p className="text-sm font-medium text-blue-900 dark:text-blue-100">{course.title}</p>
-                        <p className="text-xs text-blue-700 dark:text-blue-300">2:00 - 3:30 PM</p>
-                        <p className="text-xs text-blue-600 dark:text-blue-400">Room 101</p>
-                      </div>
-                      <div></div>
-                      <div></div>
-                      <div></div>
-                    </>
-                  ) : course.title.includes('Physics') ? (
-                    <>
-                      <div></div>
-                      <div className="col-span-2 bg-green-100 dark:bg-green-900/20 p-3 rounded">
-                        <p className="text-sm font-medium text-green-900 dark:text-green-100">{course.title}</p>
-                        <p className="text-xs text-green-700 dark:text-green-300">9:00 - 10:30 AM</p>
-                        <p className="text-xs text-green-600 dark:text-green-400">Lab 201</p>
-                      </div>
-                      <div></div>
-                      <div className="bg-green-100 dark:bg-green-900/20 p-3 rounded">
-                        <p className="text-sm font-medium text-green-900 dark:text-green-100">{course.title}</p>
-                        <p className="text-xs text-green-700 dark:text-green-300">1:00 - 2:30 PM</p>
-                        <p className="text-xs text-green-600 dark:text-green-400">Lab 201</p>
-                      </div>
-                      <div></div>
-                      <div></div>
-                    </>
-                  ) : (
-                    <>
-                      <div></div>
-                      <div></div>
-                      <div className="bg-purple-100 dark:bg-purple-900/20 p-3 rounded">
-                        <p className="text-sm font-medium text-purple-900 dark:text-purple-100">{course.title}</p>
-                        <p className="text-xs text-purple-700 dark:text-purple-300">11:00 - 12:30 PM</p>
-                        <p className="text-xs text-purple-600 dark:text-purple-400">Room 301</p>
-                      </div>
-                      <div></div>
-                      <div className="bg-purple-100 dark:bg-purple-900/20 p-3 rounded">
-                        <p className="text-sm font-medium text-purple-900 dark:text-purple-100">{course.title}</p>
-                        <p className="text-xs text-purple-700 dark:text-purple-300">3:00 - 4:30 PM</p>
-                        <p className="text-xs text-purple-600 dark:text-purple-400">Room 301</p>
-                      </div>
-                      <div></div>
-                      <div></div>
-                    </>
-                  )}
-                </div>
-              </div>
-              
-              {/* Mobile Schedule List */}
-              <div className="lg:hidden space-y-3">
-                {course.title.includes('Math') ? (
-                  <>
-                    <div className="bg-blue-100 dark:bg-blue-900/20 p-3 rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Monday & Tuesday</span>
-                        <span className="text-xs text-blue-600 dark:text-blue-400">Room 101</span>
-                      </div>
-                      <p className="text-xs text-blue-700 dark:text-blue-300">10:00 - 11:30 AM</p>
-                    </div>
-                    <div className="bg-blue-100 dark:bg-blue-900/20 p-3 rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Thursday</span>
-                        <span className="text-xs text-blue-600 dark:text-blue-400">Room 101</span>
-                      </div>
-                      <p className="text-xs text-blue-700 dark:text-blue-300">2:00 - 3:30 PM</p>
-                    </div>
-                  </>
-                ) : course.title.includes('Physics') ? (
-                  <>
-                    <div className="bg-green-100 dark:bg-green-900/20 p-3 rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-sm font-medium text-green-900 dark:text-green-100">Tuesday & Wednesday</span>
-                        <span className="text-xs text-green-600 dark:text-green-400">Lab 201</span>
-                      </div>
-                      <p className="text-xs text-green-700 dark:text-green-300">9:00 - 10:30 AM</p>
-                    </div>
-                    <div className="bg-green-100 dark:bg-green-900/20 p-3 rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-sm font-medium text-green-900 dark:text-green-100">Friday</span>
-                        <span className="text-xs text-green-600 dark:text-green-400">Lab 201</span>
-                      </div>
-                      <p className="text-xs text-green-700 dark:text-green-300">1:00 - 2:30 PM</p>
-                    </div>
-                  </>
+                {!hasSchedule ? (
+                  <div className="text-center py-8 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-600 dark:text-gray-400 text-sm">No schedule assigned for this course yet.</p>
+                    <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Contact the Program Office to assign a schedule.</p>
+                  </div>
                 ) : (
                   <>
-                    <div className="bg-purple-100 dark:bg-purple-900/20 p-3 rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-sm font-medium text-purple-900 dark:text-purple-100">Wednesday</span>
-                        <span className="text-xs text-purple-600 dark:text-purple-400">Room 301</span>
+                    {/* Desktop Schedule Grid */}
+                    <div className="hidden lg:block">
+                      <div className="grid grid-cols-7 gap-4 mb-4">
+                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+                          <div key={day} className="text-center font-medium text-gray-900 dark:text-white text-base">{day}</div>
+                        ))}
                       </div>
-                      <p className="text-xs text-purple-700 dark:text-purple-300">11:00 - 12:30 PM</p>
+                      
+                      <div className="grid grid-cols-7 gap-4">
+                        {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day, dayIdx) => {
+                          const daySessions = courseSchedules[0].sessions.filter(s => s.day === day);
+                          return (
+                            <div key={day}>
+                              {daySessions.map((session, idx) => {
+                                const colors = ['bg-blue-100 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100', 
+                                              'bg-green-100 dark:bg-green-900/20 text-green-900 dark:text-green-100',
+                                              'bg-purple-100 dark:bg-purple-900/20 text-purple-900 dark:text-purple-100'];
+                                const color = colors[idx % 3];
+                                return (
+                                  <div key={idx} className={`${color} p-3 rounded-lg mb-2`}>
+                                    <div className="flex items-center gap-1 text-xs flex-wrap">
+                                      <Clock className="h-3 w-3 flex-shrink-0" />
+                                      <span className="font-medium">Time:</span>
+                                      <span>{session.startTime} - {session.endTime}</span>
+                                    </div>
+                                    {session.room && (
+                                      <div className="flex items-center gap-1 text-xs mt-1 flex-wrap">
+                                        <MapPin className="h-3 w-3 flex-shrink-0" />
+                                        <span className="font-medium">Room:</span>
+                                        <span>{session.room}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <div className="bg-purple-100 dark:bg-purple-900/20 p-3 rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-sm font-medium text-purple-900 dark:text-purple-100">Friday</span>
-                        <span className="text-xs text-purple-600 dark:text-purple-400">Room 301</span>
-                      </div>
-                      <p className="text-xs text-purple-700 dark:text-purple-300">3:00 - 4:30 PM</p>
+                    
+                    {/* Mobile Schedule List */}
+                    <div className="lg:hidden space-y-3">
+                      {courseSchedules[0].sessions.map((session, idx) => {
+                        const colors = ['bg-blue-100 dark:bg-blue-900/20', 'bg-green-100 dark:bg-green-900/20', 'bg-purple-100 dark:bg-purple-900/20'];
+                        const textColors = ['text-blue-900 dark:text-blue-100', 'text-green-900 dark:text-green-100', 'text-purple-900 dark:text-purple-100'];
+                        const color = colors[idx % 3];
+                        const textColor = textColors[idx % 3];
+                        
+                        return (
+                          <div key={idx} className={`${color} p-3 rounded-lg`}>
+                            <span className={`text-sm font-medium ${textColor} capitalize block mb-2`}>{session.day}</span>
+                            <div className="flex items-center gap-1 text-xs mb-1 flex-wrap">
+                              <Clock className="h-3 w-3 flex-shrink-0" />
+                              <span className={`font-medium ${textColor}`}>Time:</span>
+                              <span className={`${textColor}`}>{session.startTime} - {session.endTime}</span>
+                            </div>
+                            {session.room && (
+                              <div className="flex items-center gap-1 text-xs flex-wrap">
+                                <MapPin className="h-3 w-3 flex-shrink-0" />
+                                <span className={`font-medium ${textColor}`}>Room:</span>
+                                <span className={`${textColor}`}>{session.room}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </>
                 )}
               </div>
+            );
+          })}
+        </div>
+      )}
+      
+      {/* Update Schedule Modal */}
+      {showUpdateScheduleModal && selectedScheduleForUpdate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Request Schedule Update</h3>
+                <button
+                  onClick={() => {
+                    setShowUpdateScheduleModal(false);
+                    setSelectedScheduleForUpdate(null);
+                    setUpdateSessions([]);
+                    setUpdateReason('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                  <p className="text-sm text-blue-800 dark:text-blue-300">
+                    Your update request will be sent to the Program Office for approval.
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Reason for Update *</label>
+                  <textarea
+                    value={updateReason}
+                    onChange={(e) => setUpdateReason(e.target.value)}
+                    rows="3"
+                    placeholder="Please explain why you need to update the schedule..."
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm resize-none"
+                  />
+                  {!updateReason.trim() && <p className="text-xs text-red-500 mt-1">Reason is required</p>}
+                </div>
+                
+                {updateSessions.map((session, idx) => (
+                  <div key={idx} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-medium text-gray-900 dark:text-white">Session {idx + 1}</h4>
+                      {updateSessions.length > 1 && (
+                        <button
+                          onClick={() => setUpdateSessions(updateSessions.filter((_, i) => i !== idx))}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Day</label>
+                        <select
+                          value={session.day}
+                          onChange={(e) => {
+                            const newSessions = [...updateSessions];
+                            newSessions[idx].day = e.target.value;
+                            setUpdateSessions(newSessions);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                        >
+                          <option value="monday">Monday</option>
+                          <option value="tuesday">Tuesday</option>
+                          <option value="wednesday">Wednesday</option>
+                          <option value="thursday">Thursday</option>
+                          <option value="friday">Friday</option>
+                          <option value="saturday">Saturday</option>
+                          <option value="sunday">Sunday</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Room</label>
+                        <input
+                          type="text"
+                          value={session.room || ''}
+                          onChange={(e) => {
+                            const newSessions = [...updateSessions];
+                            newSessions[idx].room = e.target.value;
+                            setUpdateSessions(newSessions);
+                          }}
+                          placeholder="Room number"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Time</label>
+                        <input
+                          type="time"
+                          value={session.startTime}
+                          onChange={(e) => {
+                            const newSessions = [...updateSessions];
+                            newSessions[idx].startTime = e.target.value;
+                            setUpdateSessions(newSessions);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Time</label>
+                        <input
+                          type="time"
+                          value={session.endTime}
+                          onChange={(e) => {
+                            const newSessions = [...updateSessions];
+                            newSessions[idx].endTime = e.target.value;
+                            setUpdateSessions(newSessions);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                <button
+                  onClick={() => setUpdateSessions([...updateSessions, { day: 'monday', startTime: '09:00', endTime: '10:00', room: '' }])}
+                  className="w-full py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-blue-500 hover:text-blue-500 transition-colors text-sm"
+                >
+                  + Add Session
+                </button>
+                
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        await scheduleUpdateRequestAPI.createRequest({
+                          schedule: selectedScheduleForUpdate._id,
+                          course: selectedScheduleForUpdate.course._id,
+                          newSessions: updateSessions,
+                          reason: updateReason
+                        });
+                        setShowUpdateScheduleModal(false);
+                        setSelectedScheduleForUpdate(null);
+                        setUpdateSessions([]);
+                        setUpdateReason('');
+                        fetchMyRequests();
+                        showNotification('success', 'Request Sent', 'Your schedule update request has been sent to the Program Office for approval');
+                      } catch (error) {
+                        showNotification('error', 'Request Failed', error.response?.data?.message || 'Failed to send update request');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading || updateSessions.length === 0 || !updateReason.trim()}
+                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Sending...' : 'Send Request'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUpdateScheduleModal(false);
+                      setSelectedScheduleForUpdate(null);
+                      setUpdateSessions([]);
+                      setUpdateReason('');
+                    }}
+                    className="flex-1 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
             </div>
-          ))}
+          </div>
         </div>
       )}
     </div>
