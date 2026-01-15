@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, BellRing, BellOff, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe, Heart, MapPin, Edit } from 'lucide-react';
-import { profileAPI, courseAPI, instructorAPI, subscriptionAPI, notificationAPI, scheduleAPI, scheduleUpdateRequestAPI } from '../services/api';
+import { profileAPI, courseAPI, instructorAPI, subscriptionAPI, notificationAPI, scheduleAPI, scheduleUpdateRequestAPI, materialAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 import { useTranslation } from 'react-i18next';
@@ -46,6 +46,24 @@ const InstructorDashboard = () => {
   const [updateSessions, setUpdateSessions] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
   const [updateReason, setUpdateReason] = useState('');
+
+  // Materials state
+  const [materials, setMaterials] = useState([]);
+  const [materialsLoading, setMaterialsLoading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadType, setUploadType] = useState('');
+  const [uploadForm, setUploadForm] = useState({
+    title: '',
+    description: '',
+    type: '',
+    files: [],
+    youtubeLink: '',
+    uploadSource: 'device'
+  });
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [filterType, setFilterType] = useState('all');
+  const [viewerModal, setViewerModal] = useState({ show: false, url: '', fileName: '', title: '', type: '' });
+  const [editMaterial, setEditMaterial] = useState(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -204,6 +222,28 @@ const InstructorDashboard = () => {
       clearInterval(notificationInterval);
     };
   }, []);
+
+  // Fetch materials when course changes
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      if (!selectedCourse) {
+        setMaterials([]);
+        return;
+      }
+      try {
+        setMaterialsLoading(true);
+        const response = await materialAPI.getCourseMaterials(selectedCourse._id);
+        setMaterials(response.data.materials || []);
+      } catch (error) {
+        console.error('Fetch materials error:', error);
+        setMaterials([]);
+      } finally {
+        setMaterialsLoading(false);
+      }
+    };
+
+    fetchMaterials();
+  }, [selectedCourse]);
 
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -1007,60 +1047,675 @@ const InstructorDashboard = () => {
     );
   };
 
-  const renderMaterials = () => (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div className="flex items-center gap-4">
+  const renderMaterials = () => {
+    const handleUploadClick = (type) => {
+      setUploadType(type);
+      setUploadForm({ ...uploadForm, type });
+      setShowUploadModal(true);
+    };
+
+    const handleFileChange = (e) => {
+      const selectedFiles = Array.from(e.target.files);
+      if (selectedFiles.length > 0) {
+        setUploadForm({ ...uploadForm, files: [...uploadForm.files, ...selectedFiles] });
+      }
+    };
+
+    const handleUpload = async () => {
+      if (!uploadForm.title) {
+        showNotification('error', 'Error', 'Title is required');
+        return;
+      }
+
+      // If editing, update and optionally replace file
+      if (editMaterial) {
+        try {
+          setLoading(true);
+          setUploadProgress(10);
+          
+          // If new file selected, upload it
+          if (uploadForm.files.length > 0) {
+            const file = uploadForm.files[0];
+            const materialData = {
+              title: uploadForm.title,
+              description: uploadForm.description,
+              type: uploadForm.type,
+              courseId: selectedCourse._id,
+              youtubeLink: uploadForm.uploadSource === 'youtube' ? uploadForm.youtubeLink : '',
+              file: uploadForm.uploadSource === 'device' ? file : null
+            };
+            
+            setUploadProgress(30);
+            // Delete old material
+            await materialAPI.deleteMaterial(editMaterial._id);
+            setUploadProgress(60);
+            // Create new one
+            await materialAPI.uploadMaterial(materialData);
+            setUploadProgress(100);
+          } else {
+            // Just update title and description
+            setUploadProgress(50);
+            await materialAPI.updateMaterial(editMaterial._id, {
+              title: uploadForm.title,
+              description: uploadForm.description
+            });
+            setUploadProgress(100);
+          }
+          
+          showNotification('success', 'Success', 'Material updated successfully');
+          
+          // Refresh materials first
+          setUploadProgress(0);
+          const response = await materialAPI.getCourseMaterials(selectedCourse._id);
+          setMaterials(response.data.materials || []);
+          
+          // Then close modal
+          setShowUploadModal(false);
+          setEditMaterial(null);
+          setUploadForm({
+            title: '',
+            description: '',
+            type: '',
+            files: [],
+            youtubeLink: '',
+            uploadSource: 'device'
+          });
+        } catch (error) {
+          console.error('Update error:', error);
+          showNotification('error', 'Update Failed', error.response?.data?.message || 'Failed to update material');
+          setUploadProgress(0);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (uploadForm.type === 'video' && uploadForm.uploadSource === 'youtube') {
+        if (!uploadForm.youtubeLink) {
+          showNotification('error', 'Error', 'YouTube link is required');
+          return;
+        }
+        
+        // Upload YouTube link
+        try {
+          setLoading(true);
+          setUploadProgress(50);
+          
+          const materialData = {
+            title: uploadForm.title,
+            description: uploadForm.description,
+            type: uploadForm.type,
+            courseId: selectedCourse._id,
+            youtubeLink: uploadForm.youtubeLink,
+            file: null
+          };
+          
+          await materialAPI.uploadMaterial(materialData);
+          setUploadProgress(100);
+          
+          showNotification('success', 'Success', 'YouTube video added successfully');
+          setShowUploadModal(false);
+          setUploadForm({
+            title: '',
+            description: '',
+            type: '',
+            files: [],
+            youtubeLink: '',
+            uploadSource: 'device'
+          });
+          setUploadProgress(0);
+          
+          // Refresh materials
+          const response = await materialAPI.getCourseMaterials(selectedCourse._id);
+          setMaterials(response.data.materials || []);
+        } catch (error) {
+          console.error('Upload error:', error);
+          showNotification('error', 'Upload Failed', error.response?.data?.message || 'Failed to add YouTube video');
+          setUploadProgress(0);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+      
+      if (uploadForm.files.length === 0) {
+        showNotification('error', 'Error', 'At least one file is required');
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setUploadProgress(10);
+
+        // Upload each file
+        for (let i = 0; i < uploadForm.files.length; i++) {
+          const file = uploadForm.files[i];
+          const materialData = {
+            title: uploadForm.title,
+            description: uploadForm.description,
+            type: uploadForm.type,
+            courseId: selectedCourse._id,
+            youtubeLink: uploadForm.uploadSource === 'youtube' ? uploadForm.youtubeLink : '',
+            file: uploadForm.uploadSource === 'device' ? file : null
+          };
+
+          setUploadProgress(10 + ((i + 1) / uploadForm.files.length) * 80);
+          await materialAPI.uploadMaterial(materialData);
+        }
+
+        setUploadProgress(100);
+
+        showNotification('success', 'Success', `${uploadForm.files.length} material(s) uploaded successfully`);
+        setShowUploadModal(false);
+        setUploadForm({
+          title: '',
+          description: '',
+          type: '',
+          files: [],
+          youtubeLink: '',
+          uploadSource: 'device'
+        });
+        setUploadProgress(0);
+        
+        // Refresh materials
+        const response = await materialAPI.getCourseMaterials(selectedCourse._id);
+        setMaterials(response.data.materials || []);
+      } catch (error) {
+        console.error('Upload error:', error);
+        showNotification('error', 'Upload Failed', error.response?.data?.message || 'Failed to upload material');
+        setUploadProgress(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const handleDelete = async (materialId) => {
+      if (!confirm('Are you sure you want to delete this material?')) return;
+
+      try {
+        setLoading(true);
+        await materialAPI.deleteMaterial(materialId);
+        showNotification('success', 'Success', 'Material deleted successfully');
+        
+        // Refresh materials
+        const response = await materialAPI.getCourseMaterials(selectedCourse._id);
+        setMaterials(response.data.materials || []);
+      } catch (error) {
+        console.error('Delete error:', error);
+        showNotification('error', 'Delete Failed', error.response?.data?.message || 'Failed to delete material');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const filteredMaterials = filterType === 'all' 
+      ? materials 
+      : materials.filter(m => m.type === filterType);
+
+    const getFileIcon = (material) => {
+      if (material.type === 'video') return <Video className="h-5 w-5 text-red-600" />;
+      if (material.type === 'lecture_note') return <Camera className="h-5 w-5 text-purple-600" />;
+      return <FileText className="h-5 w-5 text-blue-600" />;
+    };
+
+    return (
+      <div className="space-y-4 lg:space-y-6">
+        <div className="flex flex-col gap-3">
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Course Materials</h2>
           {selectedCourse && (
             <button 
-              onClick={() => setActiveTab('courses')}
-              className="text-blue-600 hover:text-blue-800"
+              onClick={() => setShowUploadModal(true)}
+              className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 flex items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all text-sm sm:text-base"
             >
-              ← Back to Courses
+              <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
+              Upload Material
             </button>
           )}
-          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
-            {selectedCourse ? `${selectedCourse.title} Materials` : 'Learning Materials'}
-          </h2>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm lg:text-base">
-          <Upload className="h-4 w-4 mr-2" />
-          Upload Material
-        </button>
-      </div>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div className="px-4 lg:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex flex-wrap gap-2 lg:gap-4">
-            <button className="text-blue-600 border-b-2 border-blue-600 pb-2 text-sm lg:text-base">All Materials</button>
-            <button className="text-gray-600 dark:text-gray-400 pb-2 text-sm lg:text-base">PDFs</button>
-            <button className="text-gray-600 dark:text-gray-400 pb-2 text-sm lg:text-base">Videos</button>
-            <button className="text-gray-600 dark:text-gray-400 pb-2 text-sm lg:text-base">Lecture Notes</button>
+
+        {/* Course Selection */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">Select Course</label>
+          <select
+            value={selectedCourse?._id || ''}
+            onChange={(e) => {
+              const course = courses.find(c => c._id === e.target.value);
+              setSelectedCourse(course || null);
+            }}
+            className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg sm:rounded-xl dark:bg-gray-700 dark:text-white text-sm sm:text-base"
+          >
+            <option value="">-- Select a course --</option>
+            {courses.map((course) => (
+              <option key={course._id} value={course._id}>
+                {course.title} ({course.students?.length || 0} students)
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {!selectedCourse ? (
+          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+            <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Course Selected</h3>
+            <p className="text-gray-500 dark:text-gray-400">Please select a course to manage materials.</p>
           </div>
-        </div>
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {[1, 2, 3, 4, 5].map((material) => (
-            <div key={material} className="p-4 lg:p-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-              <div className="flex items-center">
-                <div className="h-10 w-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center mr-4">
-                  <FileText className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="text-base lg:text-lg font-medium text-gray-900 dark:text-white">Material {material}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {selectedCourse ? selectedCourse.title : 'Mathematics Course'} • Uploaded Dec {material}, 2024
-                  </p>
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <button className="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
-                <button className="text-red-600 hover:text-red-800 text-sm">Delete</button>
+        ) : (
+          <>
+            {/* Filter Tabs */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                {[
+                  { id: 'all', label: 'All', icon: FileText },
+                  { id: 'video', label: 'Videos', icon: Video },
+                  { id: 'file', label: 'Files', icon: FileText },
+                  { id: 'lecture_note', label: 'Notes', icon: Camera }
+                ].map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => setFilterType(id)}
+                    className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium transition-all text-xs sm:text-sm ${
+                      filterType === id
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">{label}</span>
+                  </button>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+
+            {/* Materials List */}
+            {materialsLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : filteredMaterials.length === 0 ? (
+              <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+                <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Materials Found</h3>
+                <p className="text-gray-500 dark:text-gray-400">Upload your first material to get started.</p>
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredMaterials.map((material) => (
+                  <div key={material._id} className="p-3 sm:p-4 lg:p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                      <div className="flex items-start gap-2 sm:gap-4 flex-1 min-w-0">
+                        <div className="h-10 w-10 sm:h-12 sm:w-12 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                          {getFileIcon(material)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-white mb-1 truncate">{material.title}</h3>
+                          {material.description && (
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{material.description}</p>
+                          )}
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                            <span className="px-2 py-0.5 sm:py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-full font-medium capitalize text-xs">
+                              {material.type.replace('_', ' ')}
+                            </span>
+                            {material.fileName && (
+                              <span className="font-mono truncate max-w-[150px] sm:max-w-none">{material.fileName}</span>
+                            )}
+                            {material.fileSize && (
+                              <span className="hidden sm:inline">{(material.fileSize / 1024 / 1024).toFixed(2)} MB</span>
+                            )}
+                            <span className="hidden sm:inline">{new Date(material.createdAt).toLocaleDateString()}</span>
+                            {material.youtubeLink && (
+                              <span className="text-red-600 dark:text-red-400">YouTube</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
+                        {material.youtubeLink ? (
+                          <a
+                            href={material.youtubeLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs sm:text-sm font-medium transition-colors text-center"
+                          >
+                            Watch
+                          </a>
+                        ) : material.fileType?.includes('pdf') || material.fileType?.includes('word') || material.fileType?.includes('powerpoint') || material.fileType?.includes('presentation') ? (
+                          <a
+                            href={material.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs sm:text-sm font-medium transition-colors text-center"
+                          >
+                            View
+                          </a>
+                        ) : (
+                          <a
+                            href={material.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs sm:text-sm font-medium transition-colors"
+                          >
+                            View
+                          </a>
+                        )}
+                        <button
+                          onClick={() => {
+                            setEditMaterial(material);
+                            setUploadForm({
+                              title: material.title,
+                              description: material.description || '',
+                              type: material.type,
+                              files: [],
+                              youtubeLink: material.youtubeLink || '',
+                              uploadSource: material.youtubeLink ? 'youtube' : 'device'
+                            });
+                            setShowUploadModal(true);
+                          }}
+                          className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm font-medium transition-colors"
+                        >
+                          Update
+                        </button>
+                        <button
+                          onClick={() => handleDelete(material._id)}
+                          disabled={loading}
+                          className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs sm:text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* File Viewer Modal */}
+        {viewerModal.show && (
+          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full h-full max-w-7xl max-h-[95vh] flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600">
+                <div>
+                  <h3 className="text-xl font-bold text-white">{viewerModal.title || viewerModal.fileName}</h3>
+                  <p className="text-sm text-blue-100 mt-1">{viewerModal.fileName}</p>
+                </div>
+                <button
+                  onClick={() => setViewerModal({ show: false, url: '', fileName: '', title: '', type: '' })}
+                  className="text-white hover:text-gray-200 transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-gray-900">
+                {viewerModal.type === 'pdf' ? (
+                  <iframe
+                    src={`${viewerModal.url}#toolbar=1&navpanes=1&scrollbar=1`}
+                    className="w-full h-full border-0"
+                    title="PDF Viewer"
+                  />
+                ) : viewerModal.type === 'office' ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center">
+                    <FileText className="h-16 w-16 text-blue-600 mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Office Document</h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-6">Click the button below to download and view this document</p>
+                    <a
+                      href={viewerModal.url}
+                      download={viewerModal.fileName}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                    >
+                      Download {viewerModal.fileName}
+                    </a>
+                  </div>
+                ) : (
+                  <iframe
+                    src={viewerModal.url}
+                    className="w-full h-full border-0"
+                    title="File Viewer"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Upload Modal */}
+        {showUploadModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{editMaterial ? 'Update Material' : 'Upload Material'}</h3>
+                  <button
+                    onClick={() => {
+                      setShowUploadModal(false);
+                      setEditMaterial(null);
+                      setUploadForm({
+                        title: '',
+                        description: '',
+                        type: '',
+                        files: [],
+                        youtubeLink: '',
+                        uploadSource: 'device'
+                      });
+                      setUploadProgress(0);
+                    }}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Material Type Selection */}
+                  {!uploadForm.type && !editMaterial && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <button
+                        onClick={() => handleUploadClick('video')}
+                        className="p-6 border-2 border-gray-200 dark:border-gray-600 rounded-xl hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group"
+                      >
+                        <Video className="h-12 w-12 text-red-600 mx-auto mb-3 group-hover:scale-110 transition-transform" />
+                        <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Video</h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Upload video or YouTube link</p>
+                      </button>
+                      <button
+                        onClick={() => handleUploadClick('file')}
+                        className="p-6 border-2 border-gray-200 dark:border-gray-600 rounded-xl hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group"
+                      >
+                        <FileText className="h-12 w-12 text-blue-600 mx-auto mb-3 group-hover:scale-110 transition-transform" />
+                        <h4 className="font-semibold text-gray-900 dark:text-white mb-1">File</h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">PDF, Word, PowerPoint</p>
+                      </button>
+                      <button
+                        onClick={() => handleUploadClick('lecture_note')}
+                        className="p-6 border-2 border-gray-200 dark:border-gray-600 rounded-xl hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group"
+                      >
+                        <Camera className="h-12 w-12 text-purple-600 mx-auto mb-3 group-hover:scale-110 transition-transform" />
+                        <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Lecture Note</h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Images, Photos</p>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Upload Form */}
+                  {uploadForm.type && (
+                    <>
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                        <p className="text-sm text-blue-800 dark:text-blue-300 font-medium">
+                          Uploading: {uploadForm.type === 'video' ? 'Video' : uploadForm.type === 'file' ? 'File' : 'Lecture Note'}
+                        </p>
+                      </div>
+
+                      {/* Video Source Selection */}
+                      {uploadForm.type === 'video' && (
+                        <div className="flex gap-4">
+                          <button
+                            onClick={() => setUploadForm({ ...uploadForm, uploadSource: 'device' })}
+                            className={`flex-1 p-4 border-2 rounded-lg transition-all ${
+                              uploadForm.uploadSource === 'device'
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                : 'border-gray-200 dark:border-gray-600'
+                            }`}
+                          >
+                            <Upload className="h-6 w-6 mx-auto mb-2" />
+                            <p className="font-medium text-sm">From Device</p>
+                          </button>
+                          <button
+                            onClick={() => setUploadForm({ ...uploadForm, uploadSource: 'youtube' })}
+                            className={`flex-1 p-4 border-2 rounded-lg transition-all ${
+                              uploadForm.uploadSource === 'youtube'
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                : 'border-gray-200 dark:border-gray-600'
+                            }`}
+                          >
+                            <Video className="h-6 w-6 mx-auto mb-2" />
+                            <p className="font-medium text-sm">YouTube Link</p>
+                          </button>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Title *</label>
+                        <input
+                          type="text"
+                          value={uploadForm.title}
+                          onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
+                          placeholder="Enter material title"
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                        <textarea
+                          rows="3"
+                          value={uploadForm.description}
+                          onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
+                          placeholder="Enter material description (optional)"
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white resize-none"
+                        ></textarea>
+                      </div>
+
+                      {/* YouTube Link Input */}
+                      {uploadForm.type === 'video' && uploadForm.uploadSource === 'youtube' && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">YouTube Link *</label>
+                          <input
+                            type="url"
+                            value={uploadForm.youtubeLink}
+                            onChange={(e) => setUploadForm({ ...uploadForm, youtubeLink: e.target.value })}
+                            placeholder="https://www.youtube.com/watch?v=..."
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+                      )}
+
+                      {/* File Upload */}
+                      {uploadForm.uploadSource === 'device' && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {uploadForm.type === 'video' ? 'Video File *' : uploadForm.type === 'file' ? 'Document Files *' : 'Image Files *'}
+                          </label>
+                          
+                          {/* Selected Files List */}
+                          {uploadForm.files.length > 0 && (
+                            <div className="space-y-2 mb-3">
+                              {uploadForm.files.map((file, index) => (
+                                <div key={index} className="border-2 border-blue-500 rounded-lg p-3 bg-blue-50 dark:bg-blue-900/20">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <FileText className="h-6 w-6 text-blue-600" />
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-900 dark:text-white">{file.name}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => {
+                                        const newFiles = uploadForm.files.filter((_, i) => i !== index);
+                                        setUploadForm({ ...uploadForm, files: newFiles });
+                                      }}
+                                      className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                    >
+                                      <X className="h-5 w-5 text-red-600" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* Upload Area */}
+                          <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">
+                            <input
+                              type="file"
+                              onChange={handleFileChange}
+                              accept={uploadForm.type === 'video' ? 'video/*' : uploadForm.type === 'file' ? '.pdf,.doc,.docx,.ppt,.pptx' : 'image/*'}
+                              className="hidden"
+                              id="fileInput"
+                              multiple={uploadForm.type !== 'video'}
+                            />
+                            <label htmlFor="fileInput" className="cursor-pointer">
+                              <Upload className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Click to upload {uploadForm.type !== 'video' ? 'multiple files' : 'file'}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {uploadForm.type === 'video' ? 'MP4, AVI, MOV (max 100MB)' : 
+                                 uploadForm.type === 'file' ? 'PDF, DOC, DOCX, PPT, PPTX (max 100MB each)' : 
+                                 'JPG, PNG, GIF (max 100MB each)'}
+                              </p>
+                            </label>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Upload Progress */}
+                      {uploadProgress > 0 && (
+                        <div>
+                          <div className="flex justify-between text-sm mb-2">
+                            <span className="text-gray-700 dark:text-gray-300">Uploading...</span>
+                            <span className="text-blue-600 dark:text-blue-400">{uploadProgress}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${uploadProgress}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 pt-4">
+                        <button
+                          onClick={handleUpload}
+                          disabled={loading}
+                          className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                          {loading ? (editMaterial ? 'Updating...' : 'Uploading...') : (editMaterial ? 'Update Material' : 'Upload Material')}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setUploadForm({ ...uploadForm, type: '' });
+                            setEditMaterial(null);
+                          }}
+                          disabled={loading}
+                          className="px-6 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 font-medium disabled:opacity-50 transition-all"
+                        >
+                          Back
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderAssignments = () => (
     <div className="space-y-6">

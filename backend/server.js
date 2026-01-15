@@ -90,6 +90,9 @@ app.use('/api/schedules', require('./routes/schedules'));
 // Schedule Update Request routes
 app.use('/api/schedule-update-requests', require('./routes/scheduleUpdateRequests'));
 
+// Material routes
+app.use('/api/materials', require('./routes/materials'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

@@ -379,4 +379,31 @@ export const scheduleUpdateRequestAPI = {
   dismissRequest: (id) => api.put(`/schedule-update-requests/${id}/dismiss`),
 };
 
+// Material API functions
+export const materialAPI = {
+  // Get materials for a course
+  getCourseMaterials: (courseId) => api.get(`/materials/course/${courseId}`),
+  
+  // Upload material
+  uploadMaterial: (materialData) => {
+    const formData = new FormData();
+    Object.keys(materialData).forEach(key => {
+      if (materialData[key] !== null && materialData[key] !== undefined) {
+        formData.append(key, materialData[key]);
+      }
+    });
+    return api.post('/materials/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  // Update material
+  updateMaterial: (id, materialData) => api.put(`/materials/${id}`, materialData),
+  
+  // Delete material
+  deleteMaterial: (id) => api.delete(`/materials/${id}`),
+};
+
 export default api;
