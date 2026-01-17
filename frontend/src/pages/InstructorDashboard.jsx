@@ -1427,10 +1427,10 @@ const InstructorDashboard = () => {
                             <span className="px-2 py-0.5 sm:py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-full font-medium capitalize text-xs">
                               {material.type.replace('_', ' ')}
                             </span>
-                            {material.fileName && (
+                            {material.fileName && !material.youtubeLink && (
                               <span className="font-mono truncate max-w-[150px] sm:max-w-none">{material.fileName}</span>
                             )}
-                            {material.fileSize && (
+                            {material.fileSize && !material.youtubeLink && (
                               <span className="hidden sm:inline">{(material.fileSize / 1024 / 1024).toFixed(2)} MB</span>
                             )}
                             <span className="hidden sm:inline">{new Date(material.createdAt).toLocaleDateString()}</span>
@@ -1442,32 +1442,48 @@ const InstructorDashboard = () => {
                       </div>
                       <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
                         {material.youtubeLink ? (
-                          <a
-                            href={material.youtubeLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs sm:text-sm font-medium transition-colors text-center"
-                          >
-                            Watch
-                          </a>
-                        ) : material.fileType?.includes('pdf') || material.fileType?.includes('word') || material.fileType?.includes('powerpoint') || material.fileType?.includes('presentation') ? (
-                          <a
-                            href={material.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            onClick={() => {
+                              const videoId = material.youtubeLink.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+                              const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId[1]}` : material.youtubeLink;
+                              setViewerModal({ 
+                                show: true, 
+                                url: embedUrl, 
+                                fileName: material.fileName, 
+                                title: material.title,
+                                type: 'video'
+                              });
+                            }}
                             className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs sm:text-sm font-medium transition-colors text-center"
                           >
                             View
-                          </a>
+                          </button>
+                        ) : material.fileType?.includes('pdf') || material.fileType?.includes('word') || material.fileType?.includes('powerpoint') || material.fileType?.includes('presentation') ? (
+                          <button
+                            onClick={() => setViewerModal({ 
+                              show: true, 
+                              url: material.fileUrl, 
+                              fileName: material.fileName, 
+                              title: material.title,
+                              type: material.fileType?.includes('pdf') ? 'pdf' : 'office'
+                            })}
+                            className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs sm:text-sm font-medium transition-colors text-center"
+                          >
+                            View
+                          </button>
                         ) : (
-                          <a
-                            href={material.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            onClick={() => setViewerModal({ 
+                              show: true, 
+                              url: material.fileUrl, 
+                              fileName: material.fileName, 
+                              title: material.title,
+                              type: material.fileType?.includes('image') ? 'image' : 'file'
+                            })}
                             className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs sm:text-sm font-medium transition-colors"
                           >
                             View
-                          </a>
+                          </button>
                         )}
                         <button
                           onClick={() => {
@@ -1476,7 +1492,7 @@ const InstructorDashboard = () => {
                               title: material.title,
                               description: material.description || '',
                               type: material.type,
-                              files: [],
+                              files: material.fileName ? [{ name: material.fileName, size: material.fileSize || 0 }] : [],
                               youtubeLink: material.youtubeLink || '',
                               uploadSource: material.youtubeLink ? 'youtube' : 'device'
                             });
@@ -1521,23 +1537,32 @@ const InstructorDashboard = () => {
               <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-gray-900">
                 {viewerModal.type === 'pdf' ? (
                   <iframe
-                    src={`${viewerModal.url}#toolbar=1&navpanes=1&scrollbar=1`}
+                    src={`https://docs.google.com/gview?url=${encodeURIComponent(viewerModal.url)}&embedded=true`}
                     className="w-full h-full border-0"
                     title="PDF Viewer"
                   />
-                ) : viewerModal.type === 'office' ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center">
-                    <FileText className="h-16 w-16 text-blue-600 mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Office Document</h3>
-                    <p className="text-gray-600 dark:text-gray-400 mb-6">Click the button below to download and view this document</p>
-                    <a
-                      href={viewerModal.url}
-                      download={viewerModal.fileName}
-                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                    >
-                      Download {viewerModal.fileName}
-                    </a>
+                ) : viewerModal.type === 'image' ? (
+                  <div className="w-full h-full flex items-center justify-center p-4">
+                    <img
+                      src={viewerModal.url}
+                      alt={viewerModal.fileName}
+                      className="max-w-full max-h-full object-contain"
+                    />
                   </div>
+                ) : viewerModal.type === 'video' ? (
+                  <iframe
+                    src={viewerModal.url}
+                    className="w-full h-full border-0"
+                    title="Video Player"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : viewerModal.type === 'office' ? (
+                  <iframe
+                    src={`https://docs.google.com/gview?url=${encodeURIComponent(viewerModal.url)}&embedded=true`}
+                    className="w-full h-full border-0"
+                    title="Office Document Viewer"
+                  />
                 ) : (
                   <iframe
                     src={viewerModal.url}
