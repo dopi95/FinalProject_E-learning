@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellRing, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star, Globe, Heart, Settings, MapPin } from 'lucide-react';
+import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellRing, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star, Globe, Heart, Settings, MapPin, MessageCircle } from 'lucide-react';
 import { profileAPI, enrollmentAPI, paymentAPI, subscriptionAPI, notificationAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import CourseMaterials from '../components/CourseMaterials';
+import ChatInterface from '../components/ChatInterface';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 import { useTranslation } from 'react-i18next';
 
@@ -39,6 +40,7 @@ const StudentDashboard = () => {
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [schedules, setSchedules] = useState([]);
   const [schedulesLoading, setSchedulesLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -637,6 +639,23 @@ const StudentDashboard = () => {
     }
   };
 
+  const fetchUnreadCount = async () => {
+    try {
+      const { chatAPI } = await import('../services/api');
+      const response = await chatAPI.getUnreadCount();
+      setUnreadCount(response?.data?.count || 0);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+      setUnreadCount(0);
+    }
+  };
+
+  // Function to update unread count when chat is viewed
+  const updateUnreadCount = (chatId) => {
+    // Decrease unread count when a chat is viewed
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  };
+
 
 
   useEffect(() => {
@@ -679,6 +698,8 @@ const StudentDashboard = () => {
     fetchGrades();
     // Fetch notifications
     fetchNotifications();
+    // Fetch chat count
+    fetchUnreadCount();
     
     // Set up periodic notification check (every 30 seconds)
     const notificationInterval = setInterval(() => {
@@ -2317,6 +2338,11 @@ const renderPayments = () => (
       case 'payments': return renderPayments();
       case 'schedule': return renderSchedule();
       case 'progress': return renderProgress();
+      case 'messages': return (
+        <div className="h-full">
+          <ChatInterface onChatViewed={updateUnreadCount} />
+        </div>
+      );
       case 'review': return <div className="p-4"><iframe src="/leave-review" className="w-full h-screen border-0 rounded-lg" title="Leave Review"></iframe></div>;
       case 'profile': return renderProfile();
       default: return renderOverview();
@@ -2392,6 +2418,9 @@ const renderPayments = () => (
                         setShowCoursesSubmenu(!showCoursesSubmenu);
                       } else if (tab.id === 'course-resources' && tab.hasSubmenu) {
                         setShowCourseResourcesSubmenu(!showCourseResourcesSubmenu);
+                      } else if (tab.id === 'messages') {
+                        setActiveTab(tab.id);
+                        setSidebarOpen(false);
                       } else {
                         setActiveTab(tab.id);
                         setSidebarOpen(false);
@@ -2412,6 +2441,11 @@ const renderPayments = () => (
                         ? 'text-white' : 'text-gray-500 dark:text-gray-400'
                     }`} />
                     <span className="font-medium truncate">{tab.name}</span>
+                    {tab.id === 'messages' && unreadCount > 0 && (
+                      <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px] text-center font-bold">
+                        {unreadCount}
+                      </span>
+                    )}
                     {tab.hasSubmenu && (
                       <svg className={`ml-auto h-3 w-3 transition-transform ${
                         (tab.id === 'courses' && showCoursesSubmenu) || (tab.id === 'course-resources' && showCourseResourcesSubmenu) ? 'rotate-180' : ''
@@ -2568,6 +2602,30 @@ const renderPayments = () => (
               )}
               
               <button
+                onClick={() => {
+                  setActiveTab('messages');
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center px-2 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
+                  activeTab === 'messages'
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <MessageCircle className={`h-3.5 w-3.5 mr-2 flex-shrink-0 ${
+                  activeTab === 'messages' ? 'text-white' : 'text-gray-500 dark:text-gray-400'
+                }`} />
+                <span className="font-medium truncate">Chats</span>
+                {unreadCount > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px] text-center font-bold">
+                    {unreadCount}
+                  </span>
+                )}
+                {activeTab === 'messages' && (
+                  <div className="ml-auto w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
+                )}
+              </button>
+              <button
                 onClick={handleBackToWebsite}
                 className="w-full flex items-center px-2 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-md transition-all duration-200"
               >
@@ -2610,6 +2668,8 @@ const renderPayments = () => (
           onClick={() => setShowNotifications(false)}
         ></div>
       )}
+      
+
     </div>
   );
 };

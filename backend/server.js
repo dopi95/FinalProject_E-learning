@@ -84,6 +84,9 @@ app.use('/api/notifications', require('./routes/notifications'));
 // Chat History routes
 app.use('/api/chat-history', require('./routes/chatHistory'));
 
+// Chat routes
+app.use('/api/chat', require('./routes/chat'));
+
 // Schedule routes
 app.use('/api/schedules', require('./routes/schedules'));
 

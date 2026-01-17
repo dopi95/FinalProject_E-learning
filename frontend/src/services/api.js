@@ -412,6 +412,39 @@ export const materialAPI = {
   deleteMaterial: (id) => api.delete(`/materials/${id}`),
 };
 
+// Chat API functions
+export const chatAPI = {
+  // Get all chats for current user
+  getChats: () => api.get('/chat'),
+  
+  // Get unread message count
+  getUnreadCount: () => api.get('/chat/unread-count'),
+  
+  // Get or create chat with specific user
+  startChat: (participantId) => api.post('/chat/start', { participantId }),
+  
+  // Send message
+  sendMessage: (chatId, content) => api.post(`/chat/${chatId}/messages`, { content }),
+  
+  // Update message
+  updateMessage: (messageId, content) => api.put(`/chat/messages/${messageId}`, { content }),
+  
+  // Delete message
+  deleteMessage: (messageId) => api.delete(`/chat/messages/${messageId}`),
+  
+  // Delete entire chat
+  deleteChat: (chatId) => api.delete(`/chat/${chatId}`),
+  
+  // Mark messages as read
+  markAsRead: (chatId) => api.put(`/chat/${chatId}/read`),
+  
+  // Get chat messages
+  getMessages: (chatId) => api.get(`/chat/${chatId}/messages`),
+  
+  // Get users to start chat with
+  getUsers: () => api.get('/chat/users'),
+};
+
 // Reel API functions
 export const reelAPI = {
   // Get all reels

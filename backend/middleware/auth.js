@@ -1,5 +1,6 @@
 const { verifyToken } = require('../utils/helpers');
 const User = require('../models/User');
+const { updateOnlineStatus } = require('./onlineStatus');
 
 const auth = async (req, res, next) => {
   try {
@@ -17,6 +18,10 @@ const auth = async (req, res, next) => {
     }
 
     req.user = user;
+    
+    // Update online status
+    updateOnlineStatus(req, res, () => {});
+    
     next();
   } catch (error) {
     res.status(401).json({ message: 'Invalid token' });

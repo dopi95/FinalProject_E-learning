@@ -5,6 +5,7 @@ import api from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import SubscriptionManagement from '../components/SubscriptionManagement';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
+import { isUserOnline, getOnlineStatusText, OnlineStatusIndicator } from '../utils/onlineStatus.jsx';
 
 const SuperAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -1515,7 +1516,6 @@ const SuperAdminDashboard = () => {
     { id: 'reviews', name: 'Review Management', icon: Star },
     { id: 'subscriptions', name: 'Email Subscriptions', icon: Mail },
     { id: 'notifications', name: 'Send Notification', icon: Bell },
-    { id: 'reels', name: 'Reel Management', icon: Video },
     { id: 'admins', name: 'Admin Management', icon: Shield },
     { id: 'settings', name: 'Global Settings', icon: Settings },
     { id: 'profile', name: 'My Profile', icon: User }

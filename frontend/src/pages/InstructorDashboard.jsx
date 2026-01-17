@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, BellRing, BellOff, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe, Heart, MapPin, Edit } from 'lucide-react';
+import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, BellRing, BellOff, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe, Heart, MapPin, Edit, MessageCircle } from 'lucide-react';
 import { profileAPI, courseAPI, instructorAPI, subscriptionAPI, notificationAPI, scheduleAPI, scheduleUpdateRequestAPI, materialAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
+import ChatInterface from '../components/ChatInterface';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 import { useTranslation } from 'react-i18next';
 
@@ -41,6 +42,7 @@ const InstructorDashboard = () => {
   const [sortByLikes, setSortByLikes] = useState(false);
   const [schedules, setSchedules] = useState([]);
   const [schedulesLoading, setSchedulesLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [showUpdateScheduleModal, setShowUpdateScheduleModal] = useState(false);
   const [selectedScheduleForUpdate, setSelectedScheduleForUpdate] = useState(null);
   const [updateSessions, setUpdateSessions] = useState([]);
@@ -178,8 +180,6 @@ const InstructorDashboard = () => {
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
   const removeNotification = (id) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
@@ -205,6 +205,7 @@ const InstructorDashboard = () => {
     fetchInstructorStudents();
     fetchSchedules();
     fetchMyRequests();
+    fetchUnreadCount();
     if (userData) {
       fetchSubscriptionStatus();
       fetchNotifications();
@@ -486,6 +487,23 @@ const InstructorDashboard = () => {
     } catch (error) {
       setMyRequests([]);
     }
+  };
+
+  const fetchUnreadCount = async () => {
+    try {
+      const { chatAPI } = await import('../services/api');
+      const response = await chatAPI.getUnreadCount();
+      setUnreadCount(response?.data?.count || 0);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+      setUnreadCount(0);
+    }
+  };
+
+  // Function to update unread count when chat is viewed
+  const updateUnreadCount = (chatId) => {
+    // Decrease unread count when a chat is viewed
+    setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
   const fetchUserProfile = async () => {
@@ -3413,6 +3431,11 @@ const InstructorDashboard = () => {
       case 'send-notification': return renderSendNotification();
       case 'students': return renderStudents();
       case 'analytics': return renderAnalytics();
+      case 'messages': return (
+        <div className="h-full">
+          <ChatInterface onChatViewed={updateUnreadCount} />
+        </div>
+      );
       case 'review': return <div className="p-4"><iframe src="/leave-review" className="w-full h-screen border-0 rounded-lg" title="Leave Review"></iframe></div>;
       case 'profile': return renderProfile();
       default: return renderOverview();
@@ -3489,6 +3512,9 @@ const InstructorDashboard = () => {
                     onClick={() => {
                       if (tab.id === 'course-resources' && tab.hasSubmenu) {
                         setShowCourseResourcesSubmenu(!showCourseResourcesSubmenu);
+                      } else if (tab.id === 'messages') {
+                        setActiveTab(tab.id);
+                        setSidebarOpen(false);
                       } else {
                         setActiveTab(tab.id);
                         setSidebarOpen(false);
@@ -3507,6 +3533,11 @@ const InstructorDashboard = () => {
                         ? 'text-white' : 'text-gray-500 dark:text-gray-400'
                     }`} />
                     <span className="font-medium truncate">{tab.name}</span>
+                    {tab.id === 'messages' && unreadCount > 0 && (
+                      <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px] text-center font-bold">
+                        {unreadCount}
+                      </span>
+                    )}
                     {tab.hasSubmenu && (
                       <svg className={`ml-auto h-4 w-4 transition-transform ${
                         showCourseResourcesSubmenu ? 'rotate-180' : ''
@@ -3609,6 +3640,30 @@ const InstructorDashboard = () => {
                 )}
               </div>
               <button
+                onClick={() => {
+                  setActiveTab('messages');
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 group ${
+                  activeTab === 'messages'
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <MessageCircle className={`h-4 w-4 mr-2 lg:mr-3 flex-shrink-0 ${
+                  activeTab === 'messages' ? 'text-white' : 'text-gray-500 dark:text-gray-400'
+                }`} />
+                <span className="font-medium truncate">Chats</span>
+                {unreadCount > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px] text-center font-bold">
+                    {unreadCount}
+                  </span>
+                )}
+                {activeTab === 'messages' && (
+                  <div className="ml-auto w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
+                )}
+              </button>
+              <button
                 onClick={handleBackToWebsite}
                 className="w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all duration-200"
               >
@@ -3651,6 +3706,8 @@ const InstructorDashboard = () => {
           onClick={() => setShowSubscribeMenu(false)}
         ></div>
       )}
+      
+
     </div>
   );
 };
