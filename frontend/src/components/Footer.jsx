@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Facebook, Instagram, Linkedin, Youtube, Send, Play } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Youtube, Send } from 'lucide-react';
 import logo from '/assets/images/aaulogo.png';
 import VideoReels from './VideoReels';
 
@@ -17,11 +17,6 @@ const Footer = () => {
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleWatchReels = () => {
-    // Navigate to reels page instead of opening modal
-    navigate('/reels');
   };
 
   return (
@@ -99,21 +94,22 @@ const Footer = () => {
                   {t('footer.courses')}
                 </button>
               </li>
+              <li>
+                <button 
+                  onClick={() => setShowVideoReels(true)}
+                  className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-left"
+                >
+                  Reels
+                </button>
+              </li>
             </ul>
           </div>
 
           <div>
             <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">{t('footer.followUs')}</h3>
-            <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
               {t('footer.stayUpdated')}
             </p>
-            <button
-              onClick={() => setShowVideoReels(true)}
-              className="flex items-center gap-2 bg-gradient-to-tr from-purple-600 to-pink-500 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-            >
-              <Play className="h-4 w-4 fill-current" />
-              <span className="text-sm font-medium">Reels</span>
-            </button>
           </div>
         </div>
 
