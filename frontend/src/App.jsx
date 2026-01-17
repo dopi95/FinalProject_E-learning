@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ScrollToTop from './components/ScrollToTop';
@@ -30,6 +30,24 @@ const AppContent = () => {
   const isDashboardPage = location.pathname.includes('-dashboard');
   const isLeaveReviewPage = location.pathname === '/leave-review';
   const isHomePage = location.pathname === '/';
+  const [showIcons, setShowIcons] = useState(false);
+
+  useEffect(() => {
+    if (isHomePage) {
+      const handleScroll = () => {
+        const featuredSection = document.querySelector('#featured-courses');
+        if (featuredSection) {
+          const rect = featuredSection.getBoundingClientRect();
+          setShowIcons(rect.top <= window.innerHeight);
+        }
+      };
+
+      window.addEventListener('scroll', handleScroll);
+      handleScroll();
+      
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+  }, [isHomePage]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -56,7 +74,7 @@ const AppContent = () => {
         <Route path="/receipt" element={<PublicReceipt />} />
         <Route path="/leave-review" element={<LeaveReview />} />
       </Routes>
-      {isHomePage && <Chatbot />}
+      {isHomePage && <Chatbot showIcons={showIcons} />}
     </div>
   );
 };

@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Facebook, Instagram, Linkedin, Youtube, Send } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Youtube, Send, Play } from 'lucide-react';
 import logo from '/assets/images/aaulogo.png';
+import VideoReels from './VideoReels';
 
 
 const Footer = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [showVideoReels, setShowVideoReels] = useState(false);
 
   const scrollToCourses = () => {
     navigate('/courses');
@@ -18,7 +20,7 @@ const Footer = () => {
   };
 
   return (
-    <footer className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/30 text-gray-800 dark:text-white">
+    <footer className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/30 text-gray-800 dark:text-white relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-2">
@@ -97,9 +99,16 @@ const Footer = () => {
 
           <div>
             <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">{t('footer.followUs')}</h3>
-            <p className="text-gray-600 dark:text-gray-300 text-sm">
+            <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
               {t('footer.stayUpdated')}
             </p>
+            <button
+              onClick={() => setShowVideoReels(true)}
+              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-full hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <Play className="h-4 w-4" />
+              <span className="text-sm font-medium">Watch Reels</span>
+            </button>
           </div>
         </div>
 
@@ -107,6 +116,12 @@ const Footer = () => {
           <p className="text-gray-600 dark:text-gray-300">{t('footer.copyright')}</p>
         </div>
       </div>
+
+      {/* Video Reels Modal */}
+      <VideoReels 
+        isOpen={showVideoReels} 
+        onClose={() => setShowVideoReels(false)} 
+      />
     </footer>
   );
 };

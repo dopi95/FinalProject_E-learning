@@ -589,18 +589,18 @@ const AllCourses = () => {
                       </div>
                     </div>
                     
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                       {user?.role !== 'instructor' && user?.role !== 'superadmin' && user?.role !== 'admin' && (
                         <button 
                           onClick={() => handleEnroll(course._id)}
-                          className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                          className="py-2 sm:py-3 px-3 sm:px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg sm:rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-sm sm:text-base"
                         >
                           {enrolledCourses.has(course._id) ? t('courses.goToCourse') : t('courses.enrollNow')}
                         </button>
                       )}
                       <Link
                         to={`/course/${course._id}`}
-                        className={`${user?.role === 'instructor' || user?.role === 'superadmin' || user?.role === 'admin' ? 'flex-1' : 'flex-1'} border-2 border-blue-600 text-blue-600 dark:text-blue-400 py-3 px-4 rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold text-center flex items-center justify-center`}
+                        className="border-2 border-blue-600 text-blue-600 dark:text-blue-400 py-2 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold text-center flex items-center justify-center text-sm sm:text-base"
                       >
                         {t('courses.viewDetails')}
                       </Link>

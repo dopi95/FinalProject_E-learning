@@ -163,7 +163,7 @@ const FeaturedCourses = () => {
   };
 
   return (
-    <section className="py-20 bg-gray-50 dark:bg-gray-800">
+    <section id="featured-courses" className="py-20 bg-gray-50 dark:bg-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -282,11 +282,11 @@ const FeaturedCourses = () => {
                     </div>
                   </div>
                   
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     {user?.role !== 'instructor' && user?.role !== 'superadmin' && user?.role !== 'admin' && (
                       <button 
                         onClick={() => handleEnroll(course._id)}
-                        className={`flex-1 py-3 px-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 ${
+                        className={`py-2 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 text-sm sm:text-base ${
                           enrolledCourses.has(course._id)
                             ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
                             : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
@@ -297,7 +297,7 @@ const FeaturedCourses = () => {
                     )}
                     <Link
                       to={`/course/${course._id}`}
-                      className={`${user?.role === 'instructor' || user?.role === 'superadmin' || user?.role === 'admin' ? 'flex-1' : 'flex-1'} border-2 border-blue-600 text-blue-600 dark:text-blue-400 py-3 px-4 rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold text-center flex items-center justify-center`}
+                      className="border-2 border-blue-600 text-blue-600 dark:text-blue-400 py-2 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold text-center flex items-center justify-center text-sm sm:text-base"
                     >
                       {t('courses.viewDetails')}
                     </Link>

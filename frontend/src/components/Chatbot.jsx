@@ -97,7 +97,7 @@ if (typeof document !== 'undefined') {
   document.head.appendChild(styleSheet);
 }
 
-const Chatbot = () => {
+const Chatbot = ({ showIcons = true }) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -356,10 +356,10 @@ const Chatbot = () => {
   return (
     <>
       {/* Floating Chat Button */}
-      {!isMobileMenuOpen && !(isInHeroSection && window.innerWidth < 768) && (
+      {!isMobileMenuOpen && showIcons && (
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-500 transform hover:scale-110 group overflow-hidden ${
+          className={`fixed bottom-20 right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-500 transform hover:scale-110 group overflow-hidden ${
             isOpen ? 'rotate-180' : 'animate-bounce'
           }`}
         >
@@ -378,8 +378,8 @@ const Chatbot = () => {
       )}
 
       {/* Chat Popup */}
-      {!isMobileMenuOpen && !(isInHeroSection && window.innerWidth < 768) && (
-        <div className={`fixed bottom-20 right-4 sm:bottom-24 sm:right-6 z-40 w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} style={{ maxHeight: 'calc(100vh - 12rem)' }}>
+      {!isMobileMenuOpen && showIcons && (
+        <div className={`fixed bottom-36 right-4 sm:bottom-40 sm:right-6 z-40 w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} style={{ maxHeight: 'calc(100vh - 12rem)' }}>
         {/* Chat Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-t-2xl flex-shrink-0 relative z-10 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 animate-pulse"></div>
