@@ -2342,9 +2342,9 @@ const renderPayments = () => (
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 lg:w-72 bg-white dark:bg-gray-800 shadow-2xl border-r border-gray-200 dark:border-gray-700 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 ease-in-out lg:translate-x-0 lg:fixed lg:inset-y-0 flex flex-col overflow-hidden`}>
+      <div className={`fixed inset-y-0 left-0 z-50 w-56 lg:w-64 bg-white dark:bg-gray-800 shadow-2xl border-r border-gray-200 dark:border-gray-700 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 ease-in-out lg:translate-x-0 lg:fixed lg:inset-y-0 flex flex-col overflow-hidden`}>
         {/* Logo/Title */}
-        <div className="flex items-center justify-between h-16 lg:h-20 px-4 lg:px-6 bg-gradient-to-r from-blue-600 to-indigo-600 border-b border-blue-500 flex-shrink-0">
+        <div className="flex items-center justify-between h-12 lg:h-14 px-3 lg:px-4 bg-gradient-to-r from-blue-600 to-indigo-600 border-b border-blue-500 flex-shrink-0">
           <button 
             onClick={() => {
               setActiveTab('profile');
@@ -2352,24 +2352,19 @@ const renderPayments = () => (
             }}
             className="flex items-center hover:bg-white/10 rounded-lg p-2 transition-colors cursor-pointer w-full"
           >
-            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white/20 rounded-full flex items-center justify-center mr-2 lg:mr-3 overflow-hidden">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-white/20 rounded-full flex items-center justify-center mr-2 overflow-hidden">
               {profileImage ? (
                 <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-white font-bold text-sm lg:text-lg">{user ? getInitials(user.name) : 'EY'}</span>
+                <span className="text-white font-bold text-xs lg:text-sm">{user ? getInitials(user.name) : 'EY'}</span>
               )}
             </div>
             <div className="min-w-0 flex-1 text-center">
-              <h1 className="text-sm lg:text-lg font-bold truncate text-white">{user ? formatDisplayName(user.name) : 'Elyas Yenealem'}</h1>
-              <p className="text-blue-50 text-xs lg:text-sm flex items-center justify-center">
-                <GraduationCap className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
+              <h1 className="text-xs lg:text-sm font-bold truncate text-white">{user ? formatDisplayName(user.name) : 'Elyas Yenealem'}</h1>
+              <p className="text-blue-50 text-xs flex items-center justify-center">
+                <GraduationCap className="h-3 w-3 mr-1" />
                 <span className="truncate">{user ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Student'}</span>
               </p>
-              {user?.bio && (
-                <p className="text-blue-50/90 text-xs mt-1 truncate italic">
-                  "{user.bio}"
-                </p>
-              )}
             </div>
           </button>
           <button
@@ -2383,8 +2378,8 @@ const renderPayments = () => (
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 lg:px-4 py-3 lg:py-4 overflow-y-auto">
-          <div className="space-y-1">
+        <nav className="flex-1 px-2 lg:px-3 py-2 overflow-y-auto">
+          <div className="space-y-0.5">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
@@ -2402,7 +2397,7 @@ const renderPayments = () => (
                         setSidebarOpen(false);
                       }
                     }}
-                    className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 group ${
+                    className={`w-full flex items-center px-2 py-1.5 text-xs font-medium rounded-md transition-all duration-200 group ${
                       activeTab === tab.id || 
                       (tab.id === 'courses' && (activeTab === 'enrolled-courses' || activeTab === 'view-grades')) ||
                       (tab.id === 'course-resources' && (activeTab === 'course-materials' || activeTab === 'assignments' || activeTab === 'certificates' || activeTab === 'exams'))
@@ -2410,7 +2405,7 @@ const renderPayments = () => (
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   >
-                    <Icon className={`h-4 w-4 mr-2 lg:mr-3 flex-shrink-0 ${
+                    <Icon className={`h-3.5 w-3.5 mr-2 flex-shrink-0 ${
                       activeTab === tab.id || 
                       (tab.id === 'courses' && (activeTab === 'enrolled-courses' || activeTab === 'view-grades')) ||
                       (tab.id === 'course-resources' && (activeTab === 'course-materials' || activeTab === 'assignments' || activeTab === 'certificates' || activeTab === 'exams'))
@@ -2418,7 +2413,7 @@ const renderPayments = () => (
                     }`} />
                     <span className="font-medium truncate">{tab.name}</span>
                     {tab.hasSubmenu && (
-                      <svg className={`ml-auto h-4 w-4 transition-transform ${
+                      <svg className={`ml-auto h-3 w-3 transition-transform ${
                         (tab.id === 'courses' && showCoursesSubmenu) || (tab.id === 'course-resources' && showCourseResourcesSubmenu) ? 'rotate-180' : ''
                       }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -2434,20 +2429,20 @@ const renderPayments = () => (
                   
                   {/* Submenu for My Courses */}
                   {tab.id === 'courses' && tab.hasSubmenu && showCoursesSubmenu && (
-                    <div className="ml-6 mt-1 space-y-1">
+                    <div className="ml-4 mt-0.5 space-y-0.5">
                       <button
                         onClick={() => {
                           setActiveTab('enrolled-courses');
                           setShowCoursesSubmenu(false);
                           setSidebarOpen(false);
                         }}
-                        className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 ${
+                        className={`w-full flex items-center px-2 py-1 text-xs font-medium rounded-md transition-all duration-200 ${
                           activeTab === 'enrolled-courses'
                             ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                         }`}
                       >
-                        <BookOpen className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <BookOpen className="h-3 w-3 mr-1.5 flex-shrink-0" />
                         <span className="font-medium truncate">Enrolled Courses</span>
                       </button>
                       <button
@@ -2456,13 +2451,13 @@ const renderPayments = () => (
                           setShowCoursesSubmenu(false);
                           setSidebarOpen(false);
                         }}
-                        className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 ${
+                        className={`w-full flex items-center px-2 py-1 text-xs font-medium rounded-md transition-all duration-200 ${
                           activeTab === 'view-grades'
                             ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                         }`}
                       >
-                        <Award className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <Award className="h-3 w-3 mr-1.5 flex-shrink-0" />
                         <span className="font-medium truncate">View Grades</span>
                       </button>
                     </div>
@@ -2470,20 +2465,20 @@ const renderPayments = () => (
                   
                   {/* Submenu for Course Resources */}
                   {tab.id === 'course-resources' && tab.hasSubmenu && showCourseResourcesSubmenu && (
-                    <div className="ml-6 mt-1 space-y-1">
+                    <div className="ml-4 mt-0.5 space-y-0.5">
                       <button
                         onClick={() => {
                           setActiveTab('course-materials');
                           setShowCourseResourcesSubmenu(false);
                           setSidebarOpen(false);
                         }}
-                        className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 ${
+                        className={`w-full flex items-center px-2 py-1 text-xs font-medium rounded-md transition-all duration-200 ${
                           activeTab === 'course-materials'
                             ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                         }`}
                       >
-                        <FileText className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <FileText className="h-3 w-3 mr-1.5 flex-shrink-0" />
                         <span className="font-medium truncate">Course Materials</span>
                       </button>
                       <button
@@ -2492,13 +2487,13 @@ const renderPayments = () => (
                           setShowCourseResourcesSubmenu(false);
                           setSidebarOpen(false);
                         }}
-                        className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 ${
+                        className={`w-full flex items-center px-2 py-1 text-xs font-medium rounded-md transition-all duration-200 ${
                           activeTab === 'assignments'
                             ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                         }`}
                       >
-                        <FileText className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <FileText className="h-3 w-3 mr-1.5 flex-shrink-0" />
                         <span className="font-medium truncate">Assignments</span>
                       </button>
                       <button
@@ -2507,13 +2502,13 @@ const renderPayments = () => (
                           setShowCourseResourcesSubmenu(false);
                           setSidebarOpen(false);
                         }}
-                        className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 ${
+                        className={`w-full flex items-center px-2 py-1 text-xs font-medium rounded-md transition-all duration-200 ${
                           activeTab === 'certificates'
                             ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                         }`}
                       >
-                        <Award className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <Award className="h-3 w-3 mr-1.5 flex-shrink-0" />
                         <span className="font-medium truncate">Certificates</span>
                       </button>
                       <button
@@ -2522,13 +2517,13 @@ const renderPayments = () => (
                           setShowCourseResourcesSubmenu(false);
                           setSidebarOpen(false);
                         }}
-                        className={`w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 ${
+                        className={`w-full flex items-center px-2 py-1 text-xs font-medium rounded-md transition-all duration-200 ${
                           activeTab === 'exams'
                             ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                         }`}
                       >
-                        <CheckCircle className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <CheckCircle className="h-3 w-3 mr-1.5 flex-shrink-0" />
                         <span className="font-medium truncate">Exams</span>
                       </button>
                     </div>
@@ -2538,21 +2533,21 @@ const renderPayments = () => (
             })}
             
             {/* Separator */}
-            <div className="border-t border-gray-200 dark:border-gray-700 my-2 mt-100"></div>
+            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
             
             {/* Additional Navigation Items */}
-            <div className="mt-6 lg:mt-100 pt-3 lg:pt-4">
+            <div className="mt-2 pt-1">
               {/* Email Subscription Bell */}
               {user && user.role === 'student' && (
-                <div className="relative mb-2">
+                  <div className="relative mb-1">
                   <button
                     onClick={() => setShowSubscribeMenu(!showSubscribeMenu)}
-                    className="w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all duration-200"
+                    className="w-full flex items-center px-2 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-md transition-all duration-200"
                   >
                     {isSubscribed ? (
-                      <Bell className="h-4 w-4 mr-2 lg:mr-3 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                      <Bell className="h-3.5 w-3.5 mr-2 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                     ) : (
-                      <BellOff className="h-4 w-4 mr-2 lg:mr-3 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                      <BellOff className="h-3.5 w-3.5 mr-2 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                     )}
                     <span className="font-medium truncate">{isSubscribed ? 'Subscribed' : 'Subscribe'}</span>
                     {isSubscribed && (
@@ -2574,16 +2569,16 @@ const renderPayments = () => (
               
               <button
                 onClick={handleBackToWebsite}
-                className="w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all duration-200"
+                className="w-full flex items-center px-2 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-md transition-all duration-200"
               >
-                <Home className="h-4 w-4 mr-2 lg:mr-3 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                <Home className="h-3.5 w-3.5 mr-2 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                 <span className="font-medium truncate">Back to Website</span>
               </button>
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300 rounded-lg transition-all duration-200 mt-1"
+                className="w-full flex items-center px-2 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300 rounded-md transition-all duration-200 mt-0.5"
               >
-                <LogOut className="h-4 w-4 mr-2 lg:mr-3 flex-shrink-0" />
+                <LogOut className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
                 <span className="font-medium truncate">Logout</span>
               </button>
             </div>
@@ -2592,7 +2587,7 @@ const renderPayments = () => (
       </div>
 
       {/* Main content */}
-      <div className="flex-1 lg:ml-72">
+      <div className="flex-1 lg:ml-64">
         {/* Mobile hamburger button - Fixed */}
         <button
           onClick={() => setSidebarOpen(true)}

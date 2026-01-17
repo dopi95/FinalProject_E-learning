@@ -31,10 +31,10 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get all contact messages (SuperAdmin only)
+// Get all contact messages (Admin & SuperAdmin only)
 router.get('/', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied' });
     }
     
@@ -51,7 +51,7 @@ router.get('/', auth, async (req, res) => {
 // Reply to contact message
 router.post('/:id/reply', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied' });
     }
     

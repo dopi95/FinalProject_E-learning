@@ -49,10 +49,10 @@ router.get('/my-review', auth, async (req, res) => {
   }
 });
 
-// Get all reviews (SuperAdmin only)
+// Get all reviews (Admin & SuperAdmin only)
 router.get('/', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied' });
     }
     
@@ -80,10 +80,10 @@ router.get('/approved', async (req, res) => {
   }
 });
 
-// Update review status (SuperAdmin only)
+// Update review status (Admin & SuperAdmin only)
 router.patch('/:id/status', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied' });
     }
     
@@ -146,10 +146,10 @@ router.delete('/my-review', auth, async (req, res) => {
   }
 });
 
-// Delete review (SuperAdmin only)
+// Delete review (Admin & SuperAdmin only)
 router.delete('/:id', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied' });
     }
     

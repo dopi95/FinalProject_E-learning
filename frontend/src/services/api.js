@@ -412,4 +412,46 @@ export const materialAPI = {
   deleteMaterial: (id) => api.delete(`/materials/${id}`),
 };
 
+// Reel API functions
+export const reelAPI = {
+  // Get all reels
+  getReels: () => api.get('/reels'),
+  
+  // Get single reel
+  getReel: (id) => api.get(`/reels/${id}`),
+  
+  // Upload reel
+  uploadReel: (reelData) => {
+    const formData = new FormData();
+    Object.keys(reelData).forEach(key => {
+      if (reelData[key] !== null && reelData[key] !== undefined) {
+        formData.append(key, reelData[key]);
+      }
+    });
+    return api.post('/reels/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  // Update reel
+  updateReel: (id, reelData) => api.put(`/reels/${id}`, reelData),
+  
+  // Delete reel
+  deleteReel: (id) => api.delete(`/reels/${id}`),
+  
+  // Like/unlike reel
+  likeReel: (id) => api.post(`/reels/${id}/like`),
+  
+  // Get comments
+  getComments: (id) => api.get(`/reels/${id}/comments`),
+  
+  // Add comment
+  addComment: (id, comment) => api.post(`/reels/${id}/comments`, { comment }),
+  
+  // Increment view count
+  incrementView: (id, viewData = {}) => api.post(`/reels/${id}/view`, viewData),
+};
+
 export default api;

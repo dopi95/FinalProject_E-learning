@@ -19,6 +19,11 @@ const Footer = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleWatchReels = () => {
+    // Navigate to reels page instead of opening modal
+    navigate('/reels');
+  };
+
   return (
     <footer className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/30 text-gray-800 dark:text-white relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -104,10 +109,10 @@ const Footer = () => {
             </p>
             <button
               onClick={() => setShowVideoReels(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-full hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+              className="flex items-center gap-2 bg-gradient-to-tr from-purple-600 to-pink-500 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
             >
-              <Play className="h-4 w-4" />
-              <span className="text-sm font-medium">Watch Reels</span>
+              <Play className="h-4 w-4 fill-current" />
+              <span className="text-sm font-medium">Reels</span>
             </button>
           </div>
         </div>

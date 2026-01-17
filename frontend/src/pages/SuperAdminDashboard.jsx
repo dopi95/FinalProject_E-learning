@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown, Heart, Download, Calendar, Clock, MapPin, Save, Bell, BellRing } from 'lucide-react';
-import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI, notificationAPI, statsAPI, scheduleAPI, scheduleUpdateRequestAPI } from '../services/api';
+import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown, Heart, Download, Calendar, Clock, MapPin, Save, Bell, BellRing, Video } from 'lucide-react';
+import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI, notificationAPI, statsAPI, scheduleAPI, scheduleUpdateRequestAPI, reelAPI } from '../services/api';
 import api from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import SubscriptionManagement from '../components/SubscriptionManagement';
@@ -146,6 +146,19 @@ const SuperAdminDashboard = () => {
     instructors: { male: 0, female: 0 }
   });
 
+  // Reel management state
+  const [showReelUpload, setShowReelUpload] = useState(false);
+  const [showReelsList, setShowReelsList] = useState(false);
+  const [showEditReel, setShowEditReel] = useState(false);
+  const [editingReel, setEditingReel] = useState(null);
+  const [reels, setReels] = useState([]);
+  const [reelForm, setReelForm] = useState({
+    title: '',
+    description: '',
+    video: null
+  });
+  const [reelsLoading, setReelsLoading] = useState(false);
+
   // Play notification sound
   const playNotificationSound = () => {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -187,6 +200,120 @@ const SuperAdminDashboard = () => {
       setGenderStats(response.data);
     } catch (error) {
       console.error('Fetch gender distribution error:', error);
+    }
+  };
+
+  // Fetch reels
+  const fetchReels = async () => {
+    try {
+      setReelsLoading(true);
+      const response = await reelAPI.getReels();
+      setReels(response.data.reels || []);
+    } catch (error) {
+      console.error('Fetch reels error:', error);
+      setReels([]);
+    } finally {
+      setReelsLoading(false);
+    }
+  };
+
+  // Handle reel form change
+  const handleReelFormChange = (field, value) => {
+    setReelForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Handle reel video upload
+  const handleReelVideoUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Check file size (max 100MB)
+      if (file.size > 100 * 1024 * 1024) {
+        showNotification('error', 'File Too Large', 'Video file must be less than 100MB');
+        return;
+      }
+      // Check file type
+      if (!file.type.startsWith('video/')) {
+        showNotification('error', 'Invalid File Type', 'Please select a video file');
+        return;
+      }
+      setReelForm(prev => ({ ...prev, video: file }));
+    }
+  };
+
+  // Upload reel
+  const handleUploadReel = async () => {
+    try {
+      if (!reelForm.title || !reelForm.description || !reelForm.video) {
+        showNotification('error', 'Missing Fields', 'Please fill all fields and select a video');
+        return;
+      }
+
+      setLoading(true);
+      const response = await reelAPI.uploadReel(reelForm);
+      setReels(prev => [response.data.reel, ...prev]);
+      setReelForm({ title: '', description: '', video: null });
+      setShowReelUpload(false);
+      showNotification('success', 'Reel Uploaded!', 'Your reel has been uploaded successfully');
+    } catch (error) {
+      console.error('Upload reel error:', error);
+      showNotification('error', 'Upload Failed', error.response?.data?.message || 'Failed to upload reel');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Edit reel
+  const handleEditReel = (reel) => {
+    setEditingReel(reel);
+    setReelForm({
+      title: reel.title,
+      description: reel.description,
+      video: null
+    });
+    setShowEditReel(true);
+  };
+
+  // Update reel
+  const handleUpdateReel = async () => {
+    try {
+      if (!reelForm.title || !reelForm.description) {
+        showNotification('error', 'Missing Fields', 'Please fill all required fields');
+        return;
+      }
+
+      setLoading(true);
+      const response = await reelAPI.updateReel(editingReel._id, {
+        title: reelForm.title,
+        description: reelForm.description
+      });
+      
+      setReels(prev => prev.map(reel => 
+        reel._id === editingReel._id ? response.data.reel : reel
+      ));
+      
+      setReelForm({ title: '', description: '', video: null });
+      setShowEditReel(false);
+      setEditingReel(null);
+      showNotification('success', 'Reel Updated!', 'Your reel has been updated successfully');
+    } catch (error) {
+      console.error('Update reel error:', error);
+      showNotification('error', 'Update Failed', error.response?.data?.message || 'Failed to update reel');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete reel
+  const handleDeleteReel = async (reelId) => {
+    if (!window.confirm('Are you sure you want to delete this reel?')) return;
+    
+    try {
+      await reelAPI.deleteReel(reelId);
+      setReels(prev => prev.filter(reel => reel._id !== reelId));
+      showNotification('success', 'Reel Deleted!', 'Reel has been removed successfully');
+    } catch (error) {
+      console.error('Delete reel error:', error);
+      showNotification('error', 'Delete Failed', error.response?.data?.message || 'Failed to delete reel');
     }
   };
 
@@ -297,11 +424,8 @@ const SuperAdminDashboard = () => {
         setProfileImage(userData.profileImage);
       }
       
-      // Set default active tab based on permissions
-      if (userData.role === 'admin' && userData.permissions) {
-        const firstAllowedTab = userData.permissions[0] || 'profile';
-        setActiveTab(firstAllowedTab);
-      }
+      // Always set default active tab to 'overview' for both superadmin and admin
+      setActiveTab('overview');
     }
     fetchUserProfile();
     fetchInstructors();
@@ -314,6 +438,7 @@ const SuperAdminDashboard = () => {
     fetchGenderDistribution();
     fetchSchedules();
     fetchScheduleRequests();
+    fetchReels();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -1277,6 +1402,7 @@ const SuperAdminDashboard = () => {
     { id: 'reviews', name: 'Review Management', description: 'Moderate and manage user reviews' },
     { id: 'subscriptions', name: 'Email Subscriptions', description: 'Manage newsletter subscriptions' },
     { id: 'notifications', name: 'Send Notification', description: 'Send notifications to users' },
+    { id: 'reels', name: 'Reel Management', description: 'Upload, edit, and manage video reels' },
     { id: 'settings', name: 'Global Settings', description: 'Access platform configuration settings' }
   ];
 
@@ -1389,6 +1515,7 @@ const SuperAdminDashboard = () => {
     { id: 'reviews', name: 'Review Management', icon: Star },
     { id: 'subscriptions', name: 'Email Subscriptions', icon: Mail },
     { id: 'notifications', name: 'Send Notification', icon: Bell },
+    { id: 'reels', name: 'Reel Management', icon: Video },
     { id: 'admins', name: 'Admin Management', icon: Shield },
     { id: 'settings', name: 'Global Settings', icon: Settings },
     { id: 'profile', name: 'My Profile', icon: User }
@@ -1401,6 +1528,9 @@ const SuperAdminDashboard = () => {
     
     // Admin Management only for superadmin
     if (tab.id === 'admins') return user?.role === 'superadmin';
+    
+    // Reel Management only for superadmin or admins with reel permission
+    if (tab.id === 'reels') return user?.role === 'superadmin' || user?.permissions?.includes('reels');
     
     // Check permissions for other tabs
     return user?.permissions?.includes(tab.id) || false;
@@ -1534,7 +1664,7 @@ const SuperAdminDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Active Admins</p>
-                <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{users.filter(u => u.role === 'admin' || u.role === 'superadmin').length || 0}</p>
+                <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{(users || []).filter(u => u.role === 'admin' || u.role === 'superadmin').length || 0}</p>
                 <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">System administrators</p>
               </div>
               <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-xl">
@@ -1548,7 +1678,7 @@ const SuperAdminDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Instructors</p>
-              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{users.filter(u => u.role === 'instructor').length || 0}</p>
+              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{(users || []).filter(u => u.role === 'instructor').length || 0}</p>
               <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Course instructors</p>
             </div>
             <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-xl">
@@ -1561,7 +1691,7 @@ const SuperAdminDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Students</p>
-              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{users.filter(u => u.role === 'student').length || 0}</p>
+              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{(users || []).filter(u => u.role === 'student').length || 0}</p>
               <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Enrolled students</p>
             </div>
             <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-xl">
@@ -1596,7 +1726,7 @@ const SuperAdminDashboard = () => {
             <Users className="h-5 w-5 text-green-600 mr-3" />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900 dark:text-white">User management update</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">{users.filter(u => u.role === 'student').length} students and {users.filter(u => u.role === 'instructor').length} instructors active • 4 hours ago</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{(users || []).filter(u => u.role === 'student').length} students and {(users || []).filter(u => u.role === 'instructor').length} instructors active • 4 hours ago</p>
             </div>
           </div>
           
@@ -1604,7 +1734,7 @@ const SuperAdminDashboard = () => {
             <BookOpen className="h-5 w-5 text-purple-600 mr-3" />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900 dark:text-white">Course management activity</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">{courses.length} courses managed, {instructors.length} instructors assigned • 6 hours ago</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{(courses || []).length} courses managed, {(instructors || []).length} instructors assigned • 6 hours ago</p>
             </div>
           </div>
           
@@ -1612,7 +1742,7 @@ const SuperAdminDashboard = () => {
             <MessageSquare className="h-5 w-5 text-orange-600 mr-3" />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900 dark:text-white">Contact messages reviewed</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">{contacts.filter(c => c.status === 'pending').length} pending messages, {contacts.filter(c => c.status === 'replied').length} replied • 8 hours ago</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{(contacts || []).filter(c => c.status === 'pending').length} pending messages, {(contacts || []).filter(c => c.status === 'replied').length} replied • 8 hours ago</p>
             </div>
           </div>
         </div>
@@ -1741,11 +1871,11 @@ const SuperAdminDashboard = () => {
             <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">Top 3 Courses by Enrollment</h3>
           </div>
           <div className="space-y-4">
-            {courses
+            {(courses || [])
               .sort((a, b) => (b.studentCount || 0) - (a.studentCount || 0))
               .slice(0, 3)
               .map((course, index) => {
-                const maxStudents = Math.max(...courses.map(c => c.studentCount || 0), 1);
+                const maxStudents = Math.max(...(courses || []).map(c => c.studentCount || 0), 1);
                 const percentage = ((course.studentCount || 0) / maxStudents) * 100;
                 const colors = ['bg-yellow-500', 'bg-gray-400', 'bg-orange-500'];
                 const bgColors = ['bg-yellow-100 dark:bg-yellow-900/20', 'bg-gray-100 dark:bg-gray-700/20', 'bg-orange-100 dark:bg-orange-900/20'];
@@ -1777,7 +1907,7 @@ const SuperAdminDashboard = () => {
                 );
               })
             }
-            {courses.length === 0 && (
+            {(courses || []).length === 0 && (
               <div className="text-center py-8">
                 <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-2" />
                 <p className="text-gray-500 dark:text-gray-400">No courses available</p>
@@ -1796,6 +1926,19 @@ const SuperAdminDashboard = () => {
           <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">Quick Actions</h3>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+          {/* View Reels - Always visible for superadmin */}
+          {user?.role === 'superadmin' && (
+            <button 
+              onClick={() => {
+                setActiveTab('reels');
+              }}
+              className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl hover:from-orange-100 hover:to-red-100 dark:hover:from-orange-900/30 dark:hover:to-red-900/30 transition-all duration-200 group border border-orange-200 dark:border-orange-700"
+            >
+              <Eye className="h-6 w-6 lg:h-8 lg:w-8 text-orange-600 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white text-center">View Reels</span>
+            </button>
+          )}
+
           {/* Create Admin - Only for superadmin */}
           {user?.role === 'superadmin' && (
             <button 
@@ -3374,6 +3517,412 @@ const SuperAdminDashboard = () => {
               <div className="flex gap-3 mt-4">
                 <button onClick={() => { setShowRejectModal(false); setRejectionReason(''); }} className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600">Cancel</button>
                 <button onClick={handleRejectRequest} disabled={!rejectionReason.trim() || loading} className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">{loading ? 'Rejecting...' : 'Reject Request'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderReels = () => (
+    <div className="space-y-4 lg:space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-2xl p-4 lg:p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Video className="h-6 w-6 text-red-600" />
+              Reel Management
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Upload and manage educational video reels
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => {
+                setShowReelsList(true);
+                fetchReels();
+              }}
+              className="bg-orange-600 text-white px-4 py-2 rounded-xl hover:bg-orange-700 flex items-center gap-2 text-sm font-medium"
+            >
+              <Eye className="h-4 w-4" />
+              View Reels ({reels.length})
+            </button>
+            <button 
+              onClick={() => setShowReelUpload(true)}
+              className="bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700 flex items-center gap-2 text-sm font-medium"
+            >
+              <Video className="h-4 w-4" />
+              Upload Reel
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Reels Grid */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+        <div className="p-6">
+          {reelsLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-400">Loading reels...</p>
+            </div>
+          ) : reels.length === 0 ? (
+            <div className="text-center py-12">
+              <Video className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Reels Found</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">Upload your first reel to get started.</p>
+              <button 
+                onClick={() => setShowReelUpload(true)}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center gap-2 mx-auto"
+              >
+                <Video className="h-4 w-4" />
+                Upload Reel
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {reels.map((reel) => (
+                <div key={reel._id} className="bg-gray-50 dark:bg-gray-700 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-200">
+                  <div className="aspect-video bg-gray-200 dark:bg-gray-600 relative">
+                    <video 
+                      src={reel.videoUrl} 
+                      className="w-full h-full object-cover"
+                      controls
+                      preload="metadata"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 break-words leading-tight">
+                      {reel.title}
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 break-words leading-relaxed whitespace-pre-wrap overflow-wrap-anywhere">
+                      {reel.description}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-3">
+                      <span>👁️ {reel.views || 0} views</span>
+                      <span>❤️ {reel.likes?.length || 0} likes</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(reel.createdAt).toLocaleDateString()}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleEditReel(reel)}
+                          className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                          title="Edit Reel"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteReel(reel._id)}
+                          className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                          title="Delete Reel"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Reel Upload Modal - Perfect Mobile Responsive */}
+      {showReelUpload && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 w-full sm:max-w-lg sm:w-full h-full sm:h-auto sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-4 border-b">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Upload New Reel</h3>
+                <button
+                  onClick={() => {
+                    setShowReelUpload(false);
+                    setReelForm({ title: '', description: '', video: null });
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            
+            {/* Body - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              <div className="space-y-6">
+                {/* Video Title */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Video Title
+                  </label>
+                  <input
+                    type="text"
+                    value={reelForm.title}
+                    onChange={(e) => handleReelFormChange('title', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter video title"
+                    maxLength={100}
+                  />
+                </div>
+                
+                {/* Description */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={reelForm.description}
+                    onChange={(e) => handleReelFormChange('description', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter video description"
+                    maxLength={500}
+                  />
+                </div>
+                
+                {/* Video Upload */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Video File
+                  </label>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={handleReelVideoUpload}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Footer - Fixed */}
+            <div className="border-t-2 border-gray-200 dark:border-gray-700 p-4 sm:p-6 bg-gray-50 dark:bg-gray-900/50 flex-shrink-0 sm:rounded-b-3xl">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={handleUploadReel}
+                  disabled={loading || !reelForm.title.trim() || !reelForm.description.trim() || !reelForm.video}
+                  className="flex-1 bg-gradient-to-r from-red-500 via-pink-500 to-purple-600 text-white py-4 px-6 rounded-2xl hover:from-red-600 hover:via-pink-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 font-bold text-base transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 active:scale-95"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                      <span>Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Video className="h-5 w-5" />
+                      <span>🚀 Upload Reel</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowReelUpload(false);
+                    setReelForm({ title: '', description: '', video: null });
+                  }}
+                  disabled={loading}
+                  className="flex-1 sm:flex-none sm:px-8 bg-gray-500 text-white py-4 px-6 rounded-2xl hover:bg-gray-600 disabled:opacity-50 font-bold text-base transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:scale-95"
+                >
+                  Cancel
+                </button>
+              </div>
+              
+              {/* Progress indicator for mobile */}
+              <div className="mt-4 sm:hidden">
+                <div className="flex justify-center space-x-2">
+                  <div className={`w-2 h-2 rounded-full transition-colors ${
+                    reelForm.title.trim() ? 'bg-green-500' : 'bg-gray-300'
+                  }`}></div>
+                  <div className={`w-2 h-2 rounded-full transition-colors ${
+                    reelForm.description.trim() ? 'bg-green-500' : 'bg-gray-300'
+                  }`}></div>
+                  <div className={`w-2 h-2 rounded-full transition-colors ${
+                    reelForm.video ? 'bg-green-500' : 'bg-gray-300'
+                  }`}></div>
+                </div>
+                <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
+                  {reelForm.title.trim() && reelForm.description.trim() && reelForm.video 
+                    ? '✅ Ready to upload!' 
+                    : `${[reelForm.title.trim(), reelForm.description.trim(), reelForm.video].filter(Boolean).length}/3 completed`
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Reel Modal - Perfect Mobile Responsive */}
+      {showEditReel && editingReel && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 w-full sm:max-w-lg sm:w-full h-full sm:h-auto sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+            {/* Header - Fixed */}
+            <div className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 p-4 sm:p-6 flex-shrink-0 sm:rounded-t-3xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                    <Edit className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-bold text-white">
+                      Edit Reel
+                    </h3>
+                    <p className="text-blue-100 text-xs sm:text-sm">Update video details</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowEditReel(false);
+                    setEditingReel(null);
+                    setReelForm({ title: '', description: '', video: null });
+                  }}
+                  className="p-2 sm:p-3 hover:bg-white/20 rounded-xl transition-all duration-200 group"
+                >
+                  <X className="h-5 w-5 sm:h-6 sm:w-6 text-white group-hover:scale-110 transition-transform" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Body - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              <div className="space-y-6">
+                {/* Video Title */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    📝 Video Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={reelForm.title}
+                    onChange={(e) => handleReelFormChange('title', e.target.value)}
+                    className="w-full px-4 py-3 sm:py-4 border-2 border-gray-300 dark:border-gray-600 rounded-2xl dark:bg-gray-700 dark:text-white text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 placeholder-gray-400"
+                    placeholder="Enter an engaging video title..."
+                    maxLength={100}
+                  />
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Make it catchy and descriptive</p>
+                    <span className="text-xs text-gray-400">{reelForm.title.length}/100</span>
+                  </div>
+                </div>
+                
+                {/* Description */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    📄 Description *
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={reelForm.description}
+                    onChange={(e) => handleReelFormChange('description', e.target.value)}
+                    className="w-full px-4 py-3 sm:py-4 border-2 border-gray-300 dark:border-gray-600 rounded-2xl dark:bg-gray-700 dark:text-white text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 placeholder-gray-400 resize-none"
+                    placeholder="Describe what viewers will learn from this video..."
+                    maxLength={500}
+                  />
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Explain the educational value</p>
+                    <span className="text-xs text-gray-400">{reelForm.description.length}/500</span>
+                  </div>
+                </div>
+                
+                {/* Current Video Info */}
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-3xl p-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center">
+                      <Video className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-bold text-blue-800 dark:text-blue-300">
+                        🎥 Current Video
+                      </h4>
+                      <p className="text-sm text-blue-600 dark:text-blue-400">
+                        Video file cannot be changed
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white/60 dark:bg-gray-800/60 rounded-2xl p-4 backdrop-blur-sm">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                          📹 Original Video
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Only title and description can be updated
+                        </p>
+                      </div>
+                      <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-lg">✓</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-2xl p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-amber-600 text-sm">💡</span>
+                      <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+                        To change the video file, you'll need to delete this reel and upload a new one.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Footer - Fixed */}
+            <div className="border-t-2 border-gray-200 dark:border-gray-700 p-4 sm:p-6 bg-gray-50 dark:bg-gray-900/50 flex-shrink-0 sm:rounded-b-3xl">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={handleUpdateReel}
+                  disabled={loading || !reelForm.title.trim() || !reelForm.description.trim()}
+                  className="flex-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 text-white py-4 px-6 rounded-2xl hover:from-blue-600 hover:via-indigo-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 font-bold text-base transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 active:scale-95"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                      <span>Updating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Edit className="h-5 w-5" />
+                      <span>✨ Update Reel</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEditReel(false);
+                    setEditingReel(null);
+                    setReelForm({ title: '', description: '', video: null });
+                  }}
+                  disabled={loading}
+                  className="flex-1 sm:flex-none sm:px-8 bg-gray-500 text-white py-4 px-6 rounded-2xl hover:bg-gray-600 disabled:opacity-50 font-bold text-base transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:scale-95"
+                >
+                  Cancel
+                </button>
+              </div>
+              
+              {/* Progress indicator for mobile */}
+              <div className="mt-4 sm:hidden">
+                <div className="flex justify-center space-x-2">
+                  <div className={`w-2 h-2 rounded-full transition-colors ${
+                    reelForm.title.trim() ? 'bg-green-500' : 'bg-gray-300'
+                  }`}></div>
+                  <div className={`w-2 h-2 rounded-full transition-colors ${
+                    reelForm.description.trim() ? 'bg-green-500' : 'bg-gray-300'
+                  }`}></div>
+                </div>
+                <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
+                  {reelForm.title.trim() && reelForm.description.trim()
+                    ? '✅ Ready to update!' 
+                    : `${[reelForm.title.trim(), reelForm.description.trim()].filter(Boolean).length}/2 completed`
+                  }
+                </p>
               </div>
             </div>
           </div>
@@ -5814,6 +6363,7 @@ const SuperAdminDashboard = () => {
       case 'reviews': return renderReviews();
       case 'subscriptions': return <SubscriptionManagement showNewsletterForm={showNewsletterForm} setShowNewsletterForm={setShowNewsletterForm} />;
       case 'notifications': return renderSendNotification();
+      case 'reels': return renderReels();
       case 'admins': return renderAdmins();
       case 'users': return renderUsers();
       case 'settings': return renderSettings();

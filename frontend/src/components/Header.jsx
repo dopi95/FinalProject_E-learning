@@ -171,6 +171,7 @@ const Header = () => {
               {[
                 { to: '/', label: t('nav.home'), onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
                 { to: '/about', label: t('nav.about') },
+                { to: '/reels', label: 'Reels' },
                 { to: '/contact', label: t('nav.contact') }
               ].map((item) => (
                 <Link
@@ -363,6 +364,7 @@ const Header = () => {
               {[
                 { to: '/', label: t('nav.home'), onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
                 { to: '/about', label: t('nav.about') },
+                { to: '/reels', label: 'Reels' },
                 { to: '/contact', label: t('nav.contact') },
                 { to: getDashboardRoute(), label: user ? 'My Account' : t('nav.login') }
               ].map((item, index) => (
