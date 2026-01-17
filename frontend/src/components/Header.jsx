@@ -5,6 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Sun, Moon, Menu, X, User, Bell, BellOff } from 'lucide-react';
 import { subscriptionAPI } from '../services/api';
 import LoginRequiredModal from './LoginRequiredModal';
+import VideoReels from './VideoReels';
 
 
 const Header = () => {
@@ -15,6 +16,7 @@ const Header = () => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showSubscribeMenu, setShowSubscribeMenu] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showVideoReels, setShowVideoReels] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -171,18 +173,29 @@ const Header = () => {
               {[
                 { to: '/', label: t('nav.home'), onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
                 { to: '/about', label: t('nav.about') },
-                { to: '/reels', label: 'Reels' },
+                { action: () => setShowVideoReels(true), label: 'Reels' },
                 { to: '/contact', label: t('nav.contact') }
               ].map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={item.onClick}
-                  className="relative px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 group"
-                >
-                  <span className="relative z-10">{item.label}</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity scale-95 group-hover:scale-100 transform"></div>
-                </Link>
+                item.to ? (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    onClick={item.onClick}
+                    className="relative px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 group"
+                  >
+                    <span className="relative z-10">{item.label}</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity scale-95 group-hover:scale-100 transform"></div>
+                  </Link>
+                ) : (
+                  <button
+                    key={item.label}
+                    onClick={item.action}
+                    className="relative px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 group"
+                  >
+                    <span className="relative z-10">{item.label}</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity scale-95 group-hover:scale-100 transform"></div>
+                  </button>
+                )
               ))}
             </nav>
 
@@ -364,26 +377,44 @@ const Header = () => {
               {[
                 { to: '/', label: t('nav.home'), onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
                 { to: '/about', label: t('nav.about') },
-                { to: '/reels', label: 'Reels' },
+                { action: () => setShowVideoReels(true), label: 'Reels' },
                 { to: '/contact', label: t('nav.contact') },
                 { to: getDashboardRoute(), label: user ? 'My Account' : t('nav.login') }
               ].map((item, index) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => {
-                    closeMobileMenu();
-                    if (item.onClick) item.onClick();
-                  }}
-                  className={`group flex items-center p-4 rounded-2xl text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-indigo-50/80 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-500 transform hover:scale-105 hover:shadow-lg backdrop-blur-sm border border-transparent hover:border-blue-200/50 dark:hover:border-blue-700/50 ${isMobileMenuOpen ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}
-                  style={{ transitionDelay: `${300 + index * 100}ms` }}
-                >
-                  <div className="flex-1">
-                    <span className="text-lg font-medium block transform group-hover:translate-x-1 transition-transform duration-300">{item.label}</span>
-                    <div className="h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left mt-1 rounded-full"></div>
-                  </div>
-                  <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full opacity-0 group-hover:opacity-100 transform scale-0 group-hover:scale-100 transition-all duration-300"></div>
-                </Link>
+                item.to ? (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => {
+                      closeMobileMenu();
+                      if (item.onClick) item.onClick();
+                    }}
+                    className={`group flex items-center p-4 rounded-2xl text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-indigo-50/80 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-500 transform hover:scale-105 hover:shadow-lg backdrop-blur-sm border border-transparent hover:border-blue-200/50 dark:hover:border-blue-700/50 ${isMobileMenuOpen ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}
+                    style={{ transitionDelay: `${300 + index * 100}ms` }}
+                  >
+                    <div className="flex-1">
+                      <span className="text-lg font-medium block transform group-hover:translate-x-1 transition-transform duration-300">{item.label}</span>
+                      <div className="h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left mt-1 rounded-full"></div>
+                    </div>
+                    <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full opacity-0 group-hover:opacity-100 transform scale-0 group-hover:scale-100 transition-all duration-300"></div>
+                  </Link>
+                ) : (
+                  <button
+                    key={item.label}
+                    onClick={() => {
+                      closeMobileMenu();
+                      item.action();
+                    }}
+                    className={`group flex items-center p-4 rounded-2xl text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-indigo-50/80 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-500 transform hover:scale-105 hover:shadow-lg backdrop-blur-sm border border-transparent hover:border-blue-200/50 dark:hover:border-blue-700/50 ${isMobileMenuOpen ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}
+                    style={{ transitionDelay: `${300 + index * 100}ms` }}
+                  >
+                    <div className="flex-1">
+                      <span className="text-lg font-medium block transform group-hover:translate-x-1 transition-transform duration-300">{item.label}</span>
+                      <div className="h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left mt-1 rounded-full"></div>
+                    </div>
+                    <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full opacity-0 group-hover:opacity-100 transform scale-0 group-hover:scale-100 transition-all duration-300"></div>
+                  </button>
+                )
               ))}
             </nav>
 
@@ -436,6 +467,12 @@ const Header = () => {
           setShowLoginModal(false);
           window.location.href = '/register';
         }}
+      />
+
+      {/* Video Reels Modal */}
+      <VideoReels 
+        isOpen={showVideoReels} 
+        onClose={() => setShowVideoReels(false)} 
       />
     </>
   );

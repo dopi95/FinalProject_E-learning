@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Play, Pause, Volume2, VolumeX, Heart, MessageCircle, Share, MoreVertical, Loader, Send, User } from 'lucide-react';
+import { X, Play, Pause, Volume2, VolumeX, Heart, MessageCircle, Share, MoreVertical, Loader, Send, User, Reply, Trash2 } from 'lucide-react';
 import { reelAPI } from '../services/api';
 
 const VideoReels = ({ isOpen, onClose }) => {
@@ -17,6 +17,8 @@ const VideoReels = ({ isOpen, onClose }) => {
   const [user, setUser] = useState(null);
   const [commentCounts, setCommentCounts] = useState({});
   const [expandedDescriptions, setExpandedDescriptions] = useState(new Set());
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState('');
   const [sessionId, setSessionId] = useState(null);
   const [viewedReels, setViewedReels] = useState(new Set());
   const videoRefs = useRef([]);
@@ -126,6 +128,32 @@ const VideoReels = ({ isOpen, onClose }) => {
       setNewComment('');
     } catch (error) {
       console.error('Add comment error:', error);
+    }
+  };
+
+  const handleAddReply = async (reelId, parentCommentId) => {
+    if (!user || !replyText.trim()) return;
+    
+    try {
+      const response = await reelAPI.addComment(reelId, replyText.trim(), parentCommentId);
+      setComments(prev => prev.map(comment => 
+        comment._id === parentCommentId 
+          ? { ...comment, replies: [...(comment.replies || []), response.data.comment] }
+          : comment
+      ));
+      setReplyText('');
+      setReplyingTo(null);
+    } catch (error) {
+      console.error('Add reply error:', error);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      await reelAPI.deleteComment(commentId);
+      setComments(prev => prev.filter(comment => comment._id !== commentId));
+    } catch (error) {
+      console.error('Delete comment error:', error);
     }
   };
 
@@ -470,9 +498,63 @@ const VideoReels = ({ isOpen, onClose }) => {
                       <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed break-words">
                         {comment.comment}
                       </p>
+                      <div className="flex items-center gap-4 mt-2">
+                        <button
+                          onClick={() => setReplyingTo(comment._id)}
+                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                        >
+                          <Reply className="h-3 w-3" />
+                          Reply
+                        </button>
+                        {user && user._id === comment.user?._id && (
+                          <button
+                            onClick={() => handleDeleteComment(comment._id)}
+                            className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 transition-colors"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            Delete
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
+              )}
+              
+              {/* Reply Input */}
+              {replyingTo && user && (
+                <div className="px-4 pb-4">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder="Write a reply..."
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleAddReply(reels[currentVideo]?._id, replyingTo);
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={() => handleAddReply(reels[currentVideo]?._id, replyingTo)}
+                      disabled={!replyText.trim()}
+                      className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      <Send className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setReplyingTo(null);
+                        setReplyText('');
+                      }}
+                      className="px-3 py-2 text-gray-500 hover:text-gray-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
             

@@ -279,8 +279,18 @@ router.post('/:id/like', auth, async (req, res) => {
 // Get comments for a reel
 router.get('/:id/comments', async (req, res) => {
   try {
-    const comments = await ReelComment.find({ reel: req.params.id })
+    const comments = await ReelComment.find({ 
+      reel: req.params.id, 
+      parentComment: null 
+    })
       .populate('user', 'name profileImage')
+      .populate({
+        path: 'replies',
+        populate: {
+          path: 'user',
+          select: 'name profileImage'
+        }
+      })
       .sort({ createdAt: -1 });
 
     res.json({
@@ -296,7 +306,7 @@ router.get('/:id/comments', async (req, res) => {
 // Add comment to reel
 router.post('/:id/comments', auth, async (req, res) => {
   try {
-    const { comment } = req.body;
+    const { comment, parentCommentId } = req.body;
 
     if (!comment || !comment.trim()) {
       return res.status(400).json({ message: 'Comment is required' });
@@ -310,11 +320,20 @@ router.post('/:id/comments', auth, async (req, res) => {
     const newComment = new ReelComment({
       reel: req.params.id,
       user: req.user.id,
-      comment: comment.trim()
+      comment: comment.trim(),
+      parentComment: parentCommentId || null
     });
 
     await newComment.save();
     await newComment.populate('user', 'name profileImage');
+
+    // If this is a reply, add it to parent's replies array
+    if (parentCommentId) {
+      await ReelComment.findByIdAndUpdate(
+        parentCommentId,
+        { $push: { replies: newComment._id } }
+      );
+    }
 
     res.status(201).json({
       success: true,
@@ -323,6 +342,32 @@ router.post('/:id/comments', auth, async (req, res) => {
   } catch (error) {
     console.error('Add comment error:', error);
     res.status(500).json({ message: 'Failed to add comment' });
+  }
+});
+
+// Delete comment
+router.delete('/comments/:commentId', auth, async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const userId = req.user.id;
+
+    const comment = await ReelComment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({ message: 'Comment not found' });
+    }
+
+    // Check if user owns the comment
+    if (comment.user.toString() !== userId) {
+      return res.status(403).json({ message: 'Not authorized to delete this comment' });
+    }
+
+    // Delete the comment and its replies
+    await ReelComment.deleteMany({ $or: [{ _id: commentId }, { parentComment: commentId }] });
+
+    res.json({ message: 'Comment deleted successfully' });
+  } catch (error) {
+    console.error('Delete comment error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

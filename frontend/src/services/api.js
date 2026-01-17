@@ -448,7 +448,10 @@ export const reelAPI = {
   getComments: (id) => api.get(`/reels/${id}/comments`),
   
   // Add comment
-  addComment: (id, comment) => api.post(`/reels/${id}/comments`, { comment }),
+  addComment: (id, comment, parentCommentId = null) => api.post(`/reels/${id}/comments`, { comment, parentCommentId }),
+  
+  // Delete comment
+  deleteComment: (commentId) => api.delete(`/reels/comments/${commentId}`),
   
   // Increment view count
   incrementView: (id, viewData = {}) => api.post(`/reels/${id}/view`, viewData),
