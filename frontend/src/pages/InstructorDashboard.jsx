@@ -1013,7 +1013,8 @@ const InstructorDashboard = () => {
                     <button 
                       onClick={() => {
                         setSelectedCourse(course);
-                        setActiveTab('course-videos');
+                        setFilterType('video');
+                        setActiveTab('materials');
                       }}
                       className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 p-2 rounded-lg transition-colors"
                     >
@@ -1083,7 +1084,8 @@ const InstructorDashboard = () => {
                             <button 
                               onClick={() => {
                                 setSelectedCourse(course);
-                                setActiveTab('course-videos');
+                                setFilterType('video');
+                                setActiveTab('materials');
                               }}
                               className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
                             >
@@ -3109,47 +3111,7 @@ const InstructorDashboard = () => {
     </div>
   );
 
-  const renderCourseVideos = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setActiveTab('courses')}
-            className="text-blue-600 hover:text-blue-800"
-          >
-            ← Back to Courses
-          </button>
-          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
-            {selectedCourse ? `${selectedCourse.title} Videos` : 'Course Videos'}
-          </h2>
-        </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">
-          <Video className="h-4 w-4" />
-          Add Video
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[1, 2, 3, 4].map((video) => (
-          <div key={video} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-            <div className="h-32 bg-gray-300 rounded-lg mb-3 flex items-center justify-center">
-              <Video className="h-8 w-8 text-gray-600" />
-            </div>
-            <h3 className="font-semibold mb-2">Video {video}</h3>
-            <p className="text-sm text-gray-600 mb-3">Duration: {5 + video} minutes</p>
-            <div className="flex space-x-2">
-              <button className="flex-1 bg-blue-600 text-white py-1 px-2 rounded text-sm hover:bg-blue-700">
-                Play
-              </button>
-              <button className="px-2 py-1 border rounded text-sm hover:bg-gray-50">
-                Edit
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+
   const renderExams = () => (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -3418,7 +3380,7 @@ const InstructorDashboard = () => {
     switch (activeTab) {
       case 'overview': return renderOverview();
       case 'courses': return renderCourses();
-      case 'course-videos': return renderCourseVideos();
+
       case 'materials': return renderMaterials();
       case 'assignments': return renderAssignments();
       case 'exams': return renderExams();
