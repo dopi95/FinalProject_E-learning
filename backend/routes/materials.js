@@ -42,6 +42,55 @@ router.get('/course/:courseId', auth, async (req, res) => {
   }
 });
 
+// Get materials for student's enrolled courses
+router.get('/student/courses', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ message: 'Access denied. Students only.' });
+    }
+
+    const Enrollment = require('../models/Enrollment');
+    
+    // Get student's enrolled courses
+    const enrollments = await Enrollment.find({ 
+      user: req.user.id,
+      status: 'active'
+    }).populate('course');
+    
+    const courseIds = enrollments.map(enrollment => enrollment.course._id);
+    
+    // Get materials for all enrolled courses
+    const materials = await Material.find({ 
+      course: { $in: courseIds },
+      isActive: true 
+    })
+      .populate('instructor', 'name email')
+      .populate('course', 'title')
+      .sort({ createdAt: -1 });
+    
+    // Group materials by course
+    const materialsByCourse = {};
+    materials.forEach(material => {
+      const courseId = material.course._id.toString();
+      if (!materialsByCourse[courseId]) {
+        materialsByCourse[courseId] = {
+          course: material.course,
+          materials: []
+        };
+      }
+      materialsByCourse[courseId].materials.push(material);
+    });
+    
+    res.json({ 
+      success: true,
+      materialsByCourse,
+      totalMaterials: materials.length
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Upload material
 router.post('/upload', auth, upload.single('file'), async (req, res) => {
   try {
@@ -181,6 +230,42 @@ router.delete('/:id', auth, async (req, res) => {
     await material.save();
 
     res.json({ message: 'Material deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Download material (for students)
+router.get('/download/:materialId', auth, async (req, res) => {
+  try {
+    const material = await Material.findById(req.params.materialId)
+      .populate('course', 'title');
+    
+    if (!material || !material.isActive) {
+      return res.status(404).json({ message: 'Material not found' });
+    }
+
+    // Check if student is enrolled in the course
+    if (req.user.role === 'student') {
+      const Enrollment = require('../models/Enrollment');
+      const enrollment = await Enrollment.findOne({
+        user: req.user.id,
+        course: material.course._id,
+        status: 'active'
+      });
+      
+      if (!enrollment) {
+        return res.status(403).json({ message: 'Access denied. Not enrolled in this course.' });
+      }
+    }
+
+    // Return download URL
+    res.json({ 
+      success: true,
+      downloadUrl: material.fileUrl,
+      fileName: material.fileName || `${material.title}.${material.fileType?.split('/')[1] || 'file'}`,
+      fileType: material.fileType
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

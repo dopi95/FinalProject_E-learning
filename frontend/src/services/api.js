@@ -384,6 +384,12 @@ export const materialAPI = {
   // Get materials for a course
   getCourseMaterials: (courseId) => api.get(`/materials/course/${courseId}`),
   
+  // Get materials for student's enrolled courses
+  getStudentMaterials: () => api.get('/materials/student/courses'),
+  
+  // Download material
+  downloadMaterial: (materialId) => api.get(`/materials/download/${materialId}`),
+  
   // Upload material
   uploadMaterial: (materialData) => {
     const formData = new FormData();

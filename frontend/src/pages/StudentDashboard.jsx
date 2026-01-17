@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellRing, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star, Globe, Heart, Settings, MapPin } from 'lucide-react';
 import { profileAPI, enrollmentAPI, paymentAPI, subscriptionAPI, notificationAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
+import CourseMaterials from '../components/CourseMaterials';
 import { getUserData, updateUserData, clearUserData } from '../utils/userUtils';
 import { useTranslation } from 'react-i18next';
 
@@ -988,7 +989,9 @@ const StudentDashboard = () => {
           </button>
           
           <button 
-            onClick={() => setActiveTab('course-materials')}
+            onClick={() => {
+              setActiveTab('course-materials');
+            }}
             className="flex flex-col items-center p-3 lg:p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30 transition-all duration-200 group border border-green-200 dark:border-green-700"
           >
             <BookOpen className="h-6 w-6 lg:h-8 lg:w-8 text-green-600 mb-2 group-hover:scale-110 transition-transform" />
@@ -2307,7 +2310,7 @@ const renderPayments = () => (
       case 'courses': return renderCourses();
       case 'enrolled-courses': return renderCourses();
       case 'view-grades': return renderGrades();
-      case 'course-materials': return renderCourseDetails();
+      case 'course-materials': return <CourseMaterials selectedCourse={selectedCourse} onBack={() => setActiveTab('courses')} />;
       case 'assignments': return renderAssignments();
       case 'certificates': return renderCertificates();
       case 'exams': return renderExams();
@@ -2319,91 +2322,6 @@ const renderPayments = () => (
       default: return renderOverview();
     }
   };
-
-  const renderCourseDetails = () => (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4 mb-6">
-        <button 
-          onClick={() => setActiveTab('courses')}
-          className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
-        >
-          ← Back to Courses
-        </button>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {selectedCourse?.title || 'Course Materials'}
-        </h2>
-      </div>
-
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-        <div className="flex items-center gap-6">
-          <div className="w-32 h-24 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-600">
-            {selectedCourse?.image ? (
-              <img 
-                src={selectedCourse.image}
-                alt={selectedCourse.title}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"><span class="text-white text-lg font-bold">' + (selectedCourse?.title ? selectedCourse.title.charAt(0).toUpperCase() : 'C') + '</span></div>';
-                }}
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                <span className="text-white text-lg font-bold">{selectedCourse?.title ? selectedCourse.title.charAt(0).toUpperCase() : 'C'}</span>
-              </div>
-            )}
-          </div>
-          <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              {selectedCourse?.title || 'Course Title'}
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-2">
-              Instructor: {selectedCourse?.instructor?.name || 'Instructor'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <Video className="h-5 w-5 text-red-600" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Video Lectures</h3>
-          </div>
-          <div className="space-y-3">
-            {[1, 2, 3].map((video) => (
-              <div key={video} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <Video className="h-4 w-4 text-gray-600" />
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900 dark:text-white text-sm">Lecture {video}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{10 + video} minutes</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <FileText className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">PDF Materials</h3>
-          </div>
-          <div className="space-y-3">
-            {[1, 2, 3].map((pdf) => (
-              <div key={pdf} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <FileText className="h-4 w-4 text-red-600" />
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900 dark:text-white text-sm">Chapter {pdf} Notes</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">PDF • 2.{pdf} MB</p>
-                </div>
-                <Download className="h-4 w-4 text-gray-400" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
