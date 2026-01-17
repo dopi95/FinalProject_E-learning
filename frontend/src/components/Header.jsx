@@ -381,40 +381,38 @@ const Header = () => {
                 { to: '/contact', label: t('nav.contact') },
                 { to: getDashboardRoute(), label: user ? 'My Account' : t('nav.login') }
               ].map((item, index) => (
-                item.to ? (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    onClick={() => {
-                      closeMobileMenu();
-                      if (item.onClick) item.onClick();
-                    }}
-                    className={`group flex items-center p-4 rounded-2xl text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-indigo-50/80 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-500 transform hover:scale-105 hover:shadow-lg backdrop-blur-sm border border-transparent hover:border-blue-200/50 dark:hover:border-blue-700/50 ${isMobileMenuOpen ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}
-                    style={{ transitionDelay: `${300 + index * 100}ms` }}
-                  >
-                    <div className="flex-1">
-                      <span className="text-lg font-medium block transform group-hover:translate-x-1 transition-transform duration-300">{item.label}</span>
-                      <div className="h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left mt-1 rounded-full"></div>
-                    </div>
-                    <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full opacity-0 group-hover:opacity-100 transform scale-0 group-hover:scale-100 transition-all duration-300"></div>
-                  </Link>
-                ) : (
-                  <button
-                    key={item.label}
-                    onClick={() => {
-                      closeMobileMenu();
-                      item.action();
-                    }}
-                    className={`group flex items-center p-4 rounded-2xl text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-indigo-50/80 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-500 transform hover:scale-105 hover:shadow-lg backdrop-blur-sm border border-transparent hover:border-blue-200/50 dark:hover:border-blue-700/50 ${isMobileMenuOpen ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}
-                    style={{ transitionDelay: `${300 + index * 100}ms` }}
-                  >
-                    <div className="flex-1">
-                      <span className="text-lg font-medium block transform group-hover:translate-x-1 transition-transform duration-300">{item.label}</span>
-                      <div className="h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left mt-1 rounded-full"></div>
-                    </div>
-                    <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full opacity-0 group-hover:opacity-100 transform scale-0 group-hover:scale-100 transition-all duration-300"></div>
-                  </button>
-                )
+                <div key={item.to || item.label} className={`group transform transition-all duration-500 ${isMobileMenuOpen ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`} style={{ transitionDelay: `${300 + index * 100}ms` }}>
+                  {item.to ? (
+                    <Link
+                      to={item.to}
+                      onClick={() => {
+                        closeMobileMenu();
+                        if (item.onClick) item.onClick();
+                      }}
+                      className="flex items-center p-4 rounded-2xl text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-indigo-50/80 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-500 transform hover:scale-105 hover:shadow-lg backdrop-blur-sm border border-transparent hover:border-blue-200/50 dark:hover:border-blue-700/50"
+                    >
+                      <div className="flex-1">
+                        <span className="text-lg font-medium block transform group-hover:translate-x-1 transition-transform duration-300">{item.label}</span>
+                        <div className="h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left mt-1 rounded-full"></div>
+                      </div>
+                      <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full opacity-0 group-hover:opacity-100 transform scale-0 group-hover:scale-100 transition-all duration-300"></div>
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        closeMobileMenu();
+                        item.action();
+                      }}
+                      className="w-full flex items-center p-4 rounded-2xl text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-indigo-50/80 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-500 transform hover:scale-105 hover:shadow-lg backdrop-blur-sm border border-transparent hover:border-blue-200/50 dark:hover:border-blue-700/50 text-left"
+                    >
+                      <div className="flex-1">
+                        <span className="text-lg font-medium block transform group-hover:translate-x-1 transition-transform duration-300">{item.label}</span>
+                        <div className="h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left mt-1 rounded-full"></div>
+                      </div>
+                      <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full opacity-0 group-hover:opacity-100 transform scale-0 group-hover:scale-100 transition-all duration-300"></div>
+                    </button>
+                  )}
+                </div>
               ))}
             </nav>
 

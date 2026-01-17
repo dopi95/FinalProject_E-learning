@@ -345,8 +345,34 @@ router.post('/:id/comments', auth, async (req, res) => {
   }
 });
 
-// Delete comment
+// Delete comment (alternative route)
 router.delete('/comments/:commentId', auth, async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const userId = req.user.id;
+
+    const comment = await ReelComment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({ message: 'Comment not found' });
+    }
+
+    // Check if user owns the comment
+    if (comment.user.toString() !== userId) {
+      return res.status(403).json({ message: 'Not authorized to delete this comment' });
+    }
+
+    // Delete the comment and its replies
+    await ReelComment.deleteMany({ $or: [{ _id: commentId }, { parentComment: commentId }] });
+
+    res.json({ message: 'Comment deleted successfully' });
+  } catch (error) {
+    console.error('Delete comment error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete comment
+router.delete('/:reelId/comments/:commentId', auth, async (req, res) => {
   try {
     const { commentId } = req.params;
     const userId = req.user.id;

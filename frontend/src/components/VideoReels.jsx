@@ -475,48 +475,94 @@ const VideoReels = ({ isOpen, onClose }) => {
                 </div>
               ) : (
                 comments.map((comment) => (
-                  <div key={comment._id} className="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      {comment.user?.profileImage ? (
-                        <img src={comment.user.profileImage} alt="" className="w-full h-full rounded-full object-cover" />
-                      ) : (
-                        <User className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                          {comment.user?.name || 'Anonymous'}
-                        </p>
-                        <span className="text-xs text-gray-400 flex-shrink-0">
-                          {new Date(comment.createdAt).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed break-words">
-                        {comment.comment}
-                      </p>
-                      <div className="flex items-center gap-4 mt-2">
-                        <button
-                          onClick={() => setReplyingTo(comment._id)}
-                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
-                        >
-                          <Reply className="h-3 w-3" />
-                          Reply
-                        </button>
-                        {user && user._id === comment.user?._id && (
-                          <button
-                            onClick={() => handleDeleteComment(comment._id)}
-                            className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 transition-colors"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            Delete
-                          </button>
+                  <div key={comment._id} className="space-y-3">
+                    {/* Main Comment */}
+                    <div className="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        {comment.user?.profileImage ? (
+                          <img src={comment.user.profileImage} alt="" className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                          <User className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                         )}
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                            {comment.user?.name || 'Anonymous'}
+                          </p>
+                          <span className="text-xs text-gray-400 flex-shrink-0">
+                            {new Date(comment.createdAt).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric' 
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed break-words">
+                          {comment.comment}
+                        </p>
+                        <div className="flex items-center gap-4 mt-2">
+                          <button
+                            onClick={() => setReplyingTo(comment._id)}
+                            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                          >
+                            <Reply className="h-3 w-3" />
+                            Reply
+                          </button>
+                          {user && user._id === comment.user?._id && (
+                            <button
+                              onClick={() => handleDeleteComment(comment._id)}
+                              className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 transition-colors"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Replies */}
+                    {comment.replies && comment.replies.length > 0 && (
+                      <div className="ml-8 space-y-2">
+                        {comment.replies.map((reply) => (
+                          <div key={reply._id} className="flex gap-2 p-2 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                            <div className="w-6 h-6 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                              {reply.user?.profileImage ? (
+                                <img src={reply.user.profileImage} alt="" className="w-full h-full rounded-full object-cover" />
+                              ) : (
+                                <User className="h-3 w-3 text-white" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-xs text-gray-900 dark:text-white">
+                                    {reply.user?.name || 'User'}
+                                  </span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    {new Date(reply.createdAt).toLocaleDateString('en-US', { 
+                                      month: 'short', 
+                                      day: 'numeric' 
+                                    })}
+                                  </span>
+                                </div>
+                                {user && user._id === reply.user?._id && (
+                                  <button
+                                    onClick={() => handleDeleteComment(reply._id)}
+                                    className="text-xs text-red-600 hover:text-red-800 transition-colors"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed break-words">
+                                {reply.comment}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))
               )}
