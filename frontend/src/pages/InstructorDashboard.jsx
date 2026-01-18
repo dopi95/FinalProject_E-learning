@@ -76,6 +76,7 @@ const InstructorDashboard = () => {
     instructions: '',
     dueDate: '',
     course: '',
+    weightMarks: 10,
     file: null
   });
   const [editingAssignment, setEditingAssignment] = useState(null);
@@ -122,6 +123,79 @@ const InstructorDashboard = () => {
 
   const hideNotification = () => {
     setNotification(prev => ({ ...prev, isVisible: false }));
+  };
+
+  // Helper function to format due date with time remaining
+  const formatDueDate = (dueDate) => {
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diffMs = due - now;
+    
+    if (diffMs <= 0) {
+      return {
+        text: `Due: ${due.toLocaleString()} (OVERDUE)`,
+        isOverdue: true,
+        timeLeft: null
+      };
+    }
+    
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    let timeLeftText = '';
+    if (diffDays > 0) {
+      timeLeftText = `${diffDays}d ${diffHours % 24}h left`;
+    } else if (diffHours > 0) {
+      timeLeftText = `${diffHours}h ${diffMinutes}m left`;
+    } else if (diffMinutes > 0) {
+      timeLeftText = `${diffMinutes}m left`;
+    } else {
+      timeLeftText = 'Overdue';
+    }
+    
+    return {
+      text: `Due: ${due.toLocaleString()} (${timeLeftText})`,
+      isOverdue: false,
+      timeLeft: timeLeftText
+    };
+  };
+
+  // Handle file download
+  const handleDownloadFile = async (fileUrl, fileName) => {
+    try {
+      setLoading(true);
+      
+      // Fetch the file
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
+      
+      // Get the file as blob
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName || 'download';
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      showNotification('success', 'Downloaded', `${fileName} downloaded successfully`);
+    } catch (error) {
+      console.error('Download error:', error);
+      showNotification('error', 'Download Failed', 'Failed to download file');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleImageUpload = async (event) => {
@@ -538,7 +612,8 @@ const InstructorDashboard = () => {
         title: assignmentForm.title,
         instructions: assignmentForm.instructions,
         dueDate: assignmentForm.dueDate,
-        course: assignmentForm.course
+        course: assignmentForm.course,
+        weightMarks: assignmentForm.weightMarks
       };
 
       if (assignmentForm.file) {
@@ -554,7 +629,7 @@ const InstructorDashboard = () => {
       }
 
       setShowAssignmentModal(false);
-      setAssignmentForm({ title: '', instructions: '', dueDate: '', course: '', file: null });
+      setAssignmentForm({ title: '', instructions: '', dueDate: '', course: '', weightMarks: 10, file: null });
       setEditingAssignment(null);
       fetchAssignments();
       
@@ -572,6 +647,40 @@ const InstructorDashboard = () => {
     } catch (error) {
       console.error('Assignment submit error:', error);
       showNotification('error', 'Error', error.response?.data?.message || 'Failed to save assignment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Send assignment to students
+  const handleSendAssignment = async (assignmentId) => {
+    const assignment = assignments.find(a => a._id === assignmentId);
+    const courseName = courses.find(c => c._id === assignment?.course)?.title || 'this course';
+    
+    if (!confirm(`Are you sure you want to send this assignment to all students enrolled in ${courseName}?`)) return;
+
+    try {
+      setLoading(true);
+      const response = await assignmentAPI.sendAssignment(assignmentId);
+      const studentsCount = response.data.studentsCount || 0;
+      
+      // Send notification to students
+      try {
+        await notificationAPI.sendNotification({
+          title: 'New Assignment Available',
+          message: `New assignment "${assignment.title}" has been posted for ${courseName}. Due: ${new Date(assignment.dueDate).toLocaleDateString()}`,
+          role: 'student',
+          course: assignment.course
+        });
+      } catch (notifError) {
+        console.error('Notification error:', notifError);
+      }
+      
+      showNotification('success', 'Assignment Sent!', `Assignment sent to ${studentsCount} enrolled students successfully`);
+      fetchAssignments();
+    } catch (error) {
+      console.error('Send assignment error:', error);
+      showNotification('error', 'Error', error.response?.data?.message || 'Failed to send assignment');
     } finally {
       setLoading(false);
     }
@@ -597,8 +706,9 @@ const InstructorDashboard = () => {
   // Grade submission
   const handleGradeSubmission = async () => {
     try {
-      if (!gradeForm.grade || gradeForm.grade < 0 || gradeForm.grade > 100) {
-        showNotification('error', 'Error', 'Please enter a valid grade (0-100)');
+      const weightMarks = selectedAssignment.weightMarks || 10;
+      if (!gradeForm.grade || gradeForm.grade < 0 || gradeForm.grade > weightMarks) {
+        showNotification('error', 'Error', `Please enter a valid grade (0-${weightMarks})`);
         return;
       }
 
@@ -611,6 +721,19 @@ const InstructorDashboard = () => {
           feedback: gradeForm.feedback
         }
       );
+
+      // Send notification to student about grade
+      try {
+        const courseName = courses.find(c => c._id === selectedAssignment.course)?.title || 'Course';
+        await notificationAPI.sendNotification({
+          title: 'Assignment Graded',
+          message: `Your assignment "${selectedAssignment.title}" for ${courseName} has been graded. Score: ${gradeForm.grade}/${weightMarks}`,
+          role: 'student',
+          course: selectedAssignment.course
+        });
+      } catch (notifError) {
+        console.error('Notification error:', notifError);
+      }
 
       showNotification('success', 'Success', 'Submission graded successfully');
       setGradingSubmission(null);
@@ -1365,6 +1488,19 @@ const InstructorDashboard = () => {
           setUploadProgress(100);
           
           showNotification('success', 'Success', 'YouTube video added successfully');
+          
+          // Send notification to students about new material
+          try {
+            await notificationAPI.sendNotification({
+              title: 'New Course Material',
+              message: `New video "${uploadForm.title}" has been uploaded to ${selectedCourse.title}`,
+              role: 'student',
+              course: selectedCourse._id
+            });
+          } catch (notifError) {
+            console.error('Notification error:', notifError);
+          }
+          
           setShowUploadModal(false);
           setUploadForm({
             title: '',
@@ -1417,6 +1553,19 @@ const InstructorDashboard = () => {
         setUploadProgress(100);
 
         showNotification('success', 'Success', `${uploadForm.files.length} material(s) uploaded successfully`);
+        
+        // Send notification to students about new material
+        try {
+          await notificationAPI.sendNotification({
+            title: 'New Course Material',
+            message: `New ${uploadForm.type === 'video' ? 'video' : uploadForm.type === 'file' ? 'document' : 'lecture note'} "${uploadForm.title}" has been uploaded to ${selectedCourse.title}`,
+            role: 'student',
+            course: selectedCourse._id
+          });
+        } catch (notifError) {
+          console.error('Notification error:', notifError);
+        }
+        
         setShowUploadModal(false);
         setUploadForm({
           title: '',
@@ -1975,7 +2124,7 @@ const InstructorDashboard = () => {
           onClick={() => {
             setShowAssignmentModal(true);
             setEditingAssignment(null);
-            setAssignmentForm({ title: '', instructions: '', dueDate: '', course: '', file: null });
+            setAssignmentForm({ title: '', instructions: '', dueDate: '', course: '', weightMarks: 10, file: null });
           }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm lg:text-base flex items-center gap-2"
         >
@@ -2001,7 +2150,7 @@ const InstructorDashboard = () => {
             {assignments.map((assignment) => {
               const submissionCount = assignment.submissions?.length || 0;
               const gradedCount = assignment.submissions?.filter(s => s.grade !== undefined).length || 0;
-              const isOverdue = new Date() > new Date(assignment.dueDate);
+              const dueDateInfo = formatDueDate(assignment.dueDate);
               
               return (
                 <div key={assignment._id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4">
@@ -2018,17 +2167,18 @@ const InstructorDashboard = () => {
                       </button>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{courses.find(c => c._id === assignment.course)?.title || 'Unknown Course'}</p>
                       <p className={`text-xs mt-1 ${
-                        isOverdue ? 'text-red-600' : 'text-gray-600 dark:text-gray-400'
+                        dueDateInfo.isOverdue ? 'text-red-600 font-semibold' : 'text-gray-600 dark:text-gray-400'
                       }`}>
-                        Due: {new Date(assignment.dueDate).toLocaleDateString()}
+                        {dueDateInfo.text}
                       </p>
                     </div>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      dueDateInfo.isOverdue ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
                       assignment.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
                       assignment.status === 'draft' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
                       'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                     }`}>
-                      {assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}
+                      {dueDateInfo.isOverdue ? 'OVERDUE' : assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}
                     </span>
                   </div>
                   
@@ -2059,8 +2209,10 @@ const InstructorDashboard = () => {
                         setAssignmentForm({
                           title: assignment.title,
                           instructions: assignment.instructions,
-                          dueDate: new Date(assignment.dueDate).toISOString().slice(0, 16),
+                          dueDate: assignment.dueDate ? new Date(new Date(assignment.dueDate).getTime() - new Date(assignment.dueDate).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '',
                           course: assignment.course,
+                          totalMarks: assignment.totalMarks || 100,
+                          weightMarks: assignment.weightMarks || 10,
                           file: assignment.file ? { name: assignment.file.fileName, isExisting: true, url: assignment.file.fileUrl } : null
                         });
                         setShowAssignmentModal(true);
@@ -2099,7 +2251,7 @@ const InstructorDashboard = () => {
                   {assignments.map((assignment) => {
                     const submissionCount = assignment.submissions?.length || 0;
                     const gradedCount = assignment.submissions?.filter(s => s.grade !== undefined).length || 0;
-                    const isOverdue = new Date() > new Date(assignment.dueDate);
+                    const dueDateInfo = formatDueDate(assignment.dueDate);
                     
                     return (
                       <tr key={assignment._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -2109,7 +2261,8 @@ const InstructorDashboard = () => {
                               setSelectedAssignment(assignment);
                               setShowAssignmentDetail(true);
                             }}
-                            className="text-blue-600 hover:text-blue-800 font-medium"
+                            className="text-blue-600 hover:text-blue-800 font-medium truncate max-w-xs block text-left"
+                            title={assignment.title}
                           >
                             {assignment.title}
                           </button>
@@ -2119,12 +2272,9 @@ const InstructorDashboard = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div className={`text-sm ${
-                            isOverdue ? 'text-red-600' : 'text-gray-900 dark:text-white'
+                            dueDateInfo.isOverdue ? 'text-red-600 font-semibold' : 'text-gray-900 dark:text-white'
                           }`}>
-                            {new Date(assignment.dueDate).toLocaleDateString()}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {new Date(assignment.dueDate).toLocaleTimeString()}
+                            {dueDateInfo.text}
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -2133,17 +2283,19 @@ const InstructorDashboard = () => {
                           </div>
                           <div className="text-xs text-gray-500">
                             {gradedCount} graded
+                            {assignment.sentToStudents > 0 && (
+                              <span className="ml-2">• Sent to {assignment.sentToStudents} students</span>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            new Date() > new Date(assignment.dueDate) ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
+                            dueDateInfo.isOverdue ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
                             assignment.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
                             assignment.status === 'draft' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
                             'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                           }`}>
-                            {new Date() > new Date(assignment.dueDate) ? 'Overdue' : 
-                             assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}
+                            {dueDateInfo.isOverdue ? 'OVERDUE' : assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -2153,9 +2305,10 @@ const InstructorDashboard = () => {
                                 setSelectedAssignment(assignment);
                                 setShowSubmissionsModal(true);
                               }}
-                              className="bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 text-sm font-medium"
+                              className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                              title="View Submissions"
                             >
-                              View
+                              <Eye className="h-4 w-4" />
                             </button>
                             <button 
                               onClick={() => {
@@ -2163,21 +2316,25 @@ const InstructorDashboard = () => {
                                 setAssignmentForm({
                                   title: assignment.title,
                                   instructions: assignment.instructions,
-                                  dueDate: new Date(assignment.dueDate).toISOString().slice(0, 16),
+                                  dueDate: assignment.dueDate ? new Date(new Date(assignment.dueDate).getTime() - new Date(assignment.dueDate).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '',
                                   course: assignment.course,
+                                  totalMarks: assignment.totalMarks || 100,
+                                  weightMarks: assignment.weightMarks || 10,
                                   file: assignment.file ? { name: assignment.file.fileName, isExisting: true, url: assignment.file.fileUrl } : null
                                 });
                                 setShowAssignmentModal(true);
                               }}
-                              className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 text-sm font-medium"
+                              className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                              title="Edit Assignment"
                             >
-                              Edit
+                              <Edit3 className="h-4 w-4" />
                             </button>
                             <button 
                               onClick={() => handleDeleteAssignment(assignment._id)}
-                              className="bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-700 text-sm font-medium"
+                              className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                              title="Delete Assignment"
                             >
-                              Delete
+                              <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
                         </td>
@@ -2204,7 +2361,7 @@ const InstructorDashboard = () => {
                   onClick={() => {
                     setShowAssignmentModal(false);
                     setEditingAssignment(null);
-                    setAssignmentForm({ title: '', instructions: '', dueDate: '', course: '', file: null });
+                    setAssignmentForm({ title: '', instructions: '', dueDate: '', course: '', totalMarks: 100, weightMarks: 10, file: null });
                   }}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
@@ -2247,6 +2404,19 @@ const InstructorDashboard = () => {
                     value={assignmentForm.dueDate}
                     onChange={(e) => setAssignmentForm({ ...assignmentForm, dueDate: e.target.value })}
                     min={new Date().toISOString().slice(0, 16)}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Marks *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={assignmentForm.weightMarks}
+                    onChange={(e) => setAssignmentForm({ ...assignmentForm, weightMarks: parseInt(e.target.value) || 10 })}
+                    placeholder="10"
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                   />
                 </div>
@@ -2317,7 +2487,7 @@ const InstructorDashboard = () => {
                     onClick={() => {
                       setShowAssignmentModal(false);
                       setEditingAssignment(null);
-                      setAssignmentForm({ title: '', instructions: '', dueDate: '', course: '', file: null });
+                      setAssignmentForm({ title: '', instructions: '', dueDate: '', course: '', totalMarks: 100, weightMarks: 10, file: null });
                     }}
                     disabled={loading}
                     className="px-6 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 font-medium disabled:opacity-50"
@@ -2376,38 +2546,52 @@ const InstructorDashboard = () => {
       {showAssignmentDetail && selectedAssignment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{selectedAssignment.title}</h3>
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white pr-4 break-words">{selectedAssignment.title}</h3>
                 <button
                   onClick={() => {
                     setShowAssignmentDetail(false);
                     setSelectedAssignment(null);
                   }}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0"
                 >
                   <X className="h-6 w-6" />
                 </button>
               </div>
 
-              <div className="space-y-6">
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Course</h4>
-                  <div className="text-gray-700 dark:text-gray-300 break-words">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 sm:p-4">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">Course</h4>
+                  <div className="text-gray-700 dark:text-gray-300 break-words text-sm sm:text-base">
                     {courses.find(c => c._id === selectedAssignment.course)?.title || 'Unknown Course'}
                   </div>
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Due Date & Time</h4>
-                  <p className="text-gray-700 dark:text-gray-300">
-                    {new Date(selectedAssignment.dueDate).toLocaleString()}
-                  </p>
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 sm:p-4">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">Due Date & Time</h4>
+                  {(() => {
+                    const dueDateInfo = formatDueDate(selectedAssignment.dueDate);
+                    return (
+                      <p className={`text-gray-700 dark:text-gray-300 text-sm sm:text-base ${
+                        dueDateInfo.isOverdue ? 'text-red-600 font-semibold' : ''
+                      }`}>
+                        {dueDateInfo.text}
+                      </p>
+                    );
+                  })()}
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Instructions</h4>
-                  <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words leading-relaxed">
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 sm:p-4">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">Graded out of {selectedAssignment.weightMarks || 10}</h4>
+                  <div className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">
+                    This assignment is worth {selectedAssignment.weightMarks || 10} marks
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 sm:p-4">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">Instructions</h4>
+                  <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words leading-relaxed max-w-full overflow-wrap-anywhere text-sm sm:text-base">
                     {selectedAssignment.instructions}
                   </div>
                 </div>
@@ -2432,12 +2616,12 @@ const InstructorDashboard = () => {
                           if (fileType?.includes('pdf')) {
                             viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(selectedAssignment.file.fileUrl)}&embedded=true`;
                             type = 'pdf';
-                          } else if (fileType?.includes('word') || fileType?.includes('document')) {
+                          } else if (fileType?.includes('word') || fileType?.includes('document') || fileType?.includes('officedocument')) {
                             viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(selectedAssignment.file.fileUrl)}&embedded=true`;
-                            type = 'document';
+                            type = 'office';
                           } else if (fileType?.includes('powerpoint') || fileType?.includes('presentation')) {
                             viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(selectedAssignment.file.fileUrl)}&embedded=true`;
-                            type = 'presentation';
+                            type = 'office';
                           } else if (fileType?.includes('image')) {
                             type = 'image';
                           }
@@ -2460,16 +2644,42 @@ const InstructorDashboard = () => {
                 )}
 
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Status</h4>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    new Date() > new Date(selectedAssignment.dueDate) ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
-                    selectedAssignment.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
-                    selectedAssignment.status === 'draft' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
-                    'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                  }`}>
-                    {new Date() > new Date(selectedAssignment.dueDate) ? 'Overdue' : 
-                     selectedAssignment.status.charAt(0).toUpperCase() + selectedAssignment.status.slice(1)}
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Status</h4>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        new Date() > new Date(selectedAssignment.dueDate) ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
+                        selectedAssignment.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                        selectedAssignment.status === 'draft' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                      }`}>
+                        {new Date() > new Date(selectedAssignment.dueDate) ? 'Overdue' : 'Active'}
+                      </span>
+                    </div>
+                    {selectedAssignment.status === 'draft' && (
+                      <button
+                        onClick={async () => {
+                          await handleSendAssignment(selectedAssignment._id);
+                          // Refresh the assignment data
+                          const updatedAssignments = await assignmentAPI.getInstructorAssignments();
+                          setAssignments(updatedAssignments.data.assignments || []);
+                          const updatedAssignment = updatedAssignments.data.assignments.find(a => a._id === selectedAssignment._id);
+                          if (updatedAssignment) {
+                            setSelectedAssignment(updatedAssignment);
+                          }
+                        }}
+                        disabled={loading}
+                        className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 font-medium disabled:opacity-50"
+                      >
+                        {loading ? 'Sending...' : 'Send to Students'}
+                      </button>
+                    )}
+                    {selectedAssignment.status === 'active' && (
+                      <span className="text-sm text-green-600 dark:text-green-400 font-medium">
+                        ✓ Sent to Students
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -2520,25 +2730,23 @@ const InstructorDashboard = () => {
                           </p>
                           {submission.file && (
                             <div className="mt-2">
-                              <a
-                                href={submission.file.fileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              <button
+                                onClick={() => handleDownloadFile(submission.file.fileUrl, submission.file.fileName)}
                                 className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm"
                               >
                                 <Download className="h-4 w-4" />
                                 {submission.file.fileName}
-                              </a>
+                              </button>
                             </div>
                           )}
                           {submission.grade !== undefined && (
                             <div className="mt-2">
                               <span className={`px-2 py-1 rounded text-sm font-medium ${
-                                submission.grade >= 80 ? 'bg-green-100 text-green-800' :
-                                submission.grade >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                                submission.grade >= (selectedAssignment.weightMarks * 0.8) ? 'bg-green-100 text-green-800' :
+                                submission.grade >= (selectedAssignment.weightMarks * 0.6) ? 'bg-yellow-100 text-yellow-800' :
                                 'bg-red-100 text-red-800'
                               }`}>
-                                Grade: {submission.grade}/100
+                                Grade: {submission.grade}/{selectedAssignment.weightMarks || 10}
                               </span>
                               {submission.feedback && (
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -2600,14 +2808,14 @@ const InstructorDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Grade (0-100) *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Grade (0-{selectedAssignment.weightMarks || 10}) *</label>
                   <input
                     type="number"
                     min="0"
-                    max="100"
+                    max={selectedAssignment.weightMarks || 10}
                     value={gradeForm.grade}
                     onChange={(e) => setGradeForm({ ...gradeForm, grade: e.target.value })}
-                    placeholder="Enter grade"
+                    placeholder={`Enter grade out of ${selectedAssignment.weightMarks || 10}`}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                   />
                 </div>

@@ -513,6 +513,9 @@ export const assignmentAPI = {
     });
   },
   
+  // Send assignment to students
+  sendAssignment: (id) => api.post(`/assignments/${id}/send`),
+  
   // Update assignment
   updateAssignment: (id, assignmentData) => {
     const formData = new FormData();

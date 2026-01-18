@@ -14,6 +14,20 @@ const assignmentSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
+  totalMarks: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 100,
+    default: 100
+  },
+  weightMarks: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 100,
+    default: 10
+  },
   course: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course',
@@ -33,7 +47,14 @@ const assignmentSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ['active', 'draft', 'closed'],
-    default: 'active'
+    default: 'draft'
+  },
+  sentAt: {
+    type: Date
+  },
+  sentToStudents: {
+    type: Number,
+    default: 0
   },
   submissions: [{
     student: {
@@ -52,8 +73,7 @@ const assignmentSchema = new mongoose.Schema({
     },
     grade: {
       type: Number,
-      min: 0,
-      max: 100
+      min: 0
     },
     feedback: String,
     gradedAt: Date,

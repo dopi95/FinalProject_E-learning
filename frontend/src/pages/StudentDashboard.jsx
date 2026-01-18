@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellRing, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star, Globe, Heart, Settings, MapPin, MessageCircle } from 'lucide-react';
-import { profileAPI, enrollmentAPI, paymentAPI, subscriptionAPI, notificationAPI } from '../services/api';
+import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellRing, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star, Globe, Heart, Settings, MapPin, MessageCircle, Upload } from 'lucide-react';
+import { profileAPI, enrollmentAPI, paymentAPI, subscriptionAPI, notificationAPI, assignmentAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import CourseMaterials from '../components/CourseMaterials';
 import ChatInterface from '../components/ChatInterface';
@@ -41,6 +41,15 @@ const StudentDashboard = () => {
   const [schedules, setSchedules] = useState([]);
   const [schedulesLoading, setSchedulesLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // Assignment state
+  const [assignments, setAssignments] = useState([]);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [showAssignmentDetail, setShowAssignmentDetail] = useState(false);
+  const [showSubmissionModal, setShowSubmissionModal] = useState(false);
+  const [submissionFile, setSubmissionFile] = useState(null);
+  const [activeAssignmentTab, setActiveAssignmentTab] = useState('pending');
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -123,6 +132,56 @@ const StudentDashboard = () => {
     } catch (error) {
       console.error('Remove image error:', error);
       showNotification('error', 'Remove Failed', error.response?.data?.message || 'Failed to remove image');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Play notification sound
+  // Handle file download
+  const handleDownloadFile = async (fileUrl, fileName) => {
+    try {
+      setLoading(true);
+      
+      const token = localStorage.getItem('token');
+      const response = await fetch(fileUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to download file: ${response.status}`);
+      }
+      
+      // Get the raw array buffer to preserve file integrity
+      const arrayBuffer = await response.arrayBuffer();
+      
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('File is empty');
+      }
+      
+      // Get content type from response headers
+      const contentType = response.headers.get('content-type') || 'application/octet-stream';
+      
+      // Create blob with proper content type from array buffer
+      const blob = new Blob([arrayBuffer], { type: contentType });
+      
+      // Force download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showNotification('success', 'Downloaded', `${fileName} downloaded successfully`);
+    } catch (error) {
+      console.error('Download error:', error);
+      showNotification('error', 'Download Failed', error.message || 'Failed to download file');
     } finally {
       setLoading(false);
     }
@@ -610,6 +669,93 @@ const StudentDashboard = () => {
     }
   };
 
+  // Helper function to format due date with time remaining
+  const formatDueDate = (dueDate) => {
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diffMs = due - now;
+    
+    if (diffMs <= 0) {
+      return {
+        text: `Due: ${due.toLocaleString()} (OVERDUE)`,
+        isOverdue: true,
+        timeLeft: null
+      };
+    }
+    
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    let timeLeftText = '';
+    if (diffDays > 0) {
+      timeLeftText = `${diffDays}d ${diffHours % 24}h left`;
+    } else if (diffHours > 0) {
+      timeLeftText = `${diffHours}h ${diffMinutes}m left`;
+    } else {
+      timeLeftText = `${diffMinutes}m left`;
+    }
+    
+    return {
+      text: `Due: ${due.toLocaleString()} (${timeLeftText})`,
+      isOverdue: false,
+      timeLeft: timeLeftText
+    };
+  };
+
+  const fetchAssignments = async () => {
+    try {
+      setAssignmentsLoading(true);
+      const response = await assignmentAPI.getStudentAssignments();
+      const assignments = response.data.assignments || [];
+      
+      // Remove direct Cloudinary URLs to prevent browser access
+      const sanitizedAssignments = assignments.map(assignment => ({
+        ...assignment,
+        file: assignment.file ? {
+          ...assignment.file,
+          fileUrl: null // Remove direct URL
+        } : null,
+        submission: assignment.submission ? {
+          ...assignment.submission,
+          file: assignment.submission.file ? {
+            ...assignment.submission.file,
+            fileUrl: null // Remove direct URL
+          } : null
+        } : null
+      }));
+      
+      setAssignments(sanitizedAssignments);
+    } catch (error) {
+      console.error('Fetch assignments error:', error);
+      setAssignments([]);
+    } finally {
+      setAssignmentsLoading(false);
+    }
+  };
+
+  const handleSubmitAssignment = async () => {
+    if (!submissionFile) {
+      showNotification('error', 'Error', 'Please select a file to submit');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await assignmentAPI.submitAssignment(selectedAssignment._id, submissionFile);
+      showNotification('success', 'Success', 'Assignment submitted successfully');
+      setShowSubmissionModal(false);
+      setSubmissionFile(null);
+      setSelectedAssignment(null);
+      fetchAssignments();
+    } catch (error) {
+      console.error('Submit assignment error:', error);
+      showNotification('error', 'Error', error.response?.data?.message || 'Failed to submit assignment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchGrades = async () => {
     try {
       setGradesLoading(true);
@@ -696,6 +842,8 @@ const StudentDashboard = () => {
     fetchEnrolledCourses();
     // Fetch grades
     fetchGrades();
+    // Fetch assignments
+    fetchAssignments();
     // Fetch notifications
     fetchNotifications();
     // Fetch chat count
@@ -1339,37 +1487,544 @@ const renderPayments = () => (
     </div>
   );
 
-  const renderAssignments = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Assignments</h2>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex space-x-4">
-            <button className="text-blue-600 border-b-2 border-blue-600 pb-2">Pending</button>
-            <button className="text-gray-600 dark:text-gray-400 pb-2">Submitted</button>
-            <button className="text-gray-600 dark:text-gray-400 pb-2">Graded</button>
+  const renderAssignments = () => {
+    const pendingAssignments = assignments.filter(a => a.submissionStatus === 'pending');
+    const submittedAssignments = assignments.filter(a => a.submissionStatus === 'submitted');
+    const gradedAssignments = assignments.filter(a => a.submissionStatus === 'graded');
+
+    const getActiveAssignments = () => {
+      switch (activeAssignmentTab) {
+        case 'pending': return pendingAssignments;
+        case 'submitted': return submittedAssignments;
+        case 'graded': return gradedAssignments;
+        default: return pendingAssignments;
+      }
+    };
+
+    const activeAssignments = getActiveAssignments();
+
+    return (
+      <div className="space-y-4 lg:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+          <div>
+            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Assignments</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Track and submit your course assignments
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <FileText className="h-4 w-4" />
+            <span>{assignments.length} total</span>
           </div>
         </div>
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {[1, 2, 3, 4].map((assignment) => (
-            <div key={assignment} className="p-6 flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Assignment {assignment}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Mathematics Course</p>
-                <p className="text-sm text-red-600">Due: Dec 25, 2024</p>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-3 gap-3 lg:gap-4">
+          <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="text-center">
+              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Clock className="h-4 w-4 lg:h-5 lg:w-5 text-orange-600" />
               </div>
-              <div className="flex space-x-2">
-                <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Submit</button>
-                <button className="border border-gray-300 dark:border-gray-600 px-4 py-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <Download className="h-4 w-4" />
-                </button>
+              <p className="text-lg lg:text-2xl font-bold text-gray-900 dark:text-white">{pendingAssignments.length}</p>
+              <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Pending</p>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="text-center">
+              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Upload className="h-4 w-4 lg:h-5 lg:w-5 text-blue-600" />
+              </div>
+              <p className="text-lg lg:text-2xl font-bold text-gray-900 dark:text-white">{submittedAssignments.length}</p>
+              <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Submitted</p>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="text-center">
+              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <CheckCircle className="h-4 w-4 lg:h-5 lg:w-5 text-green-600" />
+              </div>
+              <p className="text-lg lg:text-2xl font-bold text-gray-900 dark:text-white">{gradedAssignments.length}</p>
+              <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Graded</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Assignment Tabs */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl lg:rounded-2xl shadow-lg p-3 lg:p-4 border border-gray-100 dark:border-gray-700">
+          <div className="flex space-x-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            <button
+              onClick={() => setActiveAssignmentTab('pending')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium rounded-md transition-all ${
+                activeAssignmentTab === 'pending'
+                  ? 'bg-white dark:bg-gray-800 text-orange-600 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <Clock className="h-4 w-4" />
+              <span className="hidden sm:inline">Pending</span>
+              <span className="bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 text-xs px-2 py-0.5 rounded-full font-medium">
+                {pendingAssignments.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveAssignmentTab('submitted')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium rounded-md transition-all ${
+                activeAssignmentTab === 'submitted'
+                  ? 'bg-white dark:bg-gray-800 text-blue-600 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <Upload className="h-4 w-4" />
+              <span className="hidden sm:inline">Submitted</span>
+              <span className="bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 text-xs px-2 py-0.5 rounded-full font-medium">
+                {submittedAssignments.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveAssignmentTab('graded')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium rounded-md transition-all ${
+                activeAssignmentTab === 'graded'
+                  ? 'bg-white dark:bg-gray-800 text-green-600 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <CheckCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Graded</span>
+              <span className="bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300 text-xs px-2 py-0.5 rounded-full font-medium">
+                {gradedAssignments.length}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {assignmentsLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : activeAssignments.length === 0 ? (
+          <div className="text-center py-8 lg:py-12 bg-white dark:bg-gray-800 rounded-xl lg:rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileText className="h-8 w-8 lg:h-10 lg:w-10 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              No {activeAssignmentTab.charAt(0).toUpperCase() + activeAssignmentTab.slice(1)} Assignments
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+              {activeAssignmentTab === 'pending' && 'No pending assignments at the moment. Check back later for new assignments.'}
+              {activeAssignmentTab === 'submitted' && 'You haven\'t submitted any assignments yet. Complete and submit your pending assignments.'}
+              {activeAssignmentTab === 'graded' && 'No graded assignments available. Your grades will appear here once instructors review your submissions.'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3 lg:space-y-4">
+            {activeAssignments.map((assignment) => {
+              const dueDateInfo = formatDueDate(assignment.dueDate);
+              const isOverdue = dueDateInfo.isOverdue;
+              const isUrgent = dueDateInfo.timeLeft && (dueDateInfo.timeLeft.includes('h') && parseInt(dueDateInfo.timeLeft) <= 24);
+              
+              return (
+                <div key={assignment._id} className="bg-white dark:bg-gray-800 rounded-xl lg:rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all duration-200">
+                  {/* Mobile Layout */}
+                  <div className="lg:hidden">
+                    <div className="p-4">
+                      {/* Header */}
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          activeAssignmentTab === 'pending' ? 'bg-orange-100 dark:bg-orange-900/20' :
+                          activeAssignmentTab === 'submitted' ? 'bg-blue-100 dark:bg-blue-900/20' :
+                          'bg-green-100 dark:bg-green-900/20'
+                        }`}>
+                          <FileText className={`h-5 w-5 ${
+                            activeAssignmentTab === 'pending' ? 'text-orange-600' :
+                            activeAssignmentTab === 'submitted' ? 'text-blue-600' :
+                            'text-green-600'
+                          }`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1 line-clamp-2">
+                            {assignment.title}
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            {assignment.course?.title}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-500">
+                            Instructor: {assignment.instructor?.name}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Due Date - Only show for pending and submitted */}
+                      {activeAssignmentTab !== 'graded' && (
+                        <div className={`mb-3 p-2 rounded-lg ${
+                          isOverdue ? 'bg-red-50 dark:bg-red-900/20' :
+                          isUrgent ? 'bg-orange-50 dark:bg-orange-900/20' :
+                          'bg-gray-50 dark:bg-gray-700/50'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            <Clock className={`h-4 w-4 ${
+                              isOverdue ? 'text-red-600' :
+                              isUrgent ? 'text-orange-600' :
+                              'text-gray-600 dark:text-gray-400'
+                            }`} />
+                            <span className={`text-sm font-medium ${
+                              isOverdue ? 'text-red-600' :
+                              isUrgent ? 'text-orange-600' :
+                              'text-gray-600 dark:text-gray-400'
+                            }`}>
+                              {dueDateInfo.text}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Grade Display for Graded Assignments */}
+                      {activeAssignmentTab === 'graded' && assignment.submission?.grade !== undefined && (
+                        <div className="mb-3">
+                          <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium ${
+                            assignment.submission.grade >= (assignment.totalMarks * 0.8) ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                            assignment.submission.grade >= (assignment.totalMarks * 0.6) ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                            'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                          }`}>
+                            <Award className="h-4 w-4 mr-2" />
+                            Grade: {assignment.submission.grade}/{assignment.totalMarks || 100}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedAssignment(assignment);
+                            setShowAssignmentDetail(true);
+                          }}
+                          className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Eye className="h-4 w-4" />
+                          Details
+                        </button>
+                        
+                        {activeAssignmentTab === 'pending' && !isOverdue && (
+                          <button
+                            onClick={() => {
+                              setSelectedAssignment(assignment);
+                              setShowSubmissionModal(true);
+                            }}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Upload className="h-4 w-4" />
+                            Submit
+                          </button>
+                        )}
+                        
+                        {assignment.file && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleDownloadFile(`/api/assignments/download/${assignment._id}`, assignment.file.fileName);
+                            }}
+                            className="bg-green-600 hover:bg-green-700 text-white py-2.5 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+                            type="button"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desktop Layout */}
+                  <div className="hidden lg:block">
+                    <div className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-start gap-4 flex-1">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                            activeAssignmentTab === 'pending' ? 'bg-orange-100 dark:bg-orange-900/20' :
+                            activeAssignmentTab === 'submitted' ? 'bg-blue-100 dark:bg-blue-900/20' :
+                            'bg-green-100 dark:bg-green-900/20'
+                          }`}>
+                            <FileText className={`h-6 w-6 ${
+                              activeAssignmentTab === 'pending' ? 'text-orange-600' :
+                              activeAssignmentTab === 'submitted' ? 'text-blue-600' :
+                              'text-green-600'
+                            }`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                              {assignment.title}
+                            </h3>
+                            <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                              <span>{assignment.course?.title}</span>
+                              <span>•</span>
+                              <span>Instructor: {assignment.instructor?.name}</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              {/* Due Date - Only show for pending and submitted */}
+                              {activeAssignmentTab !== 'graded' && (
+                                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${
+                                  isOverdue ? 'bg-red-50 dark:bg-red-900/20 text-red-600' :
+                                  isUrgent ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600' :
+                                  'bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400'
+                                }`}>
+                                  <Clock className="h-4 w-4" />
+                                  <span className="text-sm font-medium">{dueDateInfo.text}</span>
+                                </div>
+                              )}
+                              {activeAssignmentTab === 'graded' && assignment.submission?.grade !== undefined && (
+                                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${
+                                  assignment.submission.grade >= (assignment.totalMarks * 0.8) ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                                  assignment.submission.grade >= (assignment.totalMarks * 0.6) ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                                  'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                                }`}>
+                                  <Award className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Grade: {assignment.submission.grade}/{assignment.totalMarks || 100}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 ml-4">
+                          <button
+                            onClick={() => {
+                              setSelectedAssignment(assignment);
+                              setShowAssignmentDetail(true);
+                            }}
+                            className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                          >
+                            <Eye className="h-4 w-4" />
+                            View Details
+                          </button>
+                          
+                          {activeAssignmentTab === 'pending' && !isOverdue && (
+                            <button
+                              onClick={() => {
+                                setSelectedAssignment(assignment);
+                                setShowSubmissionModal(true);
+                              }}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                            >
+                              <Upload className="h-4 w-4" />
+                              Submit Assignment
+                            </button>
+                          )}
+                          
+                          {assignment.file && (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleDownloadFile(`/api/assignments/download/${assignment._id}`, assignment.file.fileName);
+                              }}
+                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                              type="button"
+                            >
+                              <Download className="h-4 w-4" />
+                              Download
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Assignment Detail Modal */}
+        {showAssignmentDetail && selectedAssignment && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white pr-4 break-words">{selectedAssignment.title}</h3>
+                  <button
+                    onClick={() => {
+                      setShowAssignmentDetail(false);
+                      setSelectedAssignment(null);
+                    }}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 sm:p-4">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">Course & Instructor</h4>
+                    <p className="text-gray-700 dark:text-gray-300 text-sm sm:text-base break-words">
+                      {selectedAssignment.course?.title} • {selectedAssignment.instructor?.name}
+                    </p>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 sm:p-4">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">Due Date</h4>
+                    {(() => {
+                      const dueDateInfo = formatDueDate(selectedAssignment.dueDate);
+                      return (
+                        <p className={`text-gray-700 dark:text-gray-300 text-sm sm:text-base ${
+                          dueDateInfo.isOverdue ? 'text-red-600 font-semibold' : ''
+                        }`}>
+                          {dueDateInfo.text}
+                        </p>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 sm:p-4">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">Instructions</h4>
+                    <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words overflow-wrap-anywhere leading-relaxed text-sm sm:text-base max-w-full">
+                      {selectedAssignment.instructions}
+                    </div>
+                  </div>
+
+                  {selectedAssignment.submission && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Your Submission</h4>
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Submitted: {new Date(selectedAssignment.submission.submittedAt).toLocaleString()}
+                        </p>
+                        {selectedAssignment.submission && selectedAssignment.submission.file && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleDownloadFile(`/api/assignments/download-submission/${selectedAssignment._id}`, selectedAssignment.submission.file.fileName);
+                            }}
+                            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm"
+                            type="button"
+                          >
+                            <Download className="h-4 w-4" />
+                            {selectedAssignment.submission.file.fileName}
+                          </button>
+                        )}
+                        {selectedAssignment.submission.grade !== undefined && (
+                          <div className="mt-3">
+                            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                              selectedAssignment.submission.grade >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                              selectedAssignment.submission.grade >= 60 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                              'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                            }`}>
+                              Grade: {selectedAssignment.submission.grade}/100
+                            </div>
+                            {selectedAssignment.submission.feedback && (
+                              <div className="mt-2">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">Feedback:</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                  {selectedAssignment.submission.feedback}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
+
+        {/* Submission Modal */}
+        {showSubmissionModal && selectedAssignment && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">Submit Assignment</h3>
+                  <button
+                    onClick={() => {
+                      setShowSubmissionModal(false);
+                      setSubmissionFile(null);
+                      setSelectedAssignment(null);
+                    }}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                    <div className="text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                        {selectedAssignment.title}
+                      </h4>
+                      {(() => {
+                        const dueDateInfo = formatDueDate(selectedAssignment.dueDate);
+                        return (
+                          <p className={`text-sm ${
+                            dueDateInfo.isOverdue ? 'text-red-600 font-semibold' : 'text-gray-600 dark:text-gray-400'
+                          }`}>
+                            {dueDateInfo.text}
+                          </p>
+                        );
+                      })()}
+                    </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Select File to Submit *
+                    </label>
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">
+                      <input
+                        type="file"
+                        onChange={(e) => setSubmissionFile(e.target.files[0])}
+                        className="hidden"
+                        id="submissionFile"
+                      />
+                      <label htmlFor="submissionFile" className="cursor-pointer">
+                        <Upload className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Click to select file
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Any file type (max 100MB)
+                        </p>
+                      </label>
+                      {submissionFile && (
+                        <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          <p className="text-sm text-blue-800 dark:text-blue-300">
+                            Selected: {submissionFile.name}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={handleSubmitAssignment}
+                      disabled={loading || !submissionFile}
+                      className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? 'Submitting...' : 'Submit Assignment'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowSubmissionModal(false);
+                        setSubmissionFile(null);
+                        setSelectedAssignment(null);
+                      }}
+                      disabled={loading}
+                      className="px-6 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 font-medium disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   useEffect(() => {
     const fetchSchedules = async () => {
