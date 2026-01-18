@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { chatAPI } from '../services/api';
-import { Send, Search, User, ArrowLeft, MoreVertical, Edit, Trash2, X, Check, Plus, Smile, Paperclip, Phone, Video, Info } from 'lucide-react';
+import { Send, Search, User, ArrowLeft, MoreVertical, Edit, Trash2, X, Check, Plus, Smile } from 'lucide-react';
 import { getUserData } from '../utils/userUtils';
 
 // Hide scrollbars globally for this component
@@ -74,141 +74,17 @@ const ChatInterface = ({ onChatViewed }) => {
   const messageInputRef = useRef(null);
   const editInputRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
-  const fileInputRef = useRef(null);
 
-  const downloadFile = (message) => {
-    if (message.fileId) {
-      const fileData = localStorage.getItem(`file_${message.fileId}`);
-      if (fileData) {
-        const file = JSON.parse(fileData);
-        const link = document.createElement('a');
-        link.href = file.data;
-        link.download = message.fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else {
-        alert('File not found in storage.');
-      }
-    } else {
-      // For text-only file messages, show info
-      alert(`File "${message.fileName}" is not available for download. This was sent as a text message only.`);
-    }
-  };
+
 
   const parseMessage = (message) => {
-    try {
-      const parsed = JSON.parse(message.content);
-      if (parsed.fileId && parsed.fileName) {
-        // Get file data from localStorage
-        const fileData = localStorage.getItem(`file_${parsed.fileId}`);
-        if (fileData) {
-          const file = JSON.parse(fileData);
-          return { 
-            ...message, 
-            ...parsed, 
-            fileUrl: file.data,
-            isFile: true, 
-            isValidFile: true 
-          };
-        }
-        return { ...message, ...parsed, isFile: true, isValidFile: false };
-      }
-    } catch (e) {
-      // Check if it's a file message by content pattern
-      if (message.content.includes('📎')) {
-        const fileName = message.content.replace('📎 ', '');
-        return { 
-          ...message, 
-          fileName: fileName,
-          isFile: true, 
-          isValidFile: false,
-          fileType: fileName.includes('.jpg') || fileName.includes('.png') || fileName.includes('.jpeg') ? 'image' : 'application'
-        };
-      }
-    }
     return { ...message, isFile: false };
   };
 
   const emojis = ['😀', '😂', '😍', '🥰', '😊', '😎', '🤔', '😢', '😭', '😡', '👍', '👎', '❤️', '🔥', '💯', '🎉', '👏', '🙏', '💪', '✨'];
 
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      sendFileMessage(file);
-    }
-  };
 
-  const sendFileMessage = async (file) => {
-    if (!selectedChat || loading) return;
-
-    try {
-      setLoading(true);
-      
-      // Create object URL for the file
-      const fileUrl = URL.createObjectURL(file);
-      const fileType = file.type.split('/')[0];
-      
-      // Store file in localStorage for persistence
-      const fileId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      const reader = new FileReader();
-      
-      reader.onload = async () => {
-        try {
-          // Store file data in localStorage
-          localStorage.setItem(`file_${fileId}`, JSON.stringify({
-            data: reader.result,
-            name: file.name,
-            type: file.type,
-            size: file.size
-          }));
-          
-          // Create file message
-          const fileMessage = {
-            content: `📎 ${file.name}`,
-            fileId: fileId,
-            fileName: file.name,
-            fileSize: file.size,
-            fileType: fileType,
-            mimeType: file.type,
-            isFile: true
-          };
-          
-          const response = await chatAPI.sendMessage(selectedChat._id, JSON.stringify(fileMessage));
-          
-          // Add file data to message
-          const messageWithFile = {
-            ...response.data,
-            ...fileMessage
-          };
-          
-          setMessages(prev => [...prev, messageWithFile]);
-          
-          setChats(prev => prev.map(chat => 
-            chat._id === selectedChat._id 
-              ? { ...chat, lastMessageText: `📎 ${file.name}`, lastMessage: new Date() }
-              : chat
-          ));
-        } catch (error) {
-          console.error('Error processing file:', error);
-          alert('Failed to process file. Please try again.');
-        } finally {
-          setLoading(false);
-          setSelectedFile(null);
-        }
-      };
-      
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Error sending file:', error);
-      alert('Failed to send file. Please try again.');
-      setLoading(false);
-      setSelectedFile(null);
-    }
-  };
 
   const insertEmoji = (emoji) => {
     setNewMessage(prev => prev + emoji);
@@ -832,67 +708,7 @@ const ChatInterface = ({ onChatViewed }) => {
                             <div className={`text-sm font-medium leading-relaxed ${
                               parsedMessage.deleted ? 'italic text-blue-200' : ''
                             }`}>
-                              {parsedMessage.isFile && parsedMessage.isValidFile ? (
-                                parsedMessage.fileType === 'image' ? (
-                                  <div className="space-y-2">
-                                    <img 
-                                      src={parsedMessage.fileUrl} 
-                                      alt={parsedMessage.fileName}
-                                      className="max-w-[200px] sm:max-w-xs rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        // Create a modal or lightbox instead of opening in new tab
-                                        const modal = document.createElement('div');
-                                        modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4';
-                                        modal.innerHTML = `
-                                          <div class="relative max-w-full max-h-full">
-                                            <img src="${parsedMessage.fileUrl}" class="max-w-full max-h-full object-contain" />
-                                            <button class="absolute top-4 right-4 text-white text-2xl hover:text-gray-300" onclick="this.parentElement.parentElement.remove()">&times;</button>
-                                          </div>
-                                        `;
-                                        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-                                        document.body.appendChild(modal);
-                                      }}
-                                    />
-                                    <p className="text-xs text-blue-100">{parsedMessage.fileName}</p>
-                                  </div>
-                                ) : (
-                                  <div className="bg-white/10 rounded-lg p-3 space-y-2 max-w-[200px] sm:max-w-xs">
-                                    <div className="flex items-center gap-2">
-                                      <Paperclip size={16} className="text-blue-100 flex-shrink-0" />
-                                      <span className="text-blue-100 font-medium truncate text-sm">{parsedMessage.fileName}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-xs text-blue-200">{parsedMessage.fileSize ? (parsedMessage.fileSize / 1024).toFixed(1) + ' KB' : 'Unknown size'}</span>
-                                      {parsedMessage.isValidFile ? (
-                                        <button 
-                                          onClick={() => downloadFile(parsedMessage)}
-                                          className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors flex-shrink-0"
-                                        >
-                                          Download
-                                        </button>
-                                      ) : (
-                                        <button 
-                                          onClick={() => downloadFile(parsedMessage)}
-                                          className="text-xs bg-white/10 text-blue-300 px-2 py-1 rounded cursor-not-allowed flex-shrink-0"
-                                        >
-                                          Not Available
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                )
-                              ) : parsedMessage.content.includes('📎') ? (
-                                <div className="bg-white/10 rounded-lg p-3 space-y-2 max-w-[200px] sm:max-w-xs">
-                                  <div className="flex items-center gap-2">
-                                    <Paperclip size={16} className="text-blue-100 flex-shrink-0" />
-                                    <span className="text-blue-100 font-medium truncate text-sm">{parsedMessage.content.replace('📎 ', '')}</span>
-                                  </div>
-                                  <span className="text-xs text-blue-300">File not available</span>
-                                </div>
-                              ) : (
-                                parsedMessage.content
-                              )}
+                              {parsedMessage.content}
                             </div>
                             {parsedMessage.edited && (
                               <p className="text-xs text-blue-200 mt-1 font-medium">✏️ edited</p>
@@ -973,66 +789,7 @@ const ChatInterface = ({ onChatViewed }) => {
                           <div className={`text-sm font-medium leading-relaxed ${
                             parsedMessage.deleted ? 'italic text-gray-400 dark:text-gray-500' : ''
                           }`}>
-                            {parsedMessage.isFile && parsedMessage.isValidFile ? (
-                              parsedMessage.fileType === 'image' ? (
-                                <div className="space-y-2">
-                                  <img 
-                                    src={parsedMessage.fileUrl} 
-                                    alt={parsedMessage.fileName}
-                                    className="max-w-[200px] sm:max-w-xs rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      const modal = document.createElement('div');
-                                      modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4';
-                                      modal.innerHTML = `
-                                        <div class="relative max-w-full max-h-full">
-                                          <img src="${parsedMessage.fileUrl}" class="max-w-full max-h-full object-contain" />
-                                          <button class="absolute top-4 right-4 text-white text-2xl hover:text-gray-300" onclick="this.parentElement.parentElement.remove()">&times;</button>
-                                        </div>
-                                      `;
-                                      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-                                      document.body.appendChild(modal);
-                                    }}
-                                  />
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">{parsedMessage.fileName}</p>
-                                </div>
-                              ) : (
-                                <div className="bg-gray-100 dark:bg-gray-600 rounded-lg p-3 space-y-2 max-w-[200px] sm:max-w-xs">
-                                  <div className="flex items-center gap-2">
-                                    <Paperclip size={16} className="text-gray-600 dark:text-gray-300 flex-shrink-0" />
-                                    <span className="text-gray-800 dark:text-gray-200 font-medium truncate text-sm">{parsedMessage.fileName}</span>
-                                  </div>
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">{parsedMessage.fileSize ? (parsedMessage.fileSize / 1024).toFixed(1) + ' KB' : 'Unknown size'}</span>
-                                    {parsedMessage.isValidFile ? (
-                                      <button 
-                                        onClick={() => downloadFile(parsedMessage)}
-                                        className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded transition-colors flex-shrink-0"
-                                      >
-                                        Download
-                                      </button>
-                                    ) : (
-                                      <button 
-                                        onClick={() => downloadFile(parsedMessage)}
-                                        className="text-xs bg-gray-400 text-white px-2 py-1 rounded cursor-not-allowed flex-shrink-0"
-                                      >
-                                        Not Available
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              )
-                            ) : parsedMessage.content.includes('📎') ? (
-                              <div className="bg-gray-100 dark:bg-gray-600 rounded-lg p-3 space-y-2 max-w-[200px] sm:max-w-xs">
-                                <div className="flex items-center gap-2">
-                                  <Paperclip size={16} className="text-gray-600 dark:text-gray-300 flex-shrink-0" />
-                                  <span className="text-gray-800 dark:text-gray-200 font-medium truncate text-sm">{parsedMessage.content.replace('📎 ', '')}</span>
-                                </div>
-                                <span className="text-xs text-gray-400">File not available</span>
-                              </div>
-                            ) : (
-                              parsedMessage.content
-                            )}
+                            {parsedMessage.content}
                           </div>
                           {parsedMessage.edited && (
                             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 font-medium">✏️ edited</p>
@@ -1120,22 +877,6 @@ const ChatInterface = ({ onChatViewed }) => {
             {/* Fixed Message Input Footer - Mobile Optimized */}
             <div className="p-2 sm:p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 z-10">
               <form onSubmit={sendMessage} className="flex items-end space-x-2 sm:space-x-3">
-                <div className="flex items-center space-x-1 sm:space-x-2">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-2 sm:p-2.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-all duration-200 active:scale-95"
-                  >
-                    <Paperclip size={18} className="sm:w-5 sm:h-5" />
-                  </button>
-                </div>
                 <div className="flex-1 relative">
                   <input
                     ref={messageInputRef}
