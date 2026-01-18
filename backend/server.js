@@ -99,6 +99,9 @@ app.use('/api/materials', require('./routes/materials'));
 // Reel routes
 app.use('/api/reels', require('./routes/reels'));
 
+// Assignment routes
+app.use('/api/assignments', require('./routes/assignments'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

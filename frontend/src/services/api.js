@@ -490,4 +490,61 @@ export const reelAPI = {
   incrementView: (id, viewData = {}) => api.post(`/reels/${id}/view`, viewData),
 };
 
+// Assignment API functions
+export const assignmentAPI = {
+  // Get assignments for instructor
+  getInstructorAssignments: (params = {}) => api.get('/assignments/instructor', { params }),
+  
+  // Get assignments for student
+  getStudentAssignments: () => api.get('/assignments/student'),
+  
+  // Create assignment
+  createAssignment: (assignmentData) => {
+    const formData = new FormData();
+    Object.keys(assignmentData).forEach(key => {
+      if (assignmentData[key] !== null && assignmentData[key] !== undefined) {
+        formData.append(key, assignmentData[key]);
+      }
+    });
+    return api.post('/assignments', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  // Update assignment
+  updateAssignment: (id, assignmentData) => {
+    const formData = new FormData();
+    Object.keys(assignmentData).forEach(key => {
+      if (assignmentData[key] !== null && assignmentData[key] !== undefined) {
+        formData.append(key, assignmentData[key]);
+      }
+    });
+    return api.put(`/assignments/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  // Delete assignment
+  deleteAssignment: (id) => api.delete(`/assignments/${id}`),
+  
+  // Submit assignment (student)
+  submitAssignment: (id, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/assignments/${id}/submit`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  // Grade assignment submission (instructor)
+  gradeSubmission: (assignmentId, submissionId, gradeData) => 
+    api.put(`/assignments/${assignmentId}/grade/${submissionId}`, gradeData),
+};
+
 export default api;
