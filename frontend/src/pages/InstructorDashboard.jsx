@@ -3432,7 +3432,7 @@ const InstructorDashboard = () => {
       case 'students': return renderStudents();
       case 'analytics': return renderAnalytics();
       case 'messages': return (
-        <div className="h-full">
+        <div className="h-full min-h-[600px]">
           <ChatInterface onChatViewed={updateUnreadCount} />
         </div>
       );

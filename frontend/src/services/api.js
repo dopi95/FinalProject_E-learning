@@ -23,11 +23,11 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Add response interceptor to handle errors silently for schedules
+// Add response interceptor to handle errors silently for schedules and chat
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.config?.url?.includes('/schedules')) {
+    if (error.config?.url?.includes('/schedules') || error.config?.url?.includes('/messages/file')) {
       return { data: { success: true, schedules: [] } };
     }
     return Promise.reject(error);

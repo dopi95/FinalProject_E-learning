@@ -2339,7 +2339,7 @@ const renderPayments = () => (
       case 'schedule': return renderSchedule();
       case 'progress': return renderProgress();
       case 'messages': return (
-        <div className="h-full">
+        <div className="h-full min-h-[600px]">
           <ChatInterface onChatViewed={updateUnreadCount} />
         </div>
       );
