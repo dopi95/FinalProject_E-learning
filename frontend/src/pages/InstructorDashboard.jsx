@@ -3318,11 +3318,7 @@ const InstructorDashboard = () => {
                                         </button>
                                       )}
                                     </div>
-                                    {session.link && (
-                                      <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-                                        Class begins: {getTimeUntilClass(session.day, session.startTime)}
-                                      </div>
-                                    )}
+
                                   </div>
                                 );
                               })}
@@ -3399,11 +3395,7 @@ const InstructorDashboard = () => {
                                   Add Link
                                 </button>
                               )}
-                              {session.link && (
-                                <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-                                  Class begins: {getTimeUntilClass(session.day, session.startTime)}
-                                </div>
-                              )}
+
                             </div>
                           </div>
                         );
@@ -3705,15 +3697,7 @@ const InstructorDashboard = () => {
           </p>
           <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">Enrollments</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow text-center">
-          <p className="text-xl lg:text-2xl font-bold text-orange-600">
-            {students.length > 0 ? Math.round(students.reduce((sum, student) => {
-              const avgAttendance = student.courses.reduce((acc, course) => acc + course.attendance, 0) / student.courses.length;
-              return sum + avgAttendance;
-            }, 0) / students.length) : 0}%
-          </p>
-          <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">Avg Attendance</p>
-        </div>
+
       </div>
 
       {/* Filters */}
@@ -3805,24 +3789,8 @@ const InstructorDashboard = () => {
                       <p className="text-xs text-gray-500 dark:text-gray-400">Courses</p>
                       <p className="text-lg font-bold text-gray-900 dark:text-white">{student.totalCourses}</p>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Attendance</p>
-                      <p className={`text-lg font-bold ${
-                        avgAttendance >= 80 ? 'text-green-600' :
-                        avgAttendance >= 60 ? 'text-yellow-600' : 'text-red-600'
-                      }`}>{avgAttendance}%</p>
-                    </div>
                   </div>
-                  
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-3">
-                    <div 
-                      className={`h-2 rounded-full transition-all ${
-                        avgAttendance >= 80 ? 'bg-green-500' :
-                        avgAttendance >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                      }`}
-                      style={{ width: `${avgAttendance}%` }}
-                    ></div>
-                  </div>
+
                   
                   {selectedCourseFilter !== 'all' && (
                     <button
@@ -3847,9 +3815,7 @@ const InstructorDashboard = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Gender</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Courses</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Attendance
-                    </th>
+
                     {selectedCourseFilter !== 'all' && (
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                     )}
@@ -3895,20 +3861,7 @@ const InstructorDashboard = () => {
                         <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                           {student.totalCourses}
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-2">
-                              <div 
-                                className={`h-2 rounded-full ${
-                                  avgAttendance >= 80 ? 'bg-green-500' :
-                                  avgAttendance >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                                }`}
-                                style={{ width: `${avgAttendance}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{avgAttendance}%</span>
-                          </div>
-                        </td>
+
                         {selectedCourseFilter !== 'all' && (
                           <td className="px-6 py-4">
                             <button
