@@ -41,6 +41,11 @@ const StudentDashboard = () => {
   const [schedules, setSchedules] = useState([]);
   const [schedulesLoading, setSchedulesLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showTodayAnnouncement, setShowTodayAnnouncement] = useState(false);
+  const [todayClasses, setTodayClasses] = useState([]);
+  const [timeUpdate, setTimeUpdate] = useState(0);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [joinModalData, setJoinModalData] = useState(null);
 
   // Assignment state
   const [assignments, setAssignments] = useState([]);
@@ -802,6 +807,33 @@ const StudentDashboard = () => {
     setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
+  // Helper function to format time with AM/PM
+  const formatTimeWithAMPM = (timeString) => {
+    if (!timeString) return timeString;
+    
+    // Handle different time formats
+    const time = timeString.toString().trim();
+    
+    // If already has AM/PM, return as is
+    if (time.toLowerCase().includes('am') || time.toLowerCase().includes('pm')) {
+      return time;
+    }
+    
+    // Parse time in HH:MM format
+    const [hours, minutes] = time.split(':').map(num => parseInt(num));
+    
+    if (isNaN(hours) || isNaN(minutes)) {
+      return timeString; // Return original if parsing fails
+    }
+    
+    // Convert to 12-hour format with AM/PM
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    const displayMinutes = minutes.toString().padStart(2, '0');
+    
+    return `${displayHours}:${displayMinutes} ${period}`;
+  };
+
 
 
   useEffect(() => {
@@ -859,6 +891,14 @@ const StudentDashboard = () => {
       clearInterval(notificationInterval);
     };
   }, [searchParams]);
+
+  // Update countdown every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeUpdate(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch payments when user is loaded
   useEffect(() => {
@@ -1105,39 +1145,169 @@ const StudentDashboard = () => {
         </div>
       </div>
 
-      {/* Recent Notifications */}
+      {/* Today's Classes */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
         <div className="flex items-center mb-4 lg:mb-6">
           <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg mr-3">
-            <Bell className="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
+            <Calendar className="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
           </div>
-          <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">Recent Notifications</h3>
+          <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">Today's Classes</h3>
         </div>
-        <div className="space-y-3 lg:space-y-4">
-          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-l-4 border-blue-500">
-            <Bell className="h-5 w-5 text-blue-600 mr-3" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">New assignment posted</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Mathematics - Due in 3 days</p>
-            </div>
-          </div>
+        
+        {(() => {
+          const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+          const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+          const todayName = dayNames[today];
           
-          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border-l-4 border-green-500">
-            <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Grade published</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Physics Quiz - 92%</p>
-            </div>
-          </div>
+          const todaySessions = [];
+          schedules.forEach(schedule => {
+            schedule.sessions.forEach(session => {
+              if (session.day === todayName) {
+                todaySessions.push({
+                  ...session,
+                  course: schedule.course
+                });
+              }
+            });
+          });
           
-          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border-l-4 border-purple-500">
-            <Calendar className="h-5 w-5 text-purple-600 mr-3" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Schedule updated</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Chemistry Lab - Tomorrow 2:00 PM</p>
+          const sortedSessions = todaySessions.sort((a, b) => a.startTime.localeCompare(b.startTime));
+          
+          if (sortedSessions.length === 0) {
+            return (
+              <div className="text-center py-8">
+                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500 dark:text-gray-400 text-sm">No classes scheduled for today</p>
+                <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">Enjoy your free day!</p>
+              </div>
+            );
+          }
+          
+          return (
+            <div className="space-y-3 lg:space-y-4">
+              {sortedSessions.map((session, index) => {
+                const colors = [
+                  'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-500',
+                  'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-500',
+                  'from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-500',
+                  'from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-orange-500'
+                ];
+                const colorClass = colors[index % colors.length];
+                
+                return (
+                  <div key={index} className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 lg:p-4 bg-gradient-to-r ${colorClass} rounded-xl border-l-4 gap-3`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-3">
+                        <Clock className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                            {session.course?.title || 'Course'}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            <span className="font-medium">
+                              {formatTimeWithAMPM(session.startTime)} - {formatTimeWithAMPM(session.endTime)}
+                            </span>
+                            {session.room && (
+                              <>
+                                <span>•</span>
+                                <span>Room: {session.room}</span>
+                              </>
+                            )}
+                            <span>•</span>
+                            {(() => {
+                              const now = new Date();
+                              const [startHour, startMin] = session.startTime.split(':').map(Number);
+                              const [endHour, endMin] = session.endTime.split(':').map(Number);
+                              const startTime = new Date();
+                              startTime.setHours(startHour, startMin, 0, 0);
+                              const endTime = new Date();
+                              endTime.setHours(endHour, endMin, 0, 0);
+                              
+                              if (now >= startTime && now <= endTime) {
+                                return <span className="text-green-600 dark:text-green-400 font-medium">Started</span>;
+                              } else if (now < startTime) {
+                                const diff = startTime - now;
+                                const minutes = Math.floor(diff / 60000);
+                                const seconds = Math.floor((diff % 60000) / 1000);
+                                return <span className="text-blue-600 dark:text-blue-400 font-medium">{minutes}m {seconds}s left</span>;
+                              } else {
+                                return <span className="text-red-600 dark:text-red-400 font-medium">Ended</span>;
+                              }
+                            })()} 
+                          </div>
+                          <div className="text-xs text-orange-600 dark:text-orange-400 font-medium mt-1">
+                            Note: After 15 min you are late
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 sm:ml-4">
+                      <button
+                        onClick={() => {
+                          const now = new Date();
+                          const [startHour, startMin] = session.startTime.split(':').map(Number);
+                          const [endHour, endMin] = session.endTime.split(':').map(Number);
+                          const startTime = new Date();
+                          startTime.setHours(startHour, startMin, 0, 0);
+                          const endTime = new Date();
+                          endTime.setHours(endHour, endMin, 0, 0);
+                          const lateTime = new Date(startTime.getTime() + 15 * 60000);
+                          
+                          let modalType, title, message, actionText, canJoin = false;
+                          
+                          if (now < startTime) {
+                            const diff = startTime - now;
+                            const minutes = Math.floor(diff / 60000);
+                            const seconds = Math.floor((diff % 60000) / 1000);
+                            modalType = 'waiting';
+                            title = 'Class Not Started Yet';
+                            message = `Please wait ${minutes}m ${seconds}s for the class to begin.`;
+                            actionText = 'Wait';
+                          } else if (now >= startTime && now <= lateTime) {
+                            modalType = 'join';
+                            title = 'Join Class Now';
+                            message = session.link 
+                              ? 'Click below to join the online class meeting.'
+                              : `Please go to ${session.room || 'the assigned room'} for your class.`;
+                            actionText = session.link ? 'Join Meeting' : 'Got It';
+                            canJoin = true;
+                          } else if (now > lateTime && now <= endTime) {
+                            modalType = 'late';
+                            title = 'You Are Late!';
+                            message = 'After 15 minutes, you cannot join the class.';
+                            actionText = 'Understood';
+                          } else {
+                            modalType = 'ended';
+                            title = 'Class Has Ended';
+                            message = 'This class session has already finished.';
+                            actionText = 'OK';
+                          }
+                          
+                          setJoinModalData({
+                            type: modalType,
+                            title,
+                            message,
+                            actionText,
+                            canJoin,
+                            session,
+                            link: session.link
+                          });
+                          setShowJoinModal(true);
+                        }}
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+                      >
+                        <Video className="h-4 w-4" />
+                        <span className="hidden sm:inline">Join Class</span>
+                        <span className="sm:hidden">Join</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
-        </div>
+          );
+        })()}
       </div>
 
       {/* Quick Links */}
@@ -2028,29 +2198,157 @@ const renderPayments = () => (
 
   useEffect(() => {
     const fetchSchedules = async () => {
-      if (activeTab === 'schedule') {
-        try {
-          setSchedulesLoading(true);
-          const { scheduleAPI } = await import('../services/api');
-          const response = await scheduleAPI.getSchedules();
-          setSchedules(response.data.schedules || []);
-        } catch (error) {
-          setSchedules([]);
-        } finally {
-          setSchedulesLoading(false);
+      try {
+        setSchedulesLoading(true);
+        const { scheduleAPI } = await import('../services/api');
+        const response = await scheduleAPI.getSchedules();
+        const fetchedSchedules = response.data.schedules || [];
+        setSchedules(fetchedSchedules);
+        
+        // Check for today's classes only on initial load
+        if (fetchedSchedules.length > 0) {
+          const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+          const todaysClasses = [];
+          
+          fetchedSchedules.forEach(schedule => {
+            const todaySessions = schedule.sessions.filter(session => session.day === today);
+            if (todaySessions.length > 0) {
+              todaysClasses.push({
+                course: schedule.course,
+                sessions: todaySessions
+              });
+            }
+          });
+          
+          setTodayClasses(todaysClasses);
+          if (todaysClasses.length > 0) {
+            setTimeout(() => {
+              setShowTodayAnnouncement(true);
+              // Auto hide after 8 seconds
+              setTimeout(() => setShowTodayAnnouncement(false), 8000);
+            }, 1500);
+          }
         }
+      } catch (error) {
+        setSchedules([]);
+      } finally {
+        setSchedulesLoading(false);
       }
     };
     fetchSchedules();
-  }, [activeTab]);
+  }, []);
 
   const renderSchedule = () => {
+    // Helper function to get today's sessions
+    const getTodaysSessions = () => {
+      const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const todayName = dayNames[today];
+      
+      const todaySessions = [];
+      schedules.forEach(schedule => {
+        schedule.sessions.forEach(session => {
+          if (session.day === todayName) {
+            todaySessions.push({
+              ...session,
+              course: schedule.course
+            });
+          }
+        });
+      });
+      
+      return todaySessions.sort((a, b) => a.startTime.localeCompare(b.startTime));
+    };
+
     return (
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Weekly Schedule</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Your course schedules</p>
         </div>
+        
+        {/* Today's Classes Announcement */}
+        {getTodaysSessions().length > 0 && (
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-lg p-4 lg:p-6 text-white animate-pulse">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-white/20 p-2 rounded-lg">
+                <Calendar className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg lg:text-xl font-bold">Today's Classes</h3>
+            </div>
+            <div className="space-y-3">
+              {getTodaysSessions().map((session, idx) => (
+                <div key={idx} className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-sm lg:text-base">{session.course?.title}</h4>
+                      <div className="flex items-center gap-4 text-xs lg:text-sm text-white/80 mt-1">
+                        <span>🕐 {formatTimeWithAMPM(session.startTime)} - {formatTimeWithAMPM(session.endTime)}</span>
+                        {session.room && <span>📍 Room: {session.room}</span>}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const now = new Date();
+                        const [startHour, startMin] = session.startTime.split(':').map(Number);
+                        const [endHour, endMin] = session.endTime.split(':').map(Number);
+                        const startTime = new Date();
+                        startTime.setHours(startHour, startMin, 0, 0);
+                        const endTime = new Date();
+                        endTime.setHours(endHour, endMin, 0, 0);
+                        const lateTime = new Date(startTime.getTime() + 15 * 60000);
+                        
+                        let modalType, title, message, actionText, canJoin = false;
+                        
+                        if (now < startTime) {
+                          const diff = startTime - now;
+                          const minutes = Math.floor(diff / 60000);
+                          const seconds = Math.floor((diff % 60000) / 1000);
+                          modalType = 'waiting';
+                          title = 'Class Not Started Yet';
+                          message = `Please wait ${minutes}m ${seconds}s for the class to begin.`;
+                          actionText = 'Wait';
+                        } else if (now >= startTime && now <= lateTime) {
+                          modalType = 'join';
+                          title = 'Join Class Now';
+                          message = session.link 
+                            ? 'Click below to join the online class meeting.'
+                            : `Please go to ${session.room || 'the assigned room'} for your class.`;
+                          actionText = session.link ? 'Join Meeting' : 'Got It';
+                          canJoin = true;
+                        } else if (now > lateTime && now <= endTime) {
+                          modalType = 'late';
+                          title = 'You Are Late!';
+                          message = 'After 15 minutes, you cannot join the class.';
+                          actionText = 'Understood';
+                        } else {
+                          modalType = 'ended';
+                          title = 'Class Has Ended';
+                          message = 'This class session has already finished.';
+                          actionText = 'OK';
+                        }
+                        
+                        setJoinModalData({
+                          type: modalType,
+                          title,
+                          message,
+                          actionText,
+                          canJoin,
+                          session,
+                          link: session.link
+                        });
+                        setShowJoinModal(true);
+                      }}
+                      className="bg-white text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-100 transition-colors"
+                    >
+                      Join Class
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
         {schedulesLoading ? (
           <div className="flex justify-center items-center py-12">
@@ -2113,7 +2411,7 @@ const renderPayments = () => (
                                       <div className="flex items-center gap-1 text-xs flex-wrap">
                                         <Clock className="h-3 w-3 flex-shrink-0" />
                                         <span className="font-medium">Time:</span>
-                                        <span>{session.startTime} - {session.endTime}</span>
+                                        <span>{formatTimeWithAMPM(session.startTime)} - {formatTimeWithAMPM(session.endTime)}</span>
                                       </div>
                                       {session.room && (
                                         <div className="flex items-center gap-1 text-xs mt-1 flex-wrap">
@@ -2122,6 +2420,71 @@ const renderPayments = () => (
                                           <span>{session.room}</span>
                                         </div>
                                       )}
+                                      {(() => {
+                                        const today = new Date().getDay();
+                                        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                                        const todayName = dayNames[today];
+                                        return session.day === todayName && (
+                                          <div className="mt-2">
+                                            <button
+                                              onClick={() => {
+                                                const now = new Date();
+                                                const [startHour, startMin] = session.startTime.split(':').map(Number);
+                                                const [endHour, endMin] = session.endTime.split(':').map(Number);
+                                                const startTime = new Date();
+                                                startTime.setHours(startHour, startMin, 0, 0);
+                                                const endTime = new Date();
+                                                endTime.setHours(endHour, endMin, 0, 0);
+                                                const lateTime = new Date(startTime.getTime() + 15 * 60000);
+                                                
+                                                let modalType, title, message, actionText, canJoin = false;
+                                                
+                                                if (now < startTime) {
+                                                  const diff = startTime - now;
+                                                  const minutes = Math.floor(diff / 60000);
+                                                  const seconds = Math.floor((diff % 60000) / 1000);
+                                                  modalType = 'waiting';
+                                                  title = 'Class Not Started Yet';
+                                                  message = `Please wait ${minutes}m ${seconds}s for the class to begin.`;
+                                                  actionText = 'Wait';
+                                                } else if (now >= startTime && now <= lateTime) {
+                                                  modalType = 'join';
+                                                  title = 'Join Class Now';
+                                                  message = session.link 
+                                                    ? 'Click below to join the online class meeting.'
+                                                    : `Please go to ${session.room || 'the assigned room'} for your class.`;
+                                                  actionText = session.link ? 'Join Meeting' : 'Got It';
+                                                  canJoin = true;
+                                                } else if (now > lateTime && now <= endTime) {
+                                                  modalType = 'late';
+                                                  title = 'You Are Late!';
+                                                  message = 'After 15 minutes, you cannot join the class.';
+                                                  actionText = 'Understood';
+                                                } else {
+                                                  modalType = 'ended';
+                                                  title = 'Class Has Ended';
+                                                  message = 'This class session has already finished.';
+                                                  actionText = 'OK';
+                                                }
+                                                
+                                                setJoinModalData({
+                                                  type: modalType,
+                                                  title,
+                                                  message,
+                                                  actionText,
+                                                  canJoin,
+                                                  session,
+                                                  link: session.link
+                                                });
+                                                setShowJoinModal(true);
+                                              }}
+                                              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors"
+                                            >
+                                              Join Class
+                                            </button>
+                                          </div>
+                                        );
+                                      })()}
                                     </div>
                                   );
                                 })}
@@ -2145,7 +2508,7 @@ const renderPayments = () => (
                               <div className="flex items-center gap-1 text-xs mb-1 flex-wrap">
                                 <Clock className="h-3 w-3 flex-shrink-0" />
                                 <span className={`font-medium ${textColor}`}>Time:</span>
-                                <span className={`${textColor}`}>{session.startTime} - {session.endTime}</span>
+                                <span className={`${textColor}`}>{formatTimeWithAMPM(session.startTime)} - {formatTimeWithAMPM(session.endTime)}</span>
                               </div>
                               {session.room && (
                                 <div className="flex items-center gap-1 text-xs flex-wrap">
@@ -2154,6 +2517,71 @@ const renderPayments = () => (
                                   <span className={`${textColor}`}>{session.room}</span>
                                 </div>
                               )}
+                              {(() => {
+                                const today = new Date().getDay();
+                                const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                                const todayName = dayNames[today];
+                                return session.day === todayName && (
+                                  <div className="mt-2">
+                                    <button
+                                      onClick={() => {
+                                        const now = new Date();
+                                        const [startHour, startMin] = session.startTime.split(':').map(Number);
+                                        const [endHour, endMin] = session.endTime.split(':').map(Number);
+                                        const startTime = new Date();
+                                        startTime.setHours(startHour, startMin, 0, 0);
+                                        const endTime = new Date();
+                                        endTime.setHours(endHour, endMin, 0, 0);
+                                        const lateTime = new Date(startTime.getTime() + 15 * 60000);
+                                        
+                                        let modalType, title, message, actionText, canJoin = false;
+                                        
+                                        if (now < startTime) {
+                                          const diff = startTime - now;
+                                          const minutes = Math.floor(diff / 60000);
+                                          const seconds = Math.floor((diff % 60000) / 1000);
+                                          modalType = 'waiting';
+                                          title = 'Class Not Started Yet';
+                                          message = `Please wait ${minutes}m ${seconds}s for the class to begin.`;
+                                          actionText = 'Wait';
+                                        } else if (now >= startTime && now <= lateTime) {
+                                          modalType = 'join';
+                                          title = 'Join Class Now';
+                                          message = session.link 
+                                            ? 'Click below to join the online class meeting.'
+                                            : `Please go to ${session.room || 'the assigned room'} for your class.`;
+                                          actionText = session.link ? 'Join Meeting' : 'Got It';
+                                          canJoin = true;
+                                        } else if (now > lateTime && now <= endTime) {
+                                          modalType = 'late';
+                                          title = 'You Are Late!';
+                                          message = 'After 15 minutes, you cannot join the class.';
+                                          actionText = 'Understood';
+                                        } else {
+                                          modalType = 'ended';
+                                          title = 'Class Has Ended';
+                                          message = 'This class session has already finished.';
+                                          actionText = 'OK';
+                                        }
+                                        
+                                        setJoinModalData({
+                                          type: modalType,
+                                          title,
+                                          message,
+                                          actionText,
+                                          canJoin,
+                                          session,
+                                          link: session.link
+                                        });
+                                        setShowJoinModal(true);
+                                      }}
+                                      className="w-full bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors"
+                                    >
+                                      Join Class
+                                    </button>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           );
                         })}
@@ -3324,7 +3752,205 @@ const renderPayments = () => (
         ></div>
       )}
       
+      {/* Join Class Modal */}
+      {showJoinModal && joinModalData && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 transform animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className={`px-6 py-4 rounded-t-2xl ${
+              joinModalData.type === 'waiting' ? 'bg-gradient-to-r from-orange-500 to-amber-500' :
+              joinModalData.type === 'join' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+              joinModalData.type === 'late' ? 'bg-gradient-to-r from-red-500 to-rose-500' :
+              'bg-gradient-to-r from-gray-500 to-slate-500'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                    {joinModalData.type === 'waiting' && <Clock className="h-5 w-5 text-white" />}
+                    {joinModalData.type === 'join' && <Video className="h-5 w-5 text-white" />}
+                    {joinModalData.type === 'late' && <X className="h-5 w-5 text-white" />}
+                    {joinModalData.type === 'ended' && <CheckCircle className="h-5 w-5 text-white" />}
+                  </div>
+                  <h3 className="text-lg font-bold text-white">{joinModalData.title}</h3>
+                </div>
+                <button
+                  onClick={() => setShowJoinModal(false)}
+                  className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
 
+            {/* Content */}
+            <div className="px-6 py-6">
+              {/* Course Info */}
+              <div className="mb-6">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                  {joinModalData.session.course?.title || 'Course'}
+                </h4>
+                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    <span>{formatTimeWithAMPM(joinModalData.session.startTime)} - {formatTimeWithAMPM(joinModalData.session.endTime)}</span>
+                  </div>
+                  {joinModalData.session.room && (
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-4 w-4" />
+                      <span>Room: {joinModalData.session.room}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Message */}
+              <div className={`p-4 rounded-xl mb-6 ${
+                joinModalData.type === 'waiting' ? 'bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800' :
+                joinModalData.type === 'join' ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' :
+                joinModalData.type === 'late' ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' :
+                'bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600'
+              }`}>
+                <p className={`text-sm font-medium ${
+                  joinModalData.type === 'waiting' ? 'text-orange-800 dark:text-orange-200' :
+                  joinModalData.type === 'join' ? 'text-green-800 dark:text-green-200' :
+                  joinModalData.type === 'late' ? 'text-red-800 dark:text-red-200' :
+                  'text-gray-800 dark:text-gray-200'
+                }`}>
+                  {joinModalData.message}
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                {joinModalData.canJoin && joinModalData.link ? (
+                  <button
+                    onClick={() => {
+                      window.open(joinModalData.link, '_blank', 'noopener,noreferrer');
+                      setShowJoinModal(false);
+                    }}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-2"
+                  >
+                    <Video className="h-4 w-4" />
+                    {joinModalData.actionText}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowJoinModal(false)}
+                    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all duration-200 ${
+                      joinModalData.type === 'waiting' ? 'bg-orange-600 hover:bg-orange-700 text-white' :
+                      joinModalData.type === 'join' ? 'bg-green-600 hover:bg-green-700 text-white' :
+                      joinModalData.type === 'late' ? 'bg-red-600 hover:bg-red-700 text-white' :
+                      'bg-gray-600 hover:bg-gray-700 text-white'
+                    }`}
+                  >
+                    {joinModalData.actionText}
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowJoinModal(false)}
+                  className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl font-medium transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Join Class Modal */}
+      {showJoinModal && joinModalData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                    joinModalData.type === 'join' ? 'bg-green-100 dark:bg-green-900/20' :
+                    joinModalData.type === 'waiting' ? 'bg-blue-100 dark:bg-blue-900/20' :
+                    joinModalData.type === 'late' ? 'bg-red-100 dark:bg-red-900/20' :
+                    'bg-gray-100 dark:bg-gray-700'
+                  }`}>
+                    {joinModalData.type === 'join' ? (
+                      <Video className="h-6 w-6 text-green-600" />
+                    ) : joinModalData.type === 'waiting' ? (
+                      <Clock className="h-6 w-6 text-blue-600" />
+                    ) : joinModalData.type === 'late' ? (
+                      <X className="h-6 w-6 text-red-600" />
+                    ) : (
+                      <CheckCircle className="h-6 w-6 text-gray-600" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{joinModalData.title}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{joinModalData.session.course?.title}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowJoinModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="mb-6">
+                <p className="text-gray-700 dark:text-gray-300 text-center mb-4">
+                  {joinModalData.message}
+                </p>
+                
+                {/* Session Details */}
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Time:</span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {formatTimeWithAMPM(joinModalData.session.startTime)} - {formatTimeWithAMPM(joinModalData.session.endTime)}
+                    </span>
+                  </div>
+                  {joinModalData.session.room && (
+                    <div className="flex items-center justify-between text-sm mt-2">
+                      <span className="text-gray-600 dark:text-gray-400">Room:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{joinModalData.session.room}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowJoinModal(false)}
+                  className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                >
+                  Close
+                </button>
+                {joinModalData.canJoin && joinModalData.link && (
+                  <button
+                    onClick={() => {
+                      window.open(joinModalData.link, '_blank');
+                      setShowJoinModal(false);
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Video className="h-4 w-4" />
+                    {joinModalData.actionText}
+                  </button>
+                )}
+                {joinModalData.canJoin && !joinModalData.link && (
+                  <button
+                    onClick={() => setShowJoinModal(false)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                  >
+                    {joinModalData.actionText}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

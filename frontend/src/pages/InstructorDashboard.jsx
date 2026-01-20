@@ -108,6 +108,16 @@ const InstructorDashboard = () => {
     confirmPassword: ''
   });
 
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update current time every second for countdown
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Notification state
   const [notification, setNotification] = useState({
     isVisible: false,
@@ -1074,7 +1084,7 @@ const InstructorDashboard = () => {
             }
             
             return todaySessions.map((session, idx) => {
-              const now = new Date();
+              const now = currentTime;
               const [hours, minutes] = session.startTime.split(':').map(Number);
               const sessionStart = new Date();
               sessionStart.setHours(hours, minutes, 0, 0);
@@ -1086,6 +1096,21 @@ const InstructorDashboard = () => {
               const isUpcoming = now < sessionStart;
               const isOngoing = now >= sessionStart && now <= sessionEnd;
               const isPast = now > sessionEnd;
+              
+              // Calculate countdown
+              const getCountdown = () => {
+                if (isPast) return 'Completed';
+                if (isOngoing) return 'Live Now';
+                
+                const diffMs = sessionStart - now;
+                const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+                
+                if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+                if (minutes > 0) return `${minutes}m ${seconds}s`;
+                return `${seconds}s`;
+              };
               
               const colors = [
                 'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-500',
@@ -1104,26 +1129,32 @@ const InstructorDashboard = () => {
               const statusText = isOngoing ? 'Live Now' : isUpcoming ? 'Upcoming' : 'Completed';
               
               return (
-                <div key={idx} className={`flex items-center p-3 lg:p-4 bg-gradient-to-r ${colors[idx % colors.length]} rounded-xl border-l-4`}>
+                <div key={idx} className={`flex flex-col sm:flex-row sm:items-center p-3 lg:p-4 bg-gradient-to-r ${colors[idx % colors.length]} rounded-xl border-l-4 gap-3 sm:gap-0`}>
                   <div className="flex-1">
                     <h4 className="font-semibold text-gray-900 dark:text-white text-sm lg:text-base">
                       {session.course?.title || 'Unknown Course'}
                     </h4>
-                    <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      <Clock className="h-3 w-3" />
-                      <span>{formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
+                    <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
+                      </div>
                       {session.room && (
                         <>
-                          <span>•</span>
-                          <MapPin className="h-3 w-3" />
-                          <span>Room {session.room}</span>
+                          <span className="hidden sm:inline">•</span>
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            <span>Room {session.room}</span>
+                          </div>
                         </>
                       )}
                       {session.link && (
                         <>
-                          <span>•</span>
-                          <Globe className="h-3 w-3" />
-                          <span>Online</span>
+                          <span className="hidden sm:inline">•</span>
+                          <div className="flex items-center gap-1">
+                            <Globe className="h-3 w-3" />
+                            <span>Online</span>
+                          </div>
                         </>
                       )}
                     </div>
@@ -1136,16 +1167,16 @@ const InstructorDashboard = () => {
                       })()} 
                     </p>
                   </div>
-                  <div className="text-right flex flex-col items-end gap-2">
-                    <span className={`px-2 lg:px-3 py-1 ${statusColors[status]} text-white text-xs rounded-full font-medium`}>
-                      {statusText}
+                  <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 sm:text-right">
+                    <span className={`px-2 lg:px-3 py-1 ${statusColors[status]} text-white text-xs rounded-full font-medium whitespace-nowrap`}>
+                      {isUpcoming ? getCountdown() : statusText}
                     </span>
                     {session.link && isUpcoming && (
                       <a 
                         href={session.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-2 py-1 bg-white/80 hover:bg-white text-gray-700 text-xs rounded-lg font-medium transition-colors"
+                        className="px-2 py-1 bg-white/80 hover:bg-white text-gray-700 text-xs rounded-lg font-medium transition-colors whitespace-nowrap"
                       >
                         Join Class
                       </a>
@@ -1155,7 +1186,7 @@ const InstructorDashboard = () => {
                         href={session.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg font-medium transition-colors animate-pulse"
+                        className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg font-medium transition-colors animate-pulse whitespace-nowrap"
                       >
                         Join Now
                       </a>
