@@ -169,4 +169,80 @@ router.delete('/course/:courseId', auth, isAdmin, async (req, res) => {
   }
 });
 
+// @route   PUT /api/schedules/:id/session-link
+// @desc    Add/Update session link
+// @access  Private (Instructor)
+router.put('/:id/session-link', auth, async (req, res) => {
+  try {
+    const { day, startTime, link } = req.body;
+    
+    if (!day || !startTime || !link) {
+      return res.status(400).json({ success: false, message: 'Day, start time, and link are required' });
+    }
+    
+    const schedule = await Schedule.findById(req.params.id).populate('course');
+    
+    if (!schedule) {
+      return res.status(404).json({ success: false, message: 'Schedule not found' });
+    }
+    
+    // Check if user is instructor of this course
+    if (req.user.role === 'instructor' && schedule.course.instructor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+    
+    // Find and update the session
+    const sessionIndex = schedule.sessions.findIndex(s => s.day === day && s.startTime === startTime);
+    
+    if (sessionIndex === -1) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+    
+    schedule.sessions[sessionIndex].link = link;
+    await schedule.save();
+    
+    res.json({ success: true, message: 'Session link updated successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @route   DELETE /api/schedules/:id/session-link
+// @desc    Remove session link
+// @access  Private (Instructor)
+router.delete('/:id/session-link', auth, async (req, res) => {
+  try {
+    const { day, startTime } = req.body;
+    
+    if (!day || !startTime) {
+      return res.status(400).json({ success: false, message: 'Day and start time are required' });
+    }
+    
+    const schedule = await Schedule.findById(req.params.id).populate('course');
+    
+    if (!schedule) {
+      return res.status(404).json({ success: false, message: 'Schedule not found' });
+    }
+    
+    // Check if user is instructor of this course
+    if (req.user.role === 'instructor' && schedule.course.instructor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+    
+    // Find and update the session
+    const sessionIndex = schedule.sessions.findIndex(s => s.day === day && s.startTime === startTime);
+    
+    if (sessionIndex === -1) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+    
+    schedule.sessions[sessionIndex].link = '';
+    await schedule.save();
+    
+    res.json({ success: true, message: 'Session link removed successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;

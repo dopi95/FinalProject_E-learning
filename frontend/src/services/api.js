@@ -356,6 +356,12 @@ export const scheduleAPI = {
   
   // Delete all schedules for a course
   deleteCourseSchedules: (courseId) => api.delete(`/schedules/course/${courseId}`),
+  
+  // Add session link
+  addSessionLink: (scheduleId, sessionData) => api.put(`/schedules/${scheduleId}/session-link`, sessionData),
+  
+  // Remove session link
+  removeSessionLink: (scheduleId, sessionData) => api.delete(`/schedules/${scheduleId}/session-link`, { data: sessionData }),
 };
 
 // Schedule Update Request API functions

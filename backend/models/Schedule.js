@@ -17,6 +17,10 @@ const sessionSchema = new mongoose.Schema({
   room: {
     type: String,
     default: ''
+  },
+  link: {
+    type: String,
+    default: ''
   }
 });
 

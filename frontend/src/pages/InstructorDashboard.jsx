@@ -42,6 +42,10 @@ const InstructorDashboard = () => {
   const [sortByLikes, setSortByLikes] = useState(false);
   const [schedules, setSchedules] = useState([]);
   const [schedulesLoading, setSchedulesLoading] = useState(false);
+  const [sessionLinks, setSessionLinks] = useState({});
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [selectedSessionForLink, setSelectedSessionForLink] = useState(null);
+  const [linkInput, setLinkInput] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [showUpdateScheduleModal, setShowUpdateScheduleModal] = useState(false);
   const [selectedScheduleForUpdate, setSelectedScheduleForUpdate] = useState(null);
@@ -159,6 +163,70 @@ const InstructorDashboard = () => {
       isOverdue: false,
       timeLeft: timeLeftText
     };
+  };
+
+  // Helper function to format time to 12-hour format with AM/PM
+  const formatTime = (time24) => {
+    const [hours, minutes] = time24.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+
+  // Helper function to get today's sessions
+  const getTodaysSessions = () => {
+    const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const todayName = dayNames[today];
+    
+    const todaySessions = [];
+    schedules.forEach(schedule => {
+      schedule.sessions.forEach(session => {
+        if (session.day === todayName) {
+          todaySessions.push({
+            ...session,
+            course: schedule.course
+          });
+        }
+      });
+    });
+    
+    return todaySessions.sort((a, b) => a.startTime.localeCompare(b.startTime));
+  };
+
+  // Helper function to calculate time until class begins
+  const getTimeUntilClass = (day, startTime) => {
+    const now = new Date();
+    const today = now.getDay();
+    const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+    const targetDay = dayMap[day.toLowerCase()];
+    
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const targetTime = new Date();
+    targetTime.setHours(hours, minutes, 0, 0);
+    
+    let daysUntil = targetDay - today;
+    if (daysUntil < 0 || (daysUntil === 0 && now > targetTime)) {
+      daysUntil += 7;
+    }
+    
+    const targetDate = new Date(now);
+    targetDate.setDate(now.getDate() + daysUntil);
+    targetDate.setHours(hours, minutes, 0, 0);
+    
+    const diffMs = targetDate - now;
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hrs = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) {
+      return `${days}d ${hrs}h ${mins}m`;
+    } else if (hrs > 0) {
+      return `${hrs}h ${mins}m`;
+    } else {
+      return `${mins}m`;
+    }
   };
 
   // Handle file download
@@ -992,31 +1060,111 @@ const InstructorDashboard = () => {
           <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">Today's Schedule</h3>
         </div>
         <div className="space-y-3 lg:space-y-4">
-          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-l-4 border-blue-500">
-            <div className="flex-1">
-              <h4 className="font-semibold text-gray-900 dark:text-white text-sm lg:text-base">Advanced Mathematics</h4>
-              <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">10:00 AM - 11:30 AM • on Zoom</p>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">32 students enrolled</p>
-            </div>
-            <div className="text-right">
-              <span className="px-2 lg:px-3 py-1 bg-blue-500 text-white text-xs rounded-full font-medium">
-                Upcoming
-              </span>
-            </div>
-          </div>
-          
-          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border-l-4 border-emerald-500">
-            <div className="flex-1">
-              <h4 className="font-semibold text-gray-900 dark:text-white text-sm lg:text-base">Physics Laboratory</h4>
-              <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">2:00 PM - 3:30 PM • on Zoom</p>
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">28 students enrolled</p>
-            </div>
-            <div className="text-right">
-              <span className="px-2 lg:px-3 py-1 bg-emerald-500 text-white text-xs rounded-full font-medium">
-                Later Today
-              </span>
-            </div>
-          </div>
+          {(() => {
+            const todaySessions = getTodaysSessions();
+            
+            if (todaySessions.length === 0) {
+              return (
+                <div className="text-center py-8 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                  <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">No classes scheduled for today</p>
+                  <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Enjoy your day off!</p>
+                </div>
+              );
+            }
+            
+            return todaySessions.map((session, idx) => {
+              const now = new Date();
+              const [hours, minutes] = session.startTime.split(':').map(Number);
+              const sessionStart = new Date();
+              sessionStart.setHours(hours, minutes, 0, 0);
+              
+              const [endHours, endMinutes] = session.endTime.split(':').map(Number);
+              const sessionEnd = new Date();
+              sessionEnd.setHours(endHours, endMinutes, 0, 0);
+              
+              const isUpcoming = now < sessionStart;
+              const isOngoing = now >= sessionStart && now <= sessionEnd;
+              const isPast = now > sessionEnd;
+              
+              const colors = [
+                'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-500',
+                'from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-500',
+                'from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-500',
+                'from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-orange-500'
+              ];
+              
+              const statusColors = {
+                upcoming: 'bg-blue-500',
+                ongoing: 'bg-green-500 animate-pulse',
+                past: 'bg-gray-500'
+              };
+              
+              const status = isOngoing ? 'ongoing' : isUpcoming ? 'upcoming' : 'past';
+              const statusText = isOngoing ? 'Live Now' : isUpcoming ? 'Upcoming' : 'Completed';
+              
+              return (
+                <div key={idx} className={`flex items-center p-3 lg:p-4 bg-gradient-to-r ${colors[idx % colors.length]} rounded-xl border-l-4`}>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 dark:text-white text-sm lg:text-base">
+                      {session.course?.title || 'Unknown Course'}
+                    </h4>
+                    <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      <Clock className="h-3 w-3" />
+                      <span>{formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
+                      {session.room && (
+                        <>
+                          <span>•</span>
+                          <MapPin className="h-3 w-3" />
+                          <span>Room {session.room}</span>
+                        </>
+                      )}
+                      {session.link && (
+                        <>
+                          <span>•</span>
+                          <Globe className="h-3 w-3" />
+                          <span>Online</span>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      {(() => {
+                        // Find the course from the courses array to get student count
+                        const courseData = courses.find(c => c._id === session.course?._id);
+                        const studentCount = courseData?.students?.length || 0;
+                        return `${studentCount} students enrolled`;
+                      })()} 
+                    </p>
+                  </div>
+                  <div className="text-right flex flex-col items-end gap-2">
+                    <span className={`px-2 lg:px-3 py-1 ${statusColors[status]} text-white text-xs rounded-full font-medium`}>
+                      {statusText}
+                    </span>
+                    {session.link && isUpcoming && (
+                      <a 
+                        href={session.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2 py-1 bg-white/80 hover:bg-white text-gray-700 text-xs rounded-lg font-medium transition-colors"
+                      >
+                        Join Class
+                      </a>
+                    )}
+                    {session.link && isOngoing && (
+                      <a 
+                        href={session.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg font-medium transition-colors animate-pulse"
+                      >
+                        Join Now
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            });
+          })()}
         </div>
       </div>
 
@@ -2974,6 +3122,43 @@ const InstructorDashboard = () => {
         </div>
       )}
       
+      {/* Today's Classes Announcement */}
+      {getTodaysSessions().length > 0 && (
+        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-lg p-4 lg:p-6 text-white animate-pulse">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-white/20 p-2 rounded-lg">
+              <Calendar className="h-6 w-6" />
+            </div>
+            <h3 className="text-lg lg:text-xl font-bold">Today's Classes</h3>
+          </div>
+          <div className="space-y-3">
+            {getTodaysSessions().map((session, idx) => (
+              <div key={idx} className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold text-sm lg:text-base">{session.course?.title}</h4>
+                    <div className="flex items-center gap-4 text-xs lg:text-sm text-white/80 mt-1">
+                      <span>🕐 {formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
+                      {session.room && <span>📍 Room: {session.room}</span>}
+                    </div>
+                  </div>
+                  {session.link && (
+                    <a 
+                      href={session.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-white text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-100 transition-colors"
+                    >
+                      Join Now
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
       {schedulesLoading ? (
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -3045,16 +3230,66 @@ const InstructorDashboard = () => {
                                 const color = colors[idx % 3];
                                 return (
                                   <div key={idx} className={`${color} p-3 rounded-lg mb-2`}>
-                                    <div className="flex items-center gap-1 text-xs flex-wrap">
+                                    <div className="flex items-center gap-1 text-xs mb-1 flex-wrap">
                                       <Clock className="h-3 w-3 flex-shrink-0" />
                                       <span className="font-medium">Time:</span>
-                                      <span>{session.startTime} - {session.endTime}</span>
+                                      <span>{formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
                                     </div>
                                     {session.room && (
-                                      <div className="flex items-center gap-1 text-xs mt-1 flex-wrap">
+                                      <div className="flex items-center gap-1 text-xs mb-2">
                                         <MapPin className="h-3 w-3 flex-shrink-0" />
                                         <span className="font-medium">Room:</span>
                                         <span>{session.room}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-1">
+                                      {session.link ? (
+                                        <>
+                                          <a 
+                                            href={session.link} 
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium shadow-sm whitespace-nowrap"
+                                          >
+                                            Join Class
+                                          </a>
+                                          <button 
+                                            onClick={async () => {
+                                              try {
+                                                setLoading(true);
+                                                const scheduleId = courseSchedules[0]._id;
+                                                await scheduleAPI.removeSessionLink(scheduleId, {
+                                                  day: session.day,
+                                                  startTime: session.startTime
+                                                });
+                                                fetchSchedules();
+                                                showNotification('success', 'Success', 'Session link removed successfully');
+                                              } catch (error) {
+                                                showNotification('error', 'Error', 'Failed to remove session link');
+                                              } finally {
+                                                setLoading(false);
+                                              }
+                                            }}
+                                            className="px-1 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                                          >
+                                            ×
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <button 
+                                          onClick={() => {
+                                            setSelectedSessionForLink({ course, session, day: session.day, startTime: session.startTime });
+                                            setShowLinkModal(true);
+                                          }}
+                                          className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors"
+                                        >
+                                          Add Link
+                                        </button>
+                                      )}
+                                    </div>
+                                    {session.link && (
+                                      <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                                        Class begins: {getTimeUntilClass(session.day, session.startTime)}
                                       </div>
                                     )}
                                   </div>
@@ -3080,7 +3315,7 @@ const InstructorDashboard = () => {
                             <div className="flex items-center gap-1 text-xs mb-1 flex-wrap">
                               <Clock className="h-3 w-3 flex-shrink-0" />
                               <span className={`font-medium ${textColor}`}>Time:</span>
-                              <span className={`${textColor}`}>{session.startTime} - {session.endTime}</span>
+                              <span className={`${textColor}`}>{formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
                             </div>
                             {session.room && (
                               <div className="flex items-center gap-1 text-xs flex-wrap">
@@ -3089,6 +3324,56 @@ const InstructorDashboard = () => {
                                 <span className={`${textColor}`}>{session.room}</span>
                               </div>
                             )}
+                            <div className="mt-2">
+                              {session.link ? (
+                                <div className="flex items-center gap-1">
+                                  <a 
+                                    href={session.link} 
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                                  >
+                                    Join Session
+                                  </a>
+                                  <button 
+                                    onClick={async () => {
+                                      try {
+                                        setLoading(true);
+                                        const scheduleId = courseSchedules[0]._id;
+                                        await scheduleAPI.removeSessionLink(scheduleId, {
+                                          day: session.day,
+                                          startTime: session.startTime
+                                        });
+                                        fetchSchedules();
+                                        showNotification('success', 'Success', 'Session link removed successfully');
+                                      } catch (error) {
+                                        showNotification('error', 'Error', 'Failed to remove session link');
+                                      } finally {
+                                        setLoading(false);
+                                      }
+                                    }}
+                                    className="px-1 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ) : (
+                                <button 
+                                  onClick={() => {
+                                    setSelectedSessionForLink({ course, session, day: session.day, startTime: session.startTime });
+                                    setShowLinkModal(true);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-3 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors"
+                                >
+                                  Add Link
+                                </button>
+                              )}
+                              {session.link && (
+                                <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                                  Class begins: {getTimeUntilClass(session.day, session.startTime)}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -3261,6 +3546,96 @@ const InstructorDashboard = () => {
                       setUpdateReason('');
                     }}
                     className="flex-1 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Add Link Modal */}
+      {showLinkModal && selectedSessionForLink && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Add Session Link</h3>
+                <button
+                  onClick={() => {
+                    setShowLinkModal(false);
+                    setSelectedSessionForLink(null);
+                    setLinkInput('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                  <p className="text-sm text-blue-800 dark:text-blue-300 font-medium">
+                    {selectedSessionForLink.course.title}
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    {selectedSessionForLink.day.charAt(0).toUpperCase() + selectedSessionForLink.day.slice(1)} • {formatTime(selectedSessionForLink.startTime)}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Session Link</label>
+                  <input
+                    type="url"
+                    value={linkInput}
+                    onChange={(e) => setLinkInput(e.target.value)}
+                    placeholder="https://zoom.us/j/... or https://meet.google.com/..."
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    autoFocus
+                  />
+                </div>
+                
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={async () => {
+                      if (!linkInput.trim()) return;
+                      try {
+                        setLoading(true);
+                        const courseSchedules = schedules.filter(s => s.course?._id === selectedSessionForLink.course._id);
+                        if (courseSchedules.length > 0) {
+                          const scheduleId = courseSchedules[0]._id;
+                          await scheduleAPI.addSessionLink(scheduleId, {
+                            day: selectedSessionForLink.day,
+                            startTime: selectedSessionForLink.startTime,
+                            link: linkInput.trim()
+                          });
+                          setShowLinkModal(false);
+                          setSelectedSessionForLink(null);
+                          setLinkInput('');
+                          fetchSchedules();
+                          showNotification('success', 'Success', 'Session link added successfully');
+                        }
+                      } catch (error) {
+                        console.error('Add link error:', error);
+                        showNotification('error', 'Error', 'Failed to add session link');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={!linkInput.trim()}
+                    className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Add Link
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowLinkModal(false);
+                      setSelectedSessionForLink(null);
+                      setLinkInput('');
+                    }}
+                    className="flex-1 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 font-medium transition-colors"
                   >
                     Cancel
                   </button>
