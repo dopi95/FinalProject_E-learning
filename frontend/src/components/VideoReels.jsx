@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Play, Pause, Volume2, VolumeX, Heart, MessageCircle, Share, MoreVertical, Loader, Send, User, Reply, Trash2 } from 'lucide-react';
 import { reelAPI } from '../services/api';
 
@@ -21,8 +21,12 @@ const VideoReels = ({ isOpen, onClose }) => {
   const [replyText, setReplyText] = useState('');
   const [sessionId, setSessionId] = useState(null);
   const [viewedReels, setViewedReels] = useState(new Set());
+  const [isScrolling, setIsScrolling] = useState(false);
+  const [lastScrollTime, setLastScrollTime] = useState(0);
+  const [scrollCooldown, setScrollCooldown] = useState(false);
   const videoRefs = useRef([]);
   const containerRef = useRef(null);
+  const scrollTimeoutRef = useRef(null);
 
   // Check if user is logged in and generate session ID
   useEffect(() => {
@@ -165,16 +169,24 @@ const VideoReels = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (!reels.length) return;
     
-    // Pause all videos first
-    videoRefs.current.forEach(video => {
-      if (video) video.pause();
+    // Pause all videos and reset volume
+    videoRefs.current.forEach((video, index) => {
+      if (video) {
+        video.pause();
+        video.volume = index === currentVideo ? (isMuted ? 0 : 1) : 0;
+      }
     });
     
-    // Play only current video and increment view
+    // Play current video immediately
     const currentVideoRef = videoRefs.current[currentVideo];
-    if (currentVideoRef && isPlaying) {
-      currentVideoRef.play().catch(console.error);
-      // Increment view count when video starts playing (only once per reel)
+    if (currentVideoRef) {
+      currentVideoRef.currentTime = 0;
+      currentVideoRef.volume = isMuted ? 0 : 1;
+      if (isPlaying) {
+        currentVideoRef.play().catch(console.error);
+      }
+      
+      // Increment view count
       if (reels[currentVideo] && !viewedReels.has(reels[currentVideo]._id)) {
         const reelId = reels[currentVideo]._id;
         setViewedReels(prev => new Set([...prev, reelId]));
@@ -183,32 +195,181 @@ const VideoReels = ({ isOpen, onClose }) => {
         reelAPI.incrementView(reelId, viewData).catch(console.error);
       }
     }
-  }, [currentVideo, isPlaying, reels]);
+  }, [currentVideo, isPlaying, isMuted, reels, user, sessionId, viewedReels]);
+
+  // Auto-play first video when reels load
+  useEffect(() => {
+    if (reels.length > 0 && videoRefs.current[0] && isOpen) {
+      setTimeout(() => {
+        const firstVideo = videoRefs.current[0];
+        if (firstVideo) {
+          firstVideo.currentTime = 0;
+          firstVideo.muted = isMuted;
+          firstVideo.play().catch(console.error);
+        }
+      }, 100);
+    }
+  }, [reels, isOpen, isMuted]);
 
   const handleVideoClick = () => {
-    setIsPlaying(!isPlaying);
+    // Do nothing on click - videos should always play
   };
 
-  const handleScroll = (e) => {
-    const container = e.target;
-    const videoHeight = container.clientHeight;
-    const scrollTop = container.scrollTop;
-    const newIndex = Math.round(scrollTop / videoHeight);
-    
-    if (newIndex !== currentVideo && newIndex >= 0 && newIndex < reels.length) {
-      setCurrentVideo(newIndex);
-      setIsPlaying(true);
+  const handleVideoPress = (e) => {
+    e.preventDefault();
+    const currentVideoRef = videoRefs.current[currentVideo];
+    if (currentVideoRef && !currentVideoRef.paused) {
+      currentVideoRef.pause();
     }
   };
 
-  const scrollToVideo = (index) => {
-    if (containerRef.current) {
+  const handleVideoRelease = (e) => {
+    e.preventDefault();
+    const currentVideoRef = videoRefs.current[currentVideo];
+    if (currentVideoRef && currentVideoRef.paused) {
+      currentVideoRef.play().catch(console.error);
+    }
+  };
+
+  const handleScroll = useCallback((e) => {
+    if (isScrolling) return;
+    
+    const container = e.target;
+    const videoHeight = window.innerHeight;
+    const scrollTop = container.scrollTop;
+    const newIndex = Math.round(scrollTop / videoHeight);
+    
+    // Only allow sequential navigation (one reel at a time)
+    const maxAllowedIndex = Math.min(currentVideo + 1, reels.length - 1);
+    const minAllowedIndex = Math.max(currentVideo - 1, 0);
+    const clampedIndex = Math.max(minAllowedIndex, Math.min(maxAllowedIndex, newIndex));
+    
+    if (clampedIndex !== currentVideo && clampedIndex >= 0 && clampedIndex < reels.length) {
+      setCurrentVideo(clampedIndex);
+      setIsPlaying(true);
+    }
+
+    // Clear existing timeout
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    // Set timeout to snap to current video after scrolling stops
+    scrollTimeoutRef.current = setTimeout(() => {
+      scrollToVideo(currentVideo);
+    }, 100);
+  }, [currentVideo, reels.length, isScrolling]);
+
+  const scrollToVideo = useCallback((index) => {
+    if (containerRef.current && !isScrolling && index >= 0 && index < reels.length) {
+      setIsScrolling(true);
       containerRef.current.scrollTo({
         top: index * window.innerHeight,
         behavior: 'smooth'
       });
+      
+      // Reset scrolling flag after animation
+      setTimeout(() => {
+        setIsScrolling(false);
+      }, 600); // Slightly longer to ensure smooth completion
     }
-  };
+  }, [isScrolling, reels.length]);
+
+  // Handle touch/wheel events for better scroll control
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let startY = 0;
+    let isTouch = false;
+
+    const handleTouchStart = (e) => {
+      startY = e.touches[0].clientY;
+      isTouch = true;
+    };
+
+    const handleTouchEnd = (e) => {
+      if (!isTouch || isScrolling || scrollCooldown) return;
+      
+      const now = Date.now();
+      if (now - lastScrollTime < 300) return; // Prevent rapid scrolling
+      
+      const endY = e.changedTouches[0].clientY;
+      const deltaY = startY - endY;
+      const threshold = 80; // Increased threshold for more deliberate swipes
+
+      if (Math.abs(deltaY) > threshold) {
+        setScrollCooldown(true);
+        setLastScrollTime(now);
+        
+        if (deltaY > 0 && currentVideo < reels.length - 1) {
+          // Swipe up - next video (only one at a time)
+          const nextIndex = currentVideo + 1;
+          setCurrentVideo(nextIndex);
+          scrollToVideo(nextIndex);
+        } else if (deltaY < 0 && currentVideo > 0) {
+          // Swipe down - previous video (only one at a time)
+          const prevIndex = currentVideo - 1;
+          setCurrentVideo(prevIndex);
+          scrollToVideo(prevIndex);
+        }
+        
+        // Reset cooldown after animation
+        setTimeout(() => {
+          setScrollCooldown(false);
+        }, 600);
+      } else {
+        // If swipe is too small, snap back to current video
+        scrollToVideo(currentVideo);
+      }
+      
+      isTouch = false;
+    };
+
+    const handleWheel = (e) => {
+      e.preventDefault();
+      
+      if (isScrolling || scrollCooldown) return;
+      
+      const now = Date.now();
+      if (now - lastScrollTime < 200) return; // Prevent rapid wheel scrolling
+      
+      const deltaY = e.deltaY;
+      const threshold = 50; // Increased threshold to prevent accidental scrolling
+
+      if (Math.abs(deltaY) > threshold) {
+        setScrollCooldown(true);
+        setLastScrollTime(now);
+        
+        if (deltaY > 0 && currentVideo < reels.length - 1) {
+          // Scroll down - next video (only one at a time)
+          const nextIndex = currentVideo + 1;
+          setCurrentVideo(nextIndex);
+          scrollToVideo(nextIndex);
+        } else if (deltaY < 0 && currentVideo > 0) {
+          // Scroll up - previous video (only one at a time)
+          const prevIndex = currentVideo - 1;
+          setCurrentVideo(prevIndex);
+          scrollToVideo(prevIndex);
+        }
+        
+        // Reset cooldown after animation
+        setTimeout(() => {
+          setScrollCooldown(false);
+        }, 400);
+      }
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    container.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [currentVideo, reels.length, scrollToVideo, isScrolling, scrollCooldown, lastScrollTime]);
 
   if (!isOpen) return null;
 
@@ -276,100 +437,109 @@ const VideoReels = ({ isOpen, onClose }) => {
       {!loading && !error && reels.length > 0 && (
         <div 
           ref={containerRef}
-          className="flex-1 overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
+          className="flex-1 overflow-y-auto snap-y snap-mandatory scrollbar-hide"
           onScroll={handleScroll}
+          style={{ scrollBehavior: isScrolling ? 'smooth' : 'auto' }}
         >
           {reels.map((reel, index) => (
-            <div key={reel._id} className="relative h-screen w-full snap-start flex items-center justify-center">
+            <div key={reel._id} className="relative h-screen w-full snap-start snap-always flex items-center justify-center">
               {/* Video */}
-              <div className="relative w-full max-w-md h-full bg-black">
-                <video
-                  ref={el => videoRefs.current[index] = el}
-                  className="w-full h-full object-cover"
-                  loop
-                  muted={isMuted}
-                  playsInline
-                  onClick={handleVideoClick}
-                  poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='600' viewBox='0 0 400 600'%3E%3Crect width='400' height='600' fill='%23000'/%3E%3Ctext x='200' y='300' text-anchor='middle' fill='white' font-size='20'%3EVideo Loading...%3C/text%3E%3C/svg%3E"
-                >
-                  <source src={reel.videoUrl} type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
+              <div className="relative w-full h-full bg-black flex items-center justify-center">
+                <div className="relative w-full max-w-sm sm:max-w-md h-full bg-black">
+                  <video
+                    ref={el => videoRefs.current[index] = el}
+                    className="w-full h-full object-cover"
+                    loop
+                    muted={false}
+                    playsInline
+                    autoPlay={index === 0}
+                    preload="auto"
+                    onClick={handleVideoClick}
+                    onMouseDown={handleVideoPress}
+                    onMouseUp={handleVideoRelease}
+                    onMouseLeave={handleVideoRelease}
+                    onTouchStart={handleVideoPress}
+                    onTouchEnd={handleVideoRelease}
+                  >
+                    <source src={reel.videoUrl} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
 
-                {/* Play/Pause Overlay */}
-                {!isPlaying && index === currentVideo && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                    <div className="bg-white/20 rounded-full p-4">
-                      <Play className="h-12 w-12 text-white ml-1" />
+                  {/* Play/Pause Overlay */}
+                  {!isPlaying && index === currentVideo && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                      <div className="bg-white/20 rounded-full p-4">
+                        <Play className="h-12 w-12 text-white ml-1" />
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Video Info Overlay */}
-                <div className="absolute bottom-0 left-0 right-16 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
-                  <div className="text-white pr-2 max-w-full">
-                    <h3 className="font-bold text-base sm:text-lg mb-2 break-words leading-tight hyphens-auto overflow-wrap-anywhere">
-                      {reel.title}
-                    </h3>
-                    <div className="text-xs sm:text-sm leading-relaxed">
-                      {reel.description && reel.description.length > 100 ? (
-                        <div className="space-y-1">
-                          <p className={`break-words whitespace-pre-wrap leading-relaxed hyphens-auto overflow-wrap-anywhere transition-all duration-300 ${
-                            expandedDescriptions.has(reel._id) 
-                              ? 'max-h-none' 
-                              : 'max-h-12 overflow-hidden relative'
-                          }`}>
+                  {/* Video Info Overlay */}
+                  <div className="absolute bottom-0 left-0 right-16 p-3 sm:p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
+                    <div className="text-white pr-2 max-w-full">
+                      <h3 className="font-bold text-sm sm:text-base lg:text-lg mb-1 sm:mb-2 break-words leading-tight hyphens-auto overflow-wrap-anywhere">
+                        {reel.title}
+                      </h3>
+                      <div className="text-xs sm:text-sm leading-relaxed">
+                        {reel.description && reel.description.length > 80 ? (
+                          <div className="space-y-1">
+                            <p className={`break-words whitespace-pre-wrap leading-relaxed hyphens-auto overflow-wrap-anywhere transition-all duration-300 ${
+                              expandedDescriptions.has(reel._id) 
+                                ? 'max-h-none' 
+                                : 'max-h-10 sm:max-h-12 overflow-hidden relative'
+                            }`}>
+                              {reel.description}
+                              {!expandedDescriptions.has(reel._id) && (
+                                <span className="absolute bottom-0 right-0 bg-gradient-to-l from-black/90 to-transparent pl-6 sm:pl-8">...</span>
+                              )}
+                            </p>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedDescriptions(prev => {
+                                  const newSet = new Set(prev);
+                                  if (newSet.has(reel._id)) {
+                                    newSet.delete(reel._id);
+                                  } else {
+                                    newSet.add(reel._id);
+                                  }
+                                  return newSet;
+                                });
+                              }}
+                              className="text-gray-300 hover:text-white text-xs font-semibold transition-colors bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm"
+                            >
+                              {expandedDescriptions.has(reel._id) ? '▲ Less' : '▼ More'}
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="break-words whitespace-pre-wrap leading-relaxed hyphens-auto overflow-wrap-anywhere">
                             {reel.description}
-                            {!expandedDescriptions.has(reel._id) && (
-                              <span className="absolute bottom-0 right-0 bg-gradient-to-l from-black/90 to-transparent pl-8">...</span>
-                            )}
                           </p>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setExpandedDescriptions(prev => {
-                                const newSet = new Set(prev);
-                                if (newSet.has(reel._id)) {
-                                  newSet.delete(reel._id);
-                                } else {
-                                  newSet.add(reel._id);
-                                }
-                                return newSet;
-                              });
-                            }}
-                            className="text-gray-300 hover:text-white text-xs font-semibold transition-colors bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm"
-                          >
-                            {expandedDescriptions.has(reel._id) ? '▲ Less' : '▼ More'}
-                          </button>
-                        </div>
-                      ) : (
-                        <p className="break-words whitespace-pre-wrap leading-relaxed hyphens-auto overflow-wrap-anywhere">
-                          {reel.description}
-                        </p>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Side Actions */}
-              <div className="absolute right-4 bottom-20 flex flex-col gap-6">
+              <div className="absolute right-2 sm:right-4 bottom-16 sm:bottom-20 flex flex-col gap-4 sm:gap-6">
                 {/* Like */}
                 <div className="flex flex-col items-center">
                   <button 
                     onClick={() => handleLike(reel._id)}
                     disabled={!user}
-                    className={`p-3 rounded-full transition-all duration-300 ${
+                    className={`p-2 sm:p-3 rounded-full transition-all duration-300 ${
                       likedVideos.has(reel._id) 
                         ? 'bg-red-500 scale-110' 
                         : user ? 'bg-white/20 hover:bg-white/30' : 'bg-white/10 cursor-not-allowed'
                     }`}
                   >
-                    <Heart className={`h-6 w-6 transition-colors ${
+                    <Heart className={`h-5 w-5 sm:h-6 sm:w-6 transition-colors ${
                       likedVideos.has(reel._id) ? 'text-white fill-current' : 'text-white'
                     }`} />
                   </button>
-                  <span className="text-white text-xs mt-1">
+                  <span className="text-white text-xs mt-1 font-semibold">
                     {reel.likes?.length || 0}
                   </span>
                 </div>
@@ -378,11 +548,11 @@ const VideoReels = ({ isOpen, onClose }) => {
                 <div className="flex flex-col items-center">
                   <button 
                     onClick={() => handleShowComments(reel._id)}
-                    className="bg-white/20 p-3 rounded-full hover:bg-white/30 transition-colors"
+                    className="bg-white/20 p-2 sm:p-3 rounded-full hover:bg-white/30 transition-colors"
                   >
-                    <MessageCircle className="h-6 w-6 text-white" />
+                    <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                   </button>
-                  <span className="text-white text-xs mt-1">
+                  <span className="text-white text-xs mt-1 font-semibold">
                     {showComments && comments.length > 0 ? comments.length : (commentCounts[reel._id] || 0)}
                   </span>
                 </div>
@@ -398,13 +568,12 @@ const VideoReels = ({ isOpen, onClose }) => {
                           url: window.location.href
                         });
                       } else {
-                        // Fallback: copy to clipboard
                         navigator.clipboard.writeText(window.location.href);
                       }
                     }}
-                    className="bg-white/20 p-3 rounded-full hover:bg-white/30 transition-colors"
+                    className="bg-white/20 p-2 sm:p-3 rounded-full hover:bg-white/30 transition-colors"
                   >
-                    <Share className="h-6 w-6 text-white" />
+                    <Share className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                   </button>
                 </div>
 
@@ -412,9 +581,9 @@ const VideoReels = ({ isOpen, onClose }) => {
                 <div className="flex flex-col items-center">
                   <button 
                     onClick={() => setIsMuted(!isMuted)}
-                    className="bg-white/20 p-3 rounded-full hover:bg-white/30 transition-colors"
+                    className="bg-white/20 p-2 sm:p-3 rounded-full hover:bg-white/30 transition-colors"
                   >
-                    {isMuted ? <VolumeX className="h-6 w-6 text-white" /> : <Volume2 className="h-6 w-6 text-white" />}
+                    {isMuted ? <VolumeX className="h-5 w-5 sm:h-6 sm:w-6 text-white" /> : <Volume2 className="h-5 w-5 sm:h-6 sm:w-6 text-white" />}
                   </button>
                 </div>
               </div>
@@ -444,15 +613,30 @@ const VideoReels = ({ isOpen, onClose }) => {
         .hyphens-auto {
           hyphens: auto;
         }
+        .snap-start {
+          scroll-snap-align: start;
+        }
+        .snap-always {
+          scroll-snap-stop: always;
+        }
+        .snap-y {
+          scroll-snap-type: y mandatory;
+        }
+        .snap-mandatory {
+          scroll-snap-type: y mandatory;
+        }
       `}</style>
 
       {/* Comments Modal */}
       {showComments && (
-        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[10000] p-2 sm:p-4">
-          <div className="bg-white dark:bg-gray-800 w-full max-w-sm sm:max-w-md h-[85vh] sm:h-[70vh] rounded-t-2xl sm:rounded-2xl flex flex-col shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[10000] p-0 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 w-full max-w-sm sm:max-w-md h-[90vh] sm:h-[75vh] rounded-t-3xl sm:rounded-2xl flex flex-col shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Comments</h3>
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Comments</h3>
+              </div>
               <button 
                 onClick={() => setShowComments(false)}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"

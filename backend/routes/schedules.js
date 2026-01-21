@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Schedule = require('../models/Schedule');
 const Course = require('../models/Course');
+const { logAdminActivity } = require('../utils/adminActivityLogger');
 const auth = require('../middleware/auth');
+const NotificationService = require('../utils/notificationService');
 
 // Middleware to check admin/superadmin role
 const isAdmin = (req, res, next) => {
@@ -88,9 +90,22 @@ router.post('/', auth, isAdmin, async (req, res) => {
     });
     
     const populatedSchedule = await Schedule.findById(schedule._id)
-      .populate({ path: 'course', select: 'title', strictPopulate: false })
+      .populate({ path: 'course', select: 'title instructor', strictPopulate: false })
       .populate({ path: 'createdBy', select: 'name email', strictPopulate: false })
       .lean();
+    
+    // Send notification to instructor and students
+    await NotificationService.notifyScheduleCreated(populatedSchedule, req.user._id || req.user.id);
+    
+    // Log schedule creation activity
+    await logAdminActivity(
+      req.user._id,
+      'schedule_created',
+      `Created schedule for course "${populatedSchedule.course?.title || 'Unknown'}" with ${sessions.length} session(s)`,
+      'Schedule',
+      schedule._id,
+      { courseTitle: populatedSchedule.course?.title, sessionCount: sessions.length }
+    );
     
     res.status(201).json({ success: true, schedule: populatedSchedule });
   } catch (error) {
@@ -120,13 +135,26 @@ router.put('/:id', auth, isAdmin, async (req, res) => {
       { sessions },
       { new: true, runValidators: true }
     )
-      .populate({ path: 'course', select: 'title', strictPopulate: false })
+      .populate({ path: 'course', select: 'title instructor', strictPopulate: false })
       .populate({ path: 'createdBy', select: 'name email', strictPopulate: false })
       .lean();
     
     if (!schedule) {
       return res.status(404).json({ success: false, message: 'Schedule not found' });
     }
+    
+    // Send notification to instructor and students
+    await NotificationService.notifyScheduleUpdated(schedule, req.user._id || req.user.id);
+    
+    // Log schedule update activity
+    await logAdminActivity(
+      req.user._id,
+      'schedule_updated',
+      `Updated schedule for course "${schedule.course?.title || 'Unknown'}" with ${sessions.length} session(s)`,
+      'Schedule',
+      schedule._id,
+      { courseTitle: schedule.course?.title, sessionCount: sessions.length }
+    );
     
     res.json({ success: true, schedule });
   } catch (error) {
@@ -200,6 +228,9 @@ router.put('/:id/session-link', auth, async (req, res) => {
     
     schedule.sessions[sessionIndex].link = link;
     await schedule.save();
+    
+    // Send notification to students about session link update
+    await NotificationService.notifyInstructorScheduleUpdate(schedule, req.user._id || req.user.id);
     
     res.json({ success: true, message: 'Session link updated successfully' });
   } catch (error) {

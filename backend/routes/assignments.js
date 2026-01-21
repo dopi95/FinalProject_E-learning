@@ -382,6 +382,136 @@ router.put('/:assignmentId/grade/:submissionId', auth, async (req, res) => {
   }
 });
 
+// @route   GET /api/assignments/:assignmentId/download/:submissionId
+// @desc    Download submission file
+// @access  Private (Instructor)
+router.get('/:assignmentId/download/:submissionId', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'instructor') {
+      return res.status(403).json({ message: 'Access denied. Instructor role required.' });
+    }
+
+    const assignment = await Assignment.findOne({
+      _id: req.params.assignmentId,
+      instructor: req.user.id
+    });
+
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    const submission = assignment.submissions.id(req.params.submissionId);
+    if (!submission || !submission.file) {
+      return res.status(404).json({ message: 'Submission file not found' });
+    }
+
+    // Set proper headers for file download
+    const fileName = submission.file.fileName;
+    const fileType = submission.file.fileType || 'application/octet-stream';
+    
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Type', fileType);
+    
+    // Return file info for frontend to handle download
+    res.json({
+      success: true,
+      file: {
+        url: submission.file.fileUrl,
+        fileName: submission.file.fileName,
+        fileType: submission.file.fileType,
+        fileSize: submission.file.fileSize
+      }
+    });
+  } catch (error) {
+    console.error('Download submission error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/assignments/download/:assignmentId
+// @desc    Download assignment file (student)
+// @access  Private (Student)
+router.get('/download/:assignmentId', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ message: 'Access denied. Student role required.' });
+    }
+
+    const assignment = await Assignment.findById(req.params.assignmentId);
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    if (!assignment.file) {
+      return res.status(404).json({ message: 'Assignment file not found' });
+    }
+
+    // Set proper headers for file download
+    const fileName = assignment.file.fileName;
+    const fileType = assignment.file.fileType || 'application/octet-stream';
+    
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Type', fileType);
+    
+    // Return file info for frontend to handle download
+    res.json({
+      success: true,
+      file: {
+        url: assignment.file.fileUrl,
+        fileName: assignment.file.fileName,
+        fileType: assignment.file.fileType,
+        fileSize: assignment.file.fileSize
+      }
+    });
+  } catch (error) {
+    console.error('Download assignment error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/assignments/download-submission/:assignmentId
+// @desc    Download student's own submission file
+// @access  Private (Student)
+router.get('/download-submission/:assignmentId', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ message: 'Access denied. Student role required.' });
+    }
+
+    const assignment = await Assignment.findById(req.params.assignmentId);
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    // Find student's own submission
+    const submission = assignment.submissions.find(s => s.student.toString() === req.user.id);
+    if (!submission || !submission.file) {
+      return res.status(404).json({ message: 'Submission file not found' });
+    }
+
+    // Set proper headers for file download
+    const fileName = submission.file.fileName;
+    const fileType = submission.file.fileType || 'application/octet-stream';
+    
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Type', fileType);
+    
+    // Return file info for frontend to handle download
+    res.json({
+      success: true,
+      file: {
+        url: submission.file.fileUrl,
+        fileName: submission.file.fileName,
+        fileType: submission.file.fileType,
+        fileSize: submission.file.fileSize
+      }
+    });
+  } catch (error) {
+    console.error('Download submission error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   DELETE /api/assignments/:id
 // @desc    Delete assignment
 // @access  Private (Instructor)

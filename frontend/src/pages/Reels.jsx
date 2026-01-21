@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Video, Heart, Eye, Calendar, User, ArrowLeft, MessageCircle, Send, Reply, Trash2 } from 'lucide-react';
+import { Video, Heart, Eye, Calendar, User, ArrowLeft, MessageCircle, Send, Reply, Trash2, Play } from 'lucide-react';
 import { reelAPI } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { getUserData } from '../utils/userUtils';
@@ -143,27 +143,40 @@ const Reels = () => {
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              Back
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl flex items-center justify-center">
-                <Video className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  Educational Reels
-                </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {reels.length} video{reels.length !== 1 ? 's' : ''} available
-                </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                Back
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl flex items-center justify-center">
+                  <Video className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Educational Reels
+                  </h1>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {reels.length} video{reels.length !== 1 ? 's' : ''} available
+                  </p>
+                </div>
               </div>
             </div>
+            
+            {/* Instagram-style View Button */}
+            {reels.length > 0 && (
+              <button
+                onClick={() => navigate('/reels-view')}
+                className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-pink-500 text-white px-6 py-3 rounded-full hover:from-red-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                <Play className="h-5 w-5" />
+                <span className="font-semibold">Watch Reels</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -189,7 +202,34 @@ const Reels = () => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <>
+            {/* Quick Access Banner */}
+            <div className="mb-8 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-2xl p-6 border border-red-100 dark:border-red-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl flex items-center justify-center">
+                    <Play className="h-8 w-8 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                      Instagram-Style Experience
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Swipe through reels with perfect scrolling • Mobile optimized
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/reels-view')}
+                  className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-8 py-4 rounded-xl hover:from-red-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 shadow-lg font-semibold"
+                >
+                  Watch Now
+                </button>
+              </div>
+            </div>
+            
+            {/* Grid View */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {reels.map((reel) => (
               <div
                 key={reel._id}
@@ -254,7 +294,8 @@ const Reels = () => {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          </>
         )}
       </div>
 

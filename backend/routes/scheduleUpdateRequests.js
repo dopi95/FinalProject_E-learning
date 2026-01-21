@@ -3,6 +3,7 @@ const router = express.Router();
 const ScheduleUpdateRequest = require('../models/ScheduleUpdateRequest');
 const Schedule = require('../models/Schedule');
 const auth = require('../middleware/auth');
+const NotificationService = require('../utils/notificationService');
 
 const isAdmin = (req, res, next) => {
   if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
@@ -107,15 +108,11 @@ router.put('/:id/approve', auth, isAdmin, async (req, res) => {
     updateRequest.reviewedAt = new Date();
     await updateRequest.save();
     
-    // Send notification to instructor
-    const Notification = require('../models/Notification');
-    const populatedReq = await ScheduleUpdateRequest.findById(updateRequest._id).populate('course');
-    await Notification.create({
-      user: updateRequest.requestedBy,
-      title: 'Schedule Update Approved',
-      message: `Your schedule update request for "${populatedReq.course.title}" has been approved.`,
-      type: 'success'
-    });
+    // Send notifications using the notification service
+    const populatedReq = await ScheduleUpdateRequest.findById(updateRequest._id)
+      .populate('course')
+      .populate('requestedBy');
+    await NotificationService.notifyScheduleUpdateApproved(populatedReq, req.user._id || req.user.id);
     
     const populatedRequest = await ScheduleUpdateRequest.findById(updateRequest._id)
       .populate({ path: 'course', select: 'title' })
@@ -156,15 +153,11 @@ router.put('/:id/reject', auth, isAdmin, async (req, res) => {
     updateRequest.rejectionReason = reason;
     await updateRequest.save();
     
-    // Send notification to instructor
-    const Notification = require('../models/Notification');
-    const populatedReq = await ScheduleUpdateRequest.findById(updateRequest._id).populate('course');
-    await Notification.create({
-      user: updateRequest.requestedBy,
-      title: 'Schedule Update Rejected',
-      message: `Your schedule update request for "${populatedReq.course.title}" has been rejected. Reason: ${reason}`,
-      type: 'error'
-    });
+    // Send notification using the notification service
+    const populatedReq = await ScheduleUpdateRequest.findById(updateRequest._id)
+      .populate('course')
+      .populate('requestedBy');
+    await NotificationService.notifyScheduleUpdateRejected(populatedReq, req.user._id || req.user.id, reason);
     
     const populatedRequest = await ScheduleUpdateRequest.findById(updateRequest._id)
       .populate({ path: 'course', select: 'title' })

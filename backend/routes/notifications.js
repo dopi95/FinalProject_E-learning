@@ -4,6 +4,7 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
+const { logAdminActivity } = require('../utils/adminActivityLogger');
 const auth = require('../middleware/auth');
 
 // Debug route to check all notifications
@@ -171,6 +172,16 @@ router.post('/send', auth, async (req, res) => {
     });
 
     await notification.save();
+
+    // Log notification activity
+    await logAdminActivity(
+      sender._id,
+      'notification_sent',
+      `Sent notification "${title}" to ${recipients.length} ${role === 'all' ? 'users' : role + 's'}${course ? ` in course ${courseDoc?.title || 'Unknown'}` : ''}`,
+      'Notification',
+      notification._id,
+      { targetRole: role, recipientCount: recipients.length, courseTitle: courseDoc?.title }
+    );
 
     res.status(201).json({
       message: 'Notification sent successfully',

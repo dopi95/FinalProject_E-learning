@@ -14,6 +14,7 @@ import ForgotPassword from './pages/ForgotPassword.jsx';
 import VerifyOTP from './pages/VerifyOTP.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import Reels from './pages/Reels.jsx';
+import ReelsPage from './pages/ReelsPage.jsx';
 
 import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
 import InstructorDashboard from './pages/InstructorDashboard.jsx';
@@ -30,7 +31,7 @@ const AppContent = () => {
   const location = useLocation();
   const isDashboardPage = location.pathname.includes('-dashboard');
   const isLeaveReviewPage = location.pathname === '/leave-review';
-  const isReelsPage = location.pathname === '/reels';
+  const isReelsPage = location.pathname === '/reels' || location.pathname === '/reels-view';
   const isHomePage = location.pathname === '/';
   const [showIcons, setShowIcons] = useState(false);
 
@@ -59,6 +60,7 @@ const AppContent = () => {
         <Route path="/contact" element={<Contact />} />
         <Route path="/courses" element={<AllCourses />} />
         <Route path="/reels" element={<Reels />} />
+        <Route path="/reels-view" element={<ReelsPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/verify-email" element={<VerifyEmail />} />

@@ -475,7 +475,17 @@ export const reelAPI = {
   },
   
   // Update reel
-  updateReel: (id, reelData) => api.put(`/reels/${id}`, reelData),
+  updateReel: (id, reelData) => {
+    // Check if reelData is FormData or regular object
+    if (reelData instanceof FormData) {
+      return api.put(`/reels/${id}`, reelData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    }
+    return api.put(`/reels/${id}`, reelData);
+  },
   
   // Delete reel
   deleteReel: (id) => api.delete(`/reels/${id}`),
@@ -554,6 +564,24 @@ export const assignmentAPI = {
   // Grade assignment submission (instructor)
   gradeSubmission: (assignmentId, submissionId, gradeData) => 
     api.put(`/assignments/${assignmentId}/grade/${submissionId}`, gradeData),
+  
+  // Download submission file (instructor)
+  downloadSubmission: (assignmentId, submissionId) => 
+    api.get(`/assignments/${assignmentId}/download/${submissionId}`),
+  
+  // Download assignment file (student)
+  downloadAssignment: (assignmentId) => 
+    api.get(`/assignments/download/${assignmentId}`),
+  
+  // Download student's own submission file
+  downloadStudentSubmission: (assignmentId) => 
+    api.get(`/assignments/download-submission/${assignmentId}`),
+};
+
+// Admin Activity API functions
+export const adminActivityAPI = {
+  // Get recent admin activities
+  getRecentActivities: (limit = 5) => api.get('/admin/recent-activities', { params: { limit } }),
 };
 
 export default api;

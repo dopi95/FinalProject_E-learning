@@ -192,6 +192,114 @@ const StudentDashboard = () => {
     }
   };
 
+  // Handle assignment file download
+  const handleDownloadAssignmentFile = async (assignmentId, fileName) => {
+    try {
+      setLoading(true);
+      
+      // Get file info from backend
+      const response = await assignmentAPI.downloadAssignment(assignmentId);
+      const fileData = response.data.file;
+      
+      // Use the working download pattern
+      const token = localStorage.getItem('token');
+      const downloadResponse = await fetch(fileData.url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!downloadResponse.ok) {
+        throw new Error(`Failed to download file: ${downloadResponse.status}`);
+      }
+      
+      // Get the raw array buffer to preserve file integrity
+      const arrayBuffer = await downloadResponse.arrayBuffer();
+      
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('File is empty');
+      }
+      
+      // Get content type from response headers or file data
+      const contentType = downloadResponse.headers.get('content-type') || fileData.fileType || 'application/octet-stream';
+      
+      // Create blob with proper content type from array buffer
+      const blob = new Blob([arrayBuffer], { type: contentType });
+      
+      // Force download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showNotification('success', 'Downloaded', `${fileName} downloaded successfully`);
+    } catch (error) {
+      console.error('Download error:', error);
+      showNotification('error', 'Download Failed', error.message || 'Failed to download file');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle submission file download
+  const handleDownloadSubmissionFile = async (assignmentId, fileName) => {
+    try {
+      setLoading(true);
+      
+      // Get file info from backend
+      const response = await assignmentAPI.downloadStudentSubmission(assignmentId);
+      const fileData = response.data.file;
+      
+      // Use the working download pattern
+      const token = localStorage.getItem('token');
+      const downloadResponse = await fetch(fileData.url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!downloadResponse.ok) {
+        throw new Error(`Failed to download file: ${downloadResponse.status}`);
+      }
+      
+      // Get the raw array buffer to preserve file integrity
+      const arrayBuffer = await downloadResponse.arrayBuffer();
+      
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('File is empty');
+      }
+      
+      // Get content type from response headers or file data
+      const contentType = downloadResponse.headers.get('content-type') || fileData.fileType || 'application/octet-stream';
+      
+      // Create blob with proper content type from array buffer
+      const blob = new Blob([arrayBuffer], { type: contentType });
+      
+      // Force download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showNotification('success', 'Downloaded', `${fileName} downloaded successfully`);
+    } catch (error) {
+      console.error('Download error:', error);
+      showNotification('error', 'Download Failed', error.message || 'Failed to download file');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Play notification sound
   const playNotificationSound = () => {
     try {
@@ -1893,7 +2001,7 @@ const renderPayments = () => (
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              handleDownloadFile(`/api/assignments/download/${assignment._id}`, assignment.file.fileName);
+                              handleDownloadAssignmentFile(assignment._id, assignment.file.fileName);
                             }}
                             className="bg-green-600 hover:bg-green-700 text-white py-2.5 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
                             type="button"
@@ -1986,7 +2094,7 @@ const renderPayments = () => (
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                handleDownloadFile(`/api/assignments/download/${assignment._id}`, assignment.file.fileName);
+                                handleDownloadAssignmentFile(assignment._id, assignment.file.fileName);
                               }}
                               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                               type="button"
@@ -2064,7 +2172,7 @@ const renderPayments = () => (
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              handleDownloadFile(`/api/assignments/download-submission/${selectedAssignment._id}`, selectedAssignment.submission.file.fileName);
+                              handleDownloadSubmissionFile(selectedAssignment._id, selectedAssignment.submission.file.fileName);
                             }}
                             className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm"
                             type="button"

@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Enrollment = require('../models/Enrollment');
 const Payment = require('../models/Payment');
 const Course = require('../models/Course');
+const { logAdminActivity } = require('../utils/adminActivityLogger');
 const auth = require('../middleware/auth');
 
 // Get all users with filtering
@@ -205,6 +206,16 @@ router.post('/create-admin', auth, async (req, res) => {
 
     await adminUser.save();
 
+    // Log admin creation activity
+    await logAdminActivity(
+      req.user._id,
+      'admin_created',
+      `Created new ${userRole} account for ${name} (${email})`,
+      'User',
+      adminUser._id,
+      { role: userRole, permissions: userPermissions }
+    );
+
     res.json({
       success: true,
       message: 'Admin user created successfully',
@@ -249,6 +260,16 @@ router.put('/:id/permissions', auth, async (req, res) => {
 
     await user.save();
 
+    // Log permissions update activity
+    await logAdminActivity(
+      req.user._id,
+      'permissions_updated',
+      `Updated permissions for ${user.name} (${user.email})`,
+      'User',
+      user._id,
+      { newRole: user.role, newPermissions: user.permissions }
+    );
+
     res.json({
       success: true,
       message: 'Admin updated successfully',
@@ -282,6 +303,16 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     await User.findByIdAndDelete(req.params.id);
+
+    // Log user deletion activity
+    await logAdminActivity(
+      req.user._id,
+      'user_deleted',
+      `Deleted user ${user.name} (${user.email}) - Role: ${user.role}`,
+      'User',
+      user._id,
+      { deletedUserRole: user.role, deletedUserName: user.name }
+    );
 
     res.json({
       success: true,

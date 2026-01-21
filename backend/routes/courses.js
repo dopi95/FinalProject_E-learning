@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Course = require('../models/Course');
 const User = require('../models/User');
+const { logAdminActivity } = require('../utils/adminActivityLogger');
 const auth = require('../middleware/auth');
 const multer = require('multer');
 const cloudinary = require('../config/cloudinary');
@@ -176,6 +177,16 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
     const populatedCourse = await Course.findById(course._id)
       .populate('instructor', 'name email profileImage');
     
+    // Log course creation activity
+    await logAdminActivity(
+      req.user._id,
+      'course_created',
+      `Created new course "${title}" assigned to ${populatedCourse.instructor.name}`,
+      'Course',
+      course._id,
+      { courseTitle: title, instructorName: populatedCourse.instructor.name, price: price }
+    );
+    
     // Send notifications
     try {
       const emailService = require('../utils/emailService');
@@ -294,6 +305,16 @@ router.put('/:id', auth, upload.single('image'), async (req, res) => {
       { new: true, runValidators: true }
     ).populate('instructor', 'name email profileImage');
     
+    // Log course update activity
+    await logAdminActivity(
+      req.user._id,
+      'course_updated',
+      `Updated course "${title}" - Instructor: ${course.instructor.name}`,
+      'Course',
+      course._id,
+      { courseTitle: title, instructorName: course.instructor.name, wasReassigned: instructor !== currentCourse.instructor._id.toString() }
+    );
+    
     // Handle instructor change notifications
     if (instructor && instructor !== currentCourse.instructor._id.toString()) {
       try {
@@ -335,11 +356,21 @@ router.delete('/:id', auth, async (req, res) => {
       req.params.id,
       { isActive: false },
       { new: true }
-    );
+    ).populate('instructor', 'name');
     
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
+    
+    // Log course deletion activity
+    await logAdminActivity(
+      req.user._id,
+      'course_deleted',
+      `Deleted course "${course.title}" (Instructor: ${course.instructor?.name || 'Unknown'})`,
+      'Course',
+      course._id,
+      { courseTitle: course.title, instructorName: course.instructor?.name }
+    );
     
     res.json({ message: 'Course deleted successfully' });
   } catch (error) {

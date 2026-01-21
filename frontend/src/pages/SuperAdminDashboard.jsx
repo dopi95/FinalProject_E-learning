@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Crown, Users, Shield, Settings, LogOut, Database, Activity, AlertTriangle, Server, Globe, Lock, Home, User, Camera, X, CheckCircle, Eye, EyeOff, BookOpen, Plus, Edit, Trash2, Search, Filter, Star, Mail, MessageSquare, Reply, ThumbsUp, ThumbsDown, Heart, Download, Calendar, Clock, MapPin, Save, Bell, BellRing, Video } from 'lucide-react';
-import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI, notificationAPI, statsAPI, scheduleAPI, scheduleUpdateRequestAPI, reelAPI } from '../services/api';
+import { profileAPI, courseAPI, categoryAPI, contactAPI, reviewAPI, usersAPI, paymentAPI, notificationAPI, statsAPI, scheduleAPI, scheduleUpdateRequestAPI, reelAPI, adminActivityAPI } from '../services/api';
 import api from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import SubscriptionManagement from '../components/SubscriptionManagement';
@@ -160,6 +160,9 @@ const SuperAdminDashboard = () => {
   });
   const [reelsLoading, setReelsLoading] = useState(false);
 
+  // Recent admin activities state
+  const [recentActivities, setRecentActivities] = useState([]);
+
   // Play notification sound
   const playNotificationSound = () => {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -215,6 +218,17 @@ const SuperAdminDashboard = () => {
       setReels([]);
     } finally {
       setReelsLoading(false);
+    }
+  };
+
+  // Fetch recent admin activities
+  const fetchRecentActivities = async () => {
+    try {
+      const response = await adminActivityAPI.getRecentActivities(5);
+      setRecentActivities(response.data.activities || []);
+    } catch (error) {
+      console.error('Fetch recent activities error:', error);
+      setRecentActivities([]);
     }
   };
 
@@ -283,10 +297,18 @@ const SuperAdminDashboard = () => {
       }
 
       setLoading(true);
-      const response = await reelAPI.updateReel(editingReel._id, {
-        title: reelForm.title,
-        description: reelForm.description
-      });
+      
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('title', reelForm.title);
+      formData.append('description', reelForm.description);
+      
+      // Add video file if selected
+      if (reelForm.video) {
+        formData.append('video', reelForm.video);
+      }
+      
+      const response = await reelAPI.updateReel(editingReel._id, formData);
       
       setReels(prev => prev.map(reel => 
         reel._id === editingReel._id ? response.data.reel : reel
@@ -440,6 +462,7 @@ const SuperAdminDashboard = () => {
     fetchSchedules();
     fetchScheduleRequests();
     fetchReels();
+    fetchRecentActivities();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -540,6 +563,8 @@ const SuperAdminDashboard = () => {
       setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null, startDate: '', endDate: '' });
       setShowAddCourse(false);
       showNotification('success', 'Course Added!', 'Course has been successfully created');
+      // Refresh recent activities
+      fetchRecentActivities();
     } catch (error) {
       showNotification('error', 'Error', error.response?.data?.message || 'Failed to add course');
     } finally {
@@ -574,6 +599,8 @@ const SuperAdminDashboard = () => {
       setShowEditCourse(false);
       setEditingCourse(null);
       showNotification('success', 'Course Updated!', 'Course has been successfully updated');
+      // Refresh recent activities
+      fetchRecentActivities();
     } catch (error) {
       showNotification('error', 'Error', error.response?.data?.message || 'Failed to update course');
     } finally {
@@ -588,6 +615,8 @@ const SuperAdminDashboard = () => {
       await courseAPI.deleteCourse(courseId);
       setCourses(prev => prev.filter(course => course._id !== courseId));
       showNotification('success', 'Course Deleted!', 'Course has been removed successfully');
+      // Refresh recent activities
+      fetchRecentActivities();
     } catch (error) {
       showNotification('error', 'Error', error.response?.data?.message || 'Failed to delete course');
     }
@@ -760,6 +789,8 @@ const SuperAdminDashboard = () => {
       await usersAPI.deleteUser(userId);
       setUsers(prev => prev.filter(user => user._id !== userId));
       showNotification('success', 'User Deleted!', 'User has been removed successfully');
+      // Refresh recent activities
+      fetchRecentActivities();
     } catch (error) {
       showNotification('error', 'Error', error.response?.data?.message || 'Failed to delete user');
     }
@@ -1365,6 +1396,8 @@ const SuperAdminDashboard = () => {
 
       setScheduleForm({ sessions: [{ day: 'monday', startTime: '', endTime: '', room: '' }] });
       setShowScheduleForm(false);
+      // Refresh recent activities
+      fetchRecentActivities();
     } catch (error) {
       showNotification('error', 'Error', 'Failed to save schedule');
     } finally {
@@ -1431,6 +1464,8 @@ const SuperAdminDashboard = () => {
       setAdminForm({ name: '', email: '', password: '', role: 'admin', permissions: [] });
       setShowCreateAdmin(false);
       setEditingAdmin(null);
+      // Refresh recent activities
+      fetchRecentActivities();
     } catch (error) {
       console.error('Admin operation error:', error);
       showNotification('error', 'Error', error.response?.data?.message || 'Failed to create admin');
@@ -1714,37 +1749,55 @@ const SuperAdminDashboard = () => {
           <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">Recent Admin Activities</h3>
         </div>
         <div className="space-y-3 lg:space-y-4">
-          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-l-4 border-blue-500">
-            <Shield className="h-5 w-5 text-blue-600 mr-3" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">New admin account created</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Admin {user?.name || 'John Doe'} was granted system access • 2 hours ago</p>
+          {recentActivities.length === 0 ? (
+            <div className="text-center py-8">
+              <Activity className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-500 dark:text-gray-400">No recent activities</p>
             </div>
-          </div>
-          
-          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border-l-4 border-green-500">
-            <Users className="h-5 w-5 text-green-600 mr-3" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">User management update</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">{(users || []).filter(u => u.role === 'student').length} students and {(users || []).filter(u => u.role === 'instructor').length} instructors active • 4 hours ago</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border-l-4 border-purple-500">
-            <BookOpen className="h-5 w-5 text-purple-600 mr-3" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Course management activity</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">{(courses || []).length} courses managed, {(instructors || []).length} instructors assigned • 6 hours ago</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center p-3 lg:p-4 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl border-l-4 border-orange-500">
-            <MessageSquare className="h-5 w-5 text-orange-600 mr-3" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Contact messages reviewed</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">{(contacts || []).filter(c => c.status === 'pending').length} pending messages, {(contacts || []).filter(c => c.status === 'replied').length} replied • 8 hours ago</p>
-            </div>
-          </div>
+          ) : (
+            recentActivities.map((activity, index) => {
+              const getActivityIcon = (action) => {
+                switch (action) {
+                  case 'login': return Shield;
+                  case 'admin_created': return Users;
+                  case 'user_created': case 'user_deleted': return Users;
+                  case 'course_created': case 'course_updated': case 'course_deleted': return BookOpen;
+                  case 'schedule_created': case 'schedule_updated': return Calendar;
+                  case 'contact_replied': return MessageSquare;
+                  case 'permissions_updated': return Shield;
+                  case 'category_created': case 'category_updated': case 'category_deleted': return BookOpen;
+                  case 'reel_uploaded': case 'reel_deleted': return Video;
+                  default: return Activity;
+                }
+              };
+              
+              const getActivityColor = (action) => {
+                switch (action) {
+                  case 'login': return 'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-500';
+                  case 'admin_created': case 'user_created': return 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-500';
+                  case 'course_created': case 'course_updated': return 'from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-500';
+                  case 'contact_replied': return 'from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-orange-500';
+                  case 'user_deleted': case 'course_deleted': case 'reel_deleted': return 'from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border-red-500';
+                  default: return 'from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20 border-gray-500';
+                }
+              };
+              
+              const IconComponent = getActivityIcon(activity.action);
+              const colorClass = getActivityColor(activity.action);
+              
+              return (
+                <div key={activity._id || index} className={`flex items-center p-3 lg:p-4 bg-gradient-to-r ${colorClass} rounded-xl border-l-4`}>
+                  <IconComponent className="h-5 w-5 text-blue-600 mr-3" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.description}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      By {activity.admin?.name || 'Admin'} • {new Date(activity.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 

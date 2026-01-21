@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const emailService = require('../utils/emailService');
 const { generateOTP, generateToken } = require('../utils/helpers');
+const { logAdminActivity } = require('../utils/adminActivityLogger');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -193,6 +194,18 @@ router.post('/login', [
     }
 
     const token = generateToken(user._id);
+
+    // Log admin login activity
+    if (user.role === 'admin' || user.role === 'superadmin') {
+      await logAdminActivity(
+        user._id,
+        'login',
+        `${user.role === 'superadmin' ? 'Super admin' : 'Admin'} ${user.name} logged in`,
+        null,
+        null,
+        { loginTime: new Date(), userAgent: req.get('User-Agent') }
+      );
+    }
 
     res.json({
       message: 'Login successful',
