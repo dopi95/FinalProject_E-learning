@@ -212,7 +212,11 @@ const SuperAdminDashboard = () => {
     try {
       setReelsLoading(true);
       const response = await reelAPI.getReels();
-      setReels(response.data.reels || []);
+      // Filter out reels without required properties
+      const validReels = (response.data.reels || []).filter(reel => 
+        reel && reel._id && reel.title && reel.description
+      );
+      setReels(validReels);
     } catch (error) {
       console.error('Fetch reels error:', error);
       setReels([]);
@@ -265,7 +269,9 @@ const SuperAdminDashboard = () => {
 
       setLoading(true);
       const response = await reelAPI.uploadReel(reelForm);
-      setReels(prev => [response.data.reel, ...prev]);
+      if (response.data.reel) {
+        setReels(prev => [response.data.reel, ...prev]);
+      }
       setReelForm({ title: '', description: '', video: null });
       setShowReelUpload(false);
       showNotification('success', 'Reel Uploaded!', 'Your reel has been uploaded successfully');
@@ -298,20 +304,16 @@ const SuperAdminDashboard = () => {
 
       setLoading(true);
       
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('title', reelForm.title);
-      formData.append('description', reelForm.description);
+      // Send only title and description as JSON (backend doesn't support video updates)
+      const updateData = {
+        title: reelForm.title,
+        description: reelForm.description
+      };
       
-      // Add video file if selected
-      if (reelForm.video) {
-        formData.append('video', reelForm.video);
-      }
-      
-      const response = await reelAPI.updateReel(editingReel._id, formData);
+      const response = await reelAPI.updateReel(editingReel._id, updateData);
       
       setReels(prev => prev.map(reel => 
-        reel._id === editingReel._id ? response.data.reel : reel
+        reel._id === editingReel._id ? (response.data.reel || reel) : reel
       ));
       
       setReelForm({ title: '', description: '', video: null });
@@ -3637,15 +3639,22 @@ const SuperAdminDashboard = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {reels.map((reel) => (
+              {reels.filter(reel => reel && reel._id && reel.title).map((reel) => (
                 <div key={reel._id} className="bg-gray-50 dark:bg-gray-700 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-200">
                   <div className="aspect-video bg-gray-200 dark:bg-gray-600 relative">
-                    <video 
-                      src={reel.videoUrl} 
-                      className="w-full h-full object-cover"
-                      controls
-                      preload="metadata"
-                    />
+                    {reel.videoUrl ? (
+                      <video 
+                        src={reel.videoUrl} 
+                        className="w-full h-full object-cover"
+                        controls
+                        preload="metadata"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-300 dark:bg-gray-600">
+                        <Video className="h-12 w-12 text-gray-500" />
+                        <span className="ml-2 text-gray-500">Video not available</span>
+                      </div>
+                    )}
                   </div>
                   <div className="p-4">
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-2 break-words leading-tight">

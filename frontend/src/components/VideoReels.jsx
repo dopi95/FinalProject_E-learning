@@ -169,21 +169,29 @@ const VideoReels = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (!reels.length) return;
     
-    // Pause all videos and reset volume
+    // Pause all videos first
     videoRefs.current.forEach((video, index) => {
-      if (video) {
+      if (video && index !== currentVideo) {
         video.pause();
-        video.volume = index === currentVideo ? (isMuted ? 0 : 1) : 0;
+        video.volume = 0;
       }
     });
     
-    // Play current video immediately
+    // Handle current video
     const currentVideoRef = videoRefs.current[currentVideo];
     if (currentVideoRef) {
       currentVideoRef.currentTime = 0;
       currentVideoRef.volume = isMuted ? 0 : 1;
+      
       if (isPlaying) {
-        currentVideoRef.play().catch(console.error);
+        const playPromise = currentVideoRef.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.log('Video play interrupted:', error);
+          });
+        }
+      } else {
+        currentVideoRef.pause();
       }
       
       // Increment view count
@@ -205,29 +213,37 @@ const VideoReels = ({ isOpen, onClose }) => {
         if (firstVideo) {
           firstVideo.currentTime = 0;
           firstVideo.muted = isMuted;
-          firstVideo.play().catch(console.error);
+          const playPromise = firstVideo.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(error => {
+              console.log('Auto-play failed:', error);
+            });
+          }
         }
       }, 100);
     }
   }, [reels, isOpen, isMuted]);
 
   const handleVideoClick = () => {
-    // Do nothing on click - videos should always play
+    // Simple click handler - no preventDefault needed
   };
 
-  const handleVideoPress = (e) => {
-    e.preventDefault();
+  const handleVideoPress = () => {
     const currentVideoRef = videoRefs.current[currentVideo];
     if (currentVideoRef && !currentVideoRef.paused) {
       currentVideoRef.pause();
     }
   };
 
-  const handleVideoRelease = (e) => {
-    e.preventDefault();
+  const handleVideoRelease = () => {
     const currentVideoRef = videoRefs.current[currentVideo];
     if (currentVideoRef && currentVideoRef.paused) {
-      currentVideoRef.play().catch(console.error);
+      const playPromise = currentVideoRef.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.log('Video play failed:', error);
+        });
+      }
     }
   };
 
@@ -474,72 +490,74 @@ const VideoReels = ({ isOpen, onClose }) => {
                     </div>
                   )}
 
-                  {/* Video Info Overlay */}
-                  <div className="absolute bottom-0 left-0 right-16 p-3 sm:p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
-                    <div className="text-white pr-2 max-w-full">
-                      <h3 className="font-bold text-sm sm:text-base lg:text-lg mb-1 sm:mb-2 break-words leading-tight hyphens-auto overflow-wrap-anywhere">
-                        {reel.title}
-                      </h3>
-                      <div className="text-xs sm:text-sm leading-relaxed">
-                        {reel.description && reel.description.length > 80 ? (
-                          <div className="space-y-1">
-                            <p className={`break-words whitespace-pre-wrap leading-relaxed hyphens-auto overflow-wrap-anywhere transition-all duration-300 ${
-                              expandedDescriptions.has(reel._id) 
-                                ? 'max-h-none' 
-                                : 'max-h-10 sm:max-h-12 overflow-hidden relative'
-                            }`}>
+                  {/* Video Info Overlay - Bottom Position */}
+                  <div className="absolute left-2 sm:left-4 right-20 sm:right-24 max-w-xs sm:max-w-sm" style={{bottom: '200px'}}>
+                    <div className="p-3 sm:p-4">
+                      <div className="text-white">
+                        <h3 className="font-bold text-sm sm:text-base mb-1 sm:mb-2 break-words leading-tight text-shadow-lg">
+                          {reel.title}
+                        </h3>
+                        <div className="text-xs sm:text-sm leading-relaxed">
+                          {reel.description && reel.description.length > 60 ? (
+                            <div className="space-y-1">
+                              <p className={`break-words whitespace-pre-wrap leading-relaxed transition-all duration-300 text-shadow ${
+                                expandedDescriptions.has(reel._id) 
+                                  ? 'max-h-none' 
+                                  : 'max-h-8 sm:max-h-10 overflow-hidden relative'
+                              }`}>
+                                {reel.description}
+                                {!expandedDescriptions.has(reel._id) && (
+                                  <span className="absolute bottom-0 right-0 bg-gradient-to-l from-black/90 to-transparent pl-4 sm:pl-6">...</span>
+                                )}
+                              </p>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedDescriptions(prev => {
+                                    const newSet = new Set(prev);
+                                    if (newSet.has(reel._id)) {
+                                      newSet.delete(reel._id);
+                                    } else {
+                                      newSet.add(reel._id);
+                                    }
+                                    return newSet;
+                                  });
+                                }}
+                                className="text-gray-300 hover:text-white text-xs font-semibold transition-colors px-2 py-1 rounded-full"
+                              >
+                                {expandedDescriptions.has(reel._id) ? '▲ Less' : '▼ More'}
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="break-words whitespace-pre-wrap leading-relaxed text-shadow">
                               {reel.description}
-                              {!expandedDescriptions.has(reel._id) && (
-                                <span className="absolute bottom-0 right-0 bg-gradient-to-l from-black/90 to-transparent pl-6 sm:pl-8">...</span>
-                              )}
                             </p>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setExpandedDescriptions(prev => {
-                                  const newSet = new Set(prev);
-                                  if (newSet.has(reel._id)) {
-                                    newSet.delete(reel._id);
-                                  } else {
-                                    newSet.add(reel._id);
-                                  }
-                                  return newSet;
-                                });
-                              }}
-                              className="text-gray-300 hover:text-white text-xs font-semibold transition-colors bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm"
-                            >
-                              {expandedDescriptions.has(reel._id) ? '▲ Less' : '▼ More'}
-                            </button>
-                          </div>
-                        ) : (
-                          <p className="break-words whitespace-pre-wrap leading-relaxed hyphens-auto overflow-wrap-anywhere">
-                            {reel.description}
-                          </p>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Side Actions */}
-              <div className="absolute right-2 sm:right-4 bottom-16 sm:bottom-20 flex flex-col gap-4 sm:gap-6">
+              {/* Side Actions - Always Visible */}
+              <div className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 flex flex-col gap-4 sm:gap-6 p-2 sm:p-3">
                 {/* Like */}
                 <div className="flex flex-col items-center">
                   <button 
                     onClick={() => handleLike(reel._id)}
                     disabled={!user}
-                    className={`p-2 sm:p-3 rounded-full transition-all duration-300 ${
+                    className={`p-2 sm:p-3 rounded-full transition-all duration-300 shadow-lg ${
                       likedVideos.has(reel._id) 
-                        ? 'bg-red-500 scale-110' 
-                        : user ? 'bg-white/20 hover:bg-white/30' : 'bg-white/10 cursor-not-allowed'
+                        ? 'scale-110 shadow-red-500/50' 
+                        : user ? 'hover:scale-105' : 'cursor-not-allowed'
                     }`}
                   >
-                    <Heart className={`h-5 w-5 sm:h-6 sm:w-6 transition-colors ${
-                      likedVideos.has(reel._id) ? 'text-white fill-current' : 'text-white'
+                    <Heart className={`h-5 w-5 sm:h-6 sm:w-6 transition-colors drop-shadow-lg ${
+                      likedVideos.has(reel._id) ? 'text-red-500 fill-current' : 'text-white'
                     }`} />
                   </button>
-                  <span className="text-white text-xs mt-1 font-semibold">
+                  <span className="text-white text-xs mt-1 font-bold drop-shadow-lg">
                     {reel.likes?.length || 0}
                   </span>
                 </div>
@@ -548,11 +566,11 @@ const VideoReels = ({ isOpen, onClose }) => {
                 <div className="flex flex-col items-center">
                   <button 
                     onClick={() => handleShowComments(reel._id)}
-                    className="bg-white/20 p-2 sm:p-3 rounded-full hover:bg-white/30 transition-colors"
+                    className="p-2 sm:p-3 rounded-full hover:scale-105 transition-all duration-300 shadow-lg"
                   >
-                    <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                    <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6 text-white drop-shadow-lg" />
                   </button>
-                  <span className="text-white text-xs mt-1 font-semibold">
+                  <span className="text-white text-xs mt-1 font-bold drop-shadow-lg">
                     {showComments && comments.length > 0 ? comments.length : (commentCounts[reel._id] || 0)}
                   </span>
                 </div>
@@ -571,9 +589,9 @@ const VideoReels = ({ isOpen, onClose }) => {
                         navigator.clipboard.writeText(window.location.href);
                       }
                     }}
-                    className="bg-white/20 p-2 sm:p-3 rounded-full hover:bg-white/30 transition-colors"
+                    className="p-2 sm:p-3 rounded-full hover:scale-105 transition-all duration-300 shadow-lg"
                   >
-                    <Share className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                    <Share className="h-5 w-5 sm:h-6 sm:w-6 text-white drop-shadow-lg" />
                   </button>
                 </div>
 
@@ -581,9 +599,9 @@ const VideoReels = ({ isOpen, onClose }) => {
                 <div className="flex flex-col items-center">
                   <button 
                     onClick={() => setIsMuted(!isMuted)}
-                    className="bg-white/20 p-2 sm:p-3 rounded-full hover:bg-white/30 transition-colors"
+                    className="p-2 sm:p-3 rounded-full hover:scale-105 transition-all duration-300 shadow-lg"
                   >
-                    {isMuted ? <VolumeX className="h-5 w-5 sm:h-6 sm:w-6 text-white" /> : <Volume2 className="h-5 w-5 sm:h-6 sm:w-6 text-white" />}
+                    {isMuted ? <VolumeX className="h-5 w-5 sm:h-6 sm:w-6 text-white drop-shadow-lg" /> : <Volume2 className="h-5 w-5 sm:h-6 sm:w-6 text-white drop-shadow-lg" />}
                   </button>
                 </div>
               </div>
@@ -612,6 +630,15 @@ const VideoReels = ({ isOpen, onClose }) => {
         }
         .hyphens-auto {
           hyphens: auto;
+        }
+        .text-shadow {
+          text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        .text-shadow-lg {
+          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
+        }
+        .drop-shadow-lg {
+          filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.8));
         }
         .snap-start {
           scroll-snap-align: start;
