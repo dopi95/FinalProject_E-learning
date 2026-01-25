@@ -295,9 +295,12 @@ const InstructorDashboard = () => {
     let type = 'file';
     
     // Determine the best viewing method based on file type
-    if (fileType === 'video' || fileUrl.includes('youtube.com') || fileUrl.includes('youtu.be')) {
-      // For YouTube videos or video type
+    if (fileUrl.includes('youtube.com') || fileUrl.includes('youtu.be')) {
+      // For YouTube videos
       type = 'video';
+    } else if (fileType === 'video' || fileType?.includes('video') || fileName?.toLowerCase().match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)$/)) {
+      // For uploaded video files
+      type = 'uploaded-video';
     } else if (fileType?.includes('pdf')) {
       // For PDFs, use Google Docs viewer for better compatibility
       viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
@@ -1695,45 +1698,34 @@ const InstructorDashboard = () => {
       if (editMaterial) {
         try {
           setLoading(true);
-          setUploadProgress(10);
+          setUploadProgress(50);
           
-          // If new file selected, upload it
-          if (uploadForm.files.length > 0) {
-            const file = uploadForm.files[0];
-            const materialData = {
-              title: uploadForm.title,
-              description: uploadForm.description,
-              type: uploadForm.type,
-              courseId: selectedCourse._id,
-              youtubeLink: uploadForm.uploadSource === 'youtube' ? uploadForm.youtubeLink : '',
-              file: uploadForm.uploadSource === 'device' ? file : null
-            };
-            
-            setUploadProgress(30);
-            // Delete old material
-            await materialAPI.deleteMaterial(editMaterial._id);
-            setUploadProgress(60);
-            // Create new one
-            await materialAPI.uploadMaterial(materialData);
-            setUploadProgress(100);
-          } else {
-            // Just update title and description
-            setUploadProgress(50);
-            await materialAPI.updateMaterial(editMaterial._id, {
-              title: uploadForm.title,
-              description: uploadForm.description
-            });
-            setUploadProgress(100);
+          // Always use updateMaterial API, never delete
+          const updateData = {
+            title: uploadForm.title,
+            description: uploadForm.description
+          };
+          
+          // If new file is selected, include it in update
+          if (uploadForm.files.length > 0 && uploadForm.uploadSource === 'device') {
+            updateData.file = uploadForm.files[0];
           }
+          
+          // If YouTube link is updated
+          if (uploadForm.uploadSource === 'youtube' && uploadForm.youtubeLink) {
+            updateData.youtubeLink = uploadForm.youtubeLink;
+          }
+          
+          await materialAPI.updateMaterial(editMaterial._id, updateData);
+          setUploadProgress(100);
           
           showNotification('success', 'Success', 'Material updated successfully');
           
-          // Refresh materials first
-          setUploadProgress(0);
+          // Refresh materials
           const response = await materialAPI.getCourseMaterials(selectedCourse._id);
           setMaterials(response.data.materials || []);
           
-          // Then close modal
+          // Close modal
           setShowUploadModal(false);
           setEditMaterial(null);
           setUploadForm({
@@ -1744,6 +1736,7 @@ const InstructorDashboard = () => {
             youtubeLink: '',
             uploadSource: 'device'
           });
+          setUploadProgress(0);
         } catch (error) {
           console.error('Update error:', error);
           showNotification('error', 'Update Failed', error.response?.data?.message || 'Failed to update material');
@@ -2045,26 +2038,24 @@ const InstructorDashboard = () => {
                             View
                           </button>
                         ) : (
-                          <>
-                            <button
-                              onClick={() => {
+                          <button
+                            onClick={() => {
+                              if (material.type === 'video' && !material.youtubeLink) {
+                                // For uploaded videos, open in new tab
+                                window.open(material.fileUrl, '_blank');
+                              } else {
+                                // For other files, use modal viewer
                                 handleViewMaterialFile(
                                   material.fileUrl,
                                   material.fileName,
-                                  material.fileType
+                                  material.type === 'video' ? 'uploaded-video' : material.fileType
                                 );
-                              }}
-                              className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs sm:text-sm font-medium transition-colors text-center"
-                            >
-                              View
-                            </button>
-                            <button
-                              onClick={() => handleDownloadFile(material.fileUrl, material.fileName)}
-                              className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm font-medium transition-colors text-center"
-                            >
-                              Download
-                            </button>
-                          </>
+                              }
+                            }}
+                            className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs sm:text-sm font-medium transition-colors text-center"
+                          >
+                            View
+                          </button>
                         )}
                         <button
                           onClick={() => {
@@ -2894,6 +2885,30 @@ const InstructorDashboard = () => {
                     window.open(fileViewerData.originalUrl || fileViewerData.url, '_blank');
                   }}
                 />
+              ) : fileViewerData.type === 'uploaded-video' ? (
+                <div className="w-full h-full flex items-center justify-center p-4">
+                  <video
+                    src={fileViewerData.url}
+                    controls
+                    className="max-w-full max-h-full"
+                    onError={(e) => {
+                      console.error('Video load error:', e);
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'block';
+                    }}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                  <div className="hidden text-center text-gray-500">
+                    <p>Unable to play video</p>
+                    <button
+                      onClick={() => window.open(fileViewerData.url, '_blank')}
+                      className="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                    >
+                      Open in New Tab
+                    </button>
+                  </div>
+                </div>
               ) : fileViewerData.type === 'image' ? (
                 <div className="w-full h-full flex items-center justify-center p-4">
                   <img
