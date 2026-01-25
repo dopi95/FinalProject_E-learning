@@ -491,23 +491,23 @@ const VideoReels = ({ isOpen, onClose }) => {
                   )}
 
                   {/* Video Info Overlay - Bottom Position */}
-                  <div className="absolute left-2 sm:left-4 right-20 sm:right-24 max-w-xs sm:max-w-sm" style={{bottom: '200px'}}>
-                    <div className="p-3 sm:p-4">
+                  <div className="absolute left-2 sm:left-4 right-16 sm:right-20 bottom-2 sm:bottom-4">
+                    <div className="p-2 sm:p-3">
                       <div className="text-white">
-                        <h3 className="font-bold text-sm sm:text-base mb-1 sm:mb-2 break-words leading-tight text-shadow-lg">
+                        <h3 className="font-bold text-xs sm:text-sm md:text-base mb-1 break-words leading-tight text-shadow-lg">
                           {reel.title}
                         </h3>
-                        <div className="text-xs sm:text-sm leading-relaxed">
+                        <div className="text-xs leading-relaxed">
                           {reel.description && reel.description.length > 60 ? (
                             <div className="space-y-1">
                               <p className={`break-words whitespace-pre-wrap leading-relaxed transition-all duration-300 text-shadow ${
                                 expandedDescriptions.has(reel._id) 
                                   ? 'max-h-none' 
-                                  : 'max-h-8 sm:max-h-10 overflow-hidden relative'
+                                  : 'max-h-6 overflow-hidden relative'
                               }`}>
                                 {reel.description}
                                 {!expandedDescriptions.has(reel._id) && (
-                                  <span className="absolute bottom-0 right-0 bg-gradient-to-l from-black/90 to-transparent pl-4 sm:pl-6">...</span>
+                                  <span className="absolute bottom-0 right-0 bg-gradient-to-l from-black/90 to-transparent pl-3">...</span>
                                 )}
                               </p>
                               <button
@@ -523,7 +523,7 @@ const VideoReels = ({ isOpen, onClose }) => {
                                     return newSet;
                                   });
                                 }}
-                                className="text-gray-300 hover:text-white text-xs font-semibold transition-colors px-2 py-1 rounded-full"
+                                className="text-gray-300 hover:text-white text-xs font-semibold transition-colors px-1 py-1 rounded-full"
                               >
                                 {expandedDescriptions.has(reel._id) ? '▲ Less' : '▼ More'}
                               </button>
