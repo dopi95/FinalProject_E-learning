@@ -490,25 +490,22 @@ const VideoReels = ({ isOpen, onClose }) => {
                     </div>
                   )}
 
-                  {/* Video Info Overlay - Bottom Position */}
-                  <div className="absolute left-2 sm:left-4 right-16 sm:right-20 bottom-2 sm:bottom-4">
-                    <div className="p-2 sm:p-3">
-                      <div className="text-white">
-                        <h3 className="font-bold text-xs sm:text-sm md:text-base mb-1 break-words leading-tight text-shadow-lg">
+                  {/* Video Info Overlay - Mobile Optimized */}
+                  <div className="absolute left-2 sm:left-4 right-16 sm:right-20 bottom-8 sm:bottom-6">
+                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3 sm:p-4 rounded-lg shadow-lg">
+                      <div className="text-white space-y-2">
+                        <h3 className="font-bold text-sm sm:text-base md:text-lg leading-tight text-shadow-lg line-clamp-2">
                           {reel.title}
                         </h3>
-                        <div className="text-xs leading-relaxed">
-                          {reel.description && reel.description.length > 60 ? (
-                            <div className="space-y-1">
-                              <p className={`break-words whitespace-pre-wrap leading-relaxed transition-all duration-300 text-shadow ${
+                        <div className="text-xs sm:text-sm">
+                          {reel.description && reel.description.length > 80 ? (
+                            <div className="space-y-2">
+                              <p className={`break-words leading-relaxed transition-all duration-300 text-shadow ${
                                 expandedDescriptions.has(reel._id) 
-                                  ? 'max-h-none' 
-                                  : 'max-h-6 overflow-hidden relative'
+                                  ? 'line-clamp-none' 
+                                  : 'line-clamp-2'
                               }`}>
                                 {reel.description}
-                                {!expandedDescriptions.has(reel._id) && (
-                                  <span className="absolute bottom-0 right-0 bg-gradient-to-l from-black/90 to-transparent pl-3">...</span>
-                                )}
                               </p>
                               <button
                                 onClick={(e) => {
@@ -523,13 +520,13 @@ const VideoReels = ({ isOpen, onClose }) => {
                                     return newSet;
                                   });
                                 }}
-                                className="text-gray-300 hover:text-white text-xs font-semibold transition-colors px-1 py-1 rounded-full"
+                                className="text-gray-300 hover:text-white text-xs font-medium transition-colors bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full border border-white/30"
                               >
-                                {expandedDescriptions.has(reel._id) ? '▲ Less' : '▼ More'}
+                                {expandedDescriptions.has(reel._id) ? 'Show less' : 'Show more'}
                               </button>
                             </div>
                           ) : (
-                            <p className="break-words whitespace-pre-wrap leading-relaxed text-shadow">
+                            <p className="break-words leading-relaxed text-shadow line-clamp-3">
                               {reel.description}
                             </p>
                           )}
@@ -623,6 +620,15 @@ const VideoReels = ({ isOpen, onClose }) => {
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+        }
+        .line-clamp-3 {
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .line-clamp-none {
+          display: block;
         }
         .overflow-wrap-anywhere {
           overflow-wrap: anywhere;
