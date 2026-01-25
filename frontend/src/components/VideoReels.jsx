@@ -464,7 +464,7 @@ const VideoReels = ({ isOpen, onClose }) => {
                 <div className="relative w-full max-w-sm sm:max-w-md h-full bg-black">
                   <video
                     ref={el => videoRefs.current[index] = el}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover scale-110 sm:scale-100"
                     loop
                     muted={false}
                     playsInline
@@ -491,15 +491,15 @@ const VideoReels = ({ isOpen, onClose }) => {
                   )}
 
                   {/* Video Info Overlay - Mobile Optimized */}
-                  <div className="absolute left-2 sm:left-4 right-16 sm:right-20 bottom-8 sm:bottom-6">
-                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3 sm:p-4 rounded-lg shadow-lg">
-                      <div className="text-white space-y-2">
-                        <h3 className="font-bold text-sm sm:text-base md:text-lg leading-tight text-shadow-lg line-clamp-2">
+                  <div className="absolute left-2 sm:left-4 right-16 sm:right-20 bottom-20 sm:bottom-6">
+                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-2 sm:p-4 rounded-lg shadow-lg">
+                      <div className="text-white space-y-1 sm:space-y-2">
+                        <h3 className="font-bold text-xs sm:text-base md:text-lg leading-tight text-shadow-lg line-clamp-2">
                           {reel.title}
                         </h3>
                         <div className="text-xs sm:text-sm">
                           {reel.description && reel.description.length > 80 ? (
-                            <div className="space-y-2">
+                            <div className="space-y-1 sm:space-y-2">
                               <p className={`break-words leading-relaxed transition-all duration-300 text-shadow ${
                                 expandedDescriptions.has(reel._id) 
                                   ? 'line-clamp-none' 
