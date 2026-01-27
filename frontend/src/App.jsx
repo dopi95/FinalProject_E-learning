@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { ThemeProvider } from './contexts/ThemeContext';
 import ScrollToTop from './components/ScrollToTop';
 import Chatbot from './components/Chatbot';
+import PWAInstallButton from './components/PWAInstallButton';
 import Home from './components/Home.jsx';
 import About from './pages/About.jsx';
 import Contact from './pages/Contact.jsx';
@@ -80,6 +81,7 @@ const AppContent = () => {
         <Route path="/leave-review" element={<LeaveReview />} />
       </Routes>
       {isHomePage && <Chatbot showIcons={showIcons} />}
+      <PWAInstallButton />
     </div>
   );
 };
