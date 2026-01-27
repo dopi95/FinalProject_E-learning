@@ -1,4 +1,5 @@
 import axios from 'axios';
+import offlineAPI from '../utils/offlineAPI.js';
 
 const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:9000'}/api`;
 
@@ -23,10 +24,63 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Add response interceptor to handle errors silently for schedules and chat
+// Add response interceptor to handle offline mode
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    // If network error, try offline API
+    if (!navigator.onLine || error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
+      console.log('Network error detected, switching to offline mode');
+      
+      const config = error.config;
+      const method = config.method.toLowerCase();
+      const url = config.url;
+      
+      // Handle different API endpoints offline
+      if (url.includes('/auth/login') && method === 'post') {
+        const { email, password } = JSON.parse(config.data);
+        const result = await offlineAPI.login(email, password);
+        if (result) return result;
+      }
+      
+      if (url.includes('/auth/register') && method === 'post') {
+        const userData = JSON.parse(config.data);
+        const result = await offlineAPI.register(userData);
+        if (result) return result;
+      }
+      
+      if (url.includes('/courses') && method === 'get') {
+        const result = await offlineAPI.getCourses();
+        if (result) return result;
+      }
+      
+      if (url.includes('/enrollments/my-courses') && method === 'get') {
+        const result = await offlineAPI.getMyCourses();
+        if (result) return result;
+      }
+      
+      if (url.includes('/assignments/student') && method === 'get') {
+        const result = await offlineAPI.getStudentAssignments();
+        if (result) return result;
+      }
+      
+      if (url.includes('/payments/my-payments') && method === 'get') {
+        const result = await offlineAPI.getMyPayments();
+        if (result) return result;
+      }
+      
+      if (url.includes('/profile/me') && method === 'get') {
+        const result = await offlineAPI.getProfile();
+        if (result) return result;
+      }
+      
+      if (url.includes('/profile/update') && method === 'put') {
+        const profileData = JSON.parse(config.data);
+        const result = await offlineAPI.updateProfile(profileData);
+        if (result) return result;
+      }
+    }
+    
     if (error.config?.url?.includes('/schedules') || error.config?.url?.includes('/messages/file')) {
       return { data: { success: true, schedules: [] } };
     }
