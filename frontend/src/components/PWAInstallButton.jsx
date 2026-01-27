@@ -83,11 +83,11 @@ const PWAInstallButton = () => {
         <div className="mb-4 space-y-2">
           <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
-            Works offline
+            Faster loading
           </div>
           <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
             <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
-            Faster loading
+            Push notifications
           </div>
           <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
             <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2"></div>

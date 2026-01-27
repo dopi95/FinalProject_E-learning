@@ -4,6 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import ScrollToTop from './components/ScrollToTop';
 import Chatbot from './components/Chatbot';
 import PWAInstallButton from './components/PWAInstallButton';
+import OfflineIndicator from './components/OfflineIndicator';
 import Home from './components/Home.jsx';
 import About from './pages/About.jsx';
 import Contact from './pages/Contact.jsx';
@@ -55,6 +56,7 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <OfflineIndicator />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
