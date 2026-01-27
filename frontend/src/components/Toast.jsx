@@ -36,15 +36,15 @@ const Toast = ({ message, type = 'success', isVisible, onClose, duration = 3000 
   };
 
   return (
-    <div className="fixed top-4 right-4 z-50 transform transition-all duration-300 ease-in-out">
-      <div className={`flex items-center p-4 rounded-xl border shadow-lg max-w-sm ${getBgColor()}`}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-4 px-4 pointer-events-none">
+      <div className={`flex items-center p-4 rounded-xl border shadow-lg w-full max-w-sm mx-auto ${getBgColor()} pointer-events-auto transform transition-all duration-300 ease-in-out animate-in slide-in-from-top-2 fade-in-0`}>
         {getIcon()}
-        <span className="ml-3 text-sm font-medium text-gray-900 dark:text-white flex-1">
+        <span className="ml-3 text-sm font-medium text-gray-900 dark:text-white flex-1 break-words">
           {message}
         </span>
         <button
           onClick={onClose}
-          className="ml-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          className="ml-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex-shrink-0"
         >
           <X className="h-4 w-4" />
         </button>
