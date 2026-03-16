@@ -584,4 +584,18 @@ export const adminActivityAPI = {
   getRecentActivities: (limit = 5) => api.get('/admin/recent-activities', { params: { limit } }),
 };
 
+// Exam API functions
+export const examAPI = {
+  getInstructorExams: () => api.get('/exams/instructor'),
+  getStudentExams: () => api.get('/exams/student/my-exams'),
+  createExam: (examData) => api.post('/exams', examData),
+  updateExam: (id, examData) => api.put(`/exams/${id}`, examData),
+  deleteExam: (id) => api.delete(`/exams/${id}`),
+  getExam: (id) => api.get(`/exams/${id}`),
+  publishExam: (id) => api.patch(`/exams/${id}/publish`),
+  unpublishExam: (id) => api.patch(`/exams/${id}/unpublish`),
+  submitExam: (id, data) => api.post(`/exams/${id}/submit`, data),
+  getSubmission: (id) => api.get(`/exams/${id}/submission`),
+};
+
 export default api;

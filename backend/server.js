@@ -102,6 +102,9 @@ app.use('/api/reels', require('./routes/reels'));
 // Assignment routes
 app.use('/api/assignments', require('./routes/assignments'));
 
+// Exam routes
+app.use('/api/exams', require('./routes/exams'));
+
 // Admin Activities routes
 app.use('/api/admin', require('./routes/adminActivities'));
 
