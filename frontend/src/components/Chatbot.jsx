@@ -359,16 +359,16 @@ const Chatbot = ({ showIcons = true }) => {
       {!isMobileMenuOpen && showIcons && (
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`fixed bottom-20 right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-500 transform hover:scale-110 group overflow-hidden ${
-            isOpen ? 'rotate-180' : 'animate-bounce'
+          className={`fixed bottom-6 right-6 z-[99999] w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 group overflow-hidden ${
+            isOpen ? '' : 'animate-bounce'
           }`}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-full animate-pulse"></div>
-          <div className="relative z-10">
+          <div className="relative z-10 flex items-center justify-center">
             {isOpen ? (
-              <X className="h-5 w-5 sm:h-6 sm:w-6 mx-auto transform group-hover:rotate-90 transition-transform duration-300" />
+              <X className="h-6 w-6 transform group-hover:rotate-90 transition-transform duration-300" />
             ) : (
-              <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 mx-auto transform group-hover:scale-110 transition-transform duration-300" />
+              <MessageSquare className="h-6 w-6 transform group-hover:scale-110 transition-transform duration-300" />
             )}
           </div>
           {!isOpen && (
@@ -379,38 +379,51 @@ const Chatbot = ({ showIcons = true }) => {
 
       {/* Chat Popup */}
       {!isMobileMenuOpen && showIcons && (
-        <div className={`fixed bottom-36 right-4 sm:bottom-40 sm:right-6 z-40 w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} style={{ maxHeight: 'calc(100vh - 12rem)' }}>
+        <div
+          className={`fixed z-[9999] transition-all duration-300 transform ${
+            isOpen ? 'scale-100 opacity-100 pointer-events-auto' : 'scale-0 opacity-0 pointer-events-none'
+          }`}
+          style={{
+            bottom: '5.5rem',
+            right: '1.5rem',
+            width: '380px',
+            maxWidth: 'calc(100vw - 2rem)',
+            transformOrigin: 'bottom right',
+          }}
+        >
+        <div className="flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700" style={{ height: '520px', maxHeight: 'calc(100vh - 8rem)' }}>
+
         {/* Chat Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-t-2xl flex-shrink-0 relative z-10 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 animate-pulse"></div>
-          <div className="flex items-center justify-between relative z-10">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm animate-pulse">
-                <Bot className="h-6 w-6 animate-bounce" style={{animationDelay: '0.5s'}} />
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-t-2xl flex-shrink-0 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 animate-pulse pointer-events-none"></div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <Bot className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="font-bold text-lg animate-fadeIn">{t('chatbot.title')}</h3>
-                <div className="text-sm opacity-90 flex items-center animate-fadeIn" style={{animationDelay: '0.3s'}}>
-                  <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                <h3 className="font-bold text-base leading-tight">{t('chatbot.title')}</h3>
+                <div className="text-xs opacity-90 flex items-center gap-1 mt-0.5">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                   <span>Online</span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-1 flex-shrink-0">
               {isLoggedIn && (
                 <button
                   onClick={() => setShowHistory(!showHistory)}
-                  className="p-2 hover:bg-white/20 rounded-full transition-all duration-300 relative z-20 group"
+                  className="w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-full transition-colors"
                   title="Chat History"
                 >
-                  <History className="h-5 w-5 transform group-hover:rotate-12 transition-transform duration-300" />
+                  <History className="h-4 w-4" />
                 </button>
               )}
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-2 hover:bg-white/20 rounded-full transition-all duration-300 relative z-20 group"
+                className="w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-full transition-colors"
               >
-                <X className="h-5 w-5 transform group-hover:rotate-90 transition-transform duration-300" />
+                <X className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -418,7 +431,7 @@ const Chatbot = ({ showIcons = true }) => {
 
         {/* Messages Area or History Panel */}
         {showHistory ? (
-          <div className="p-4 space-y-4 overflow-y-auto" style={{ height: 'calc(60vh - 8rem)', minHeight: '250px', maxHeight: '400px' }}>
+          <div className="p-4 space-y-4 overflow-y-auto" style={{ height: '320px', minHeight: '200px' }}>
             <div className="flex items-center justify-between mb-4">
               <h4 className="font-semibold text-gray-800 dark:text-white">Chat History</h4>
               <div className="flex space-x-2">
@@ -536,7 +549,7 @@ const Chatbot = ({ showIcons = true }) => {
             )}
           </div>
         ) : (
-          <div className="overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 flex-1 relative" style={{ height: 'calc(60vh - 8rem)', minHeight: '250px', maxHeight: '400px' }}>
+          <div className="overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 flex-1 relative" style={{ height: '320px', minHeight: '200px' }}>
           
           {/* Animated Character */}
           {showCharacter && (
@@ -636,26 +649,27 @@ const Chatbot = ({ showIcons = true }) => {
 
         {/* Input Area */}
         {!showHistory && (
-          <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 relative z-10">
-            <div className="flex space-x-2">
+          <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-800 rounded-b-2xl">
+            <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder={t('chatbot.placeholder')}
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                className="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 outline-none"
               />
               <button
                 onClick={handleSendMessage}
                 disabled={!inputMessage.trim()}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0 relative z-20 shadow-sm"
+                className="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
               >
                 <Send className="h-4 w-4" />
               </button>
             </div>
           </div>
         )}
+        </div>
         </div>
       )}
     </>
