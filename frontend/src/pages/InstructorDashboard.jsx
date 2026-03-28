@@ -27,6 +27,7 @@ const InstructorDashboard = () => {
   const [gradeAutoPopulated, setGradeAutoPopulated] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState(new Set());
   const [showBulkGradeModal, setShowBulkGradeModal] = useState(false);
+  const [persistedGradeFields, setPersistedGradeFields] = useState([]);
   const [selectedStudentCourse, setSelectedStudentCourse] = useState(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showSubscribeMenu, setShowSubscribeMenu] = useState(false);
@@ -1067,15 +1068,25 @@ const InstructorDashboard = () => {
           }
         });
       } catch {}
-      if (fields.length > 0) {
-        setGradeFields(fields);
-        setGradeAutoPopulated(true);
-        const total = fields.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
+      const merged = [
+        ...fields,
+        ...persistedGradeFields.filter(p => !fields.some(f => f.name === p.name))
+      ];
+      if (merged.length > 0) {
+        setGradeFields(merged);
+        setGradeAutoPopulated(fields.length > 0);
+        const total = merged.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
         setGradeLetter(getGradeLetter(total));
       } else {
-        setGradeFields([{ name: '', mark: '' }]);
+        const base = persistedGradeFields.length > 0 ? persistedGradeFields : [{ name: '', mark: '' }];
+        setGradeFields(base);
         setGradeAutoPopulated(false);
-        setGradeLetter('');
+        if (persistedGradeFields.length > 0) {
+          const total = persistedGradeFields.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
+          setGradeLetter(getGradeLetter(total));
+        } else {
+          setGradeLetter('');
+        }
       }
     };
     populate();
@@ -4075,7 +4086,7 @@ const InstructorDashboard = () => {
                 >Deselect All</button>
                 <button
                   onClick={() => {
-                    setGradeFields([{ name: '', mark: '' }]);
+                    setGradeFields(persistedGradeFields.length > 0 ? persistedGradeFields : [{ name: '', mark: '' }]);
                     setGradeLetter('');
                     setGradeAutoPopulated(false);
                     setShowBulkGradeModal(true);
@@ -4263,7 +4274,7 @@ const InstructorDashboard = () => {
                 <button
                   onClick={() => {
                     setSelectedStudentForGrading(null);
-                    setGradeFields([{ name: '', mark: '' }]);
+                    setGradeFields(persistedGradeFields.length > 0 ? persistedGradeFields : [{ name: '', mark: '' }]);
                     setGradeLetter('');
                   }}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -4336,6 +4347,10 @@ const InstructorDashboard = () => {
                               const newFields = [...gradeFields];
                               newFields[index].saved = true;
                               setGradeFields(newFields);
+                              setPersistedGradeFields(prev => {
+                                const updated = prev.filter(p => p.name !== newFields[index].name);
+                                return [...updated, { ...newFields[index] }];
+                              });
                             }}
                             disabled={!field.name || field.mark === ''}
                             className="px-2 py-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium border border-green-300 dark:border-green-700 whitespace-nowrap"
@@ -4359,6 +4374,7 @@ const InstructorDashboard = () => {
                             onClick={() => {
                               const newFields = gradeFields.filter((_, i) => i !== index);
                               setGradeFields(newFields);
+                              setPersistedGradeFields(prev => prev.filter(p => p.name !== gradeFields[index].name));
                             }}
                             className="px-2 py-2 text-red-600 hover:bg-red-50 rounded"
                           >
@@ -4422,6 +4438,7 @@ const InstructorDashboard = () => {
                           gradeLetter
                         });
                         setSelectedStudentForGrading(null);
+                        setPersistedGradeFields([]);
                         setGradeFields([{ name: '', mark: '' }]);
                         setGradeLetter('');
                         setGradeAutoPopulated(false);
@@ -4434,7 +4451,7 @@ const InstructorDashboard = () => {
                     <button
                       onClick={() => {
                         setSelectedStudentForGrading(null);
-                        setGradeFields([{ name: '', mark: '' }]);
+                        setGradeFields(persistedGradeFields.length > 0 ? persistedGradeFields : [{ name: '', mark: '' }]);
                         setGradeLetter('');
                         setGradeAutoPopulated(false);
                       }}
@@ -4457,7 +4474,7 @@ const InstructorDashboard = () => {
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Submit Grade for Selected Students</h3>
-                <button onClick={() => { setShowBulkGradeModal(false); setGradeFields([{ name: '', mark: '' }]); setGradeLetter(''); setGradeAutoPopulated(false); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X className="h-6 w-6" /></button>
+                <button onClick={() => { setShowBulkGradeModal(false); setGradeFields(persistedGradeFields.length > 0 ? persistedGradeFields : [{ name: '', mark: '' }]); setGradeLetter(''); setGradeAutoPopulated(false); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X className="h-6 w-6" /></button>
               </div>
 
               {/* Selected students list */}
@@ -4498,6 +4515,10 @@ const InstructorDashboard = () => {
                           onClick={() => {
                             if (!field.name || field.mark === '') return;
                             const f=[...gradeFields]; f[index].saved=true; setGradeFields(f);
+                            setPersistedGradeFields(prev => {
+                              const updated = prev.filter(p => p.name !== f[index].name);
+                              return [...updated, { ...f[index] }];
+                            });
                           }}
                           disabled={!field.name || field.mark === ''}
                           className="px-2 py-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium border border-green-300 dark:border-green-700 whitespace-nowrap"
@@ -4510,7 +4531,7 @@ const InstructorDashboard = () => {
                         >Edit</button>
                       )}
                       {gradeFields.length > 1 && (
-                        <button onClick={() => { const f=gradeFields.filter((_,i)=>i!==index); setGradeFields(f); }} className="px-2 py-2 text-red-600 hover:bg-red-50 rounded"><X className="h-4 w-4" /></button>
+                        <button onClick={() => { const removed=gradeFields[index]; const f=gradeFields.filter((_,i)=>i!==index); setGradeFields(f); setPersistedGradeFields(prev=>prev.filter(p=>p.name!==removed.name)); }} className="px-2 py-2 text-red-600 hover:bg-red-50 rounded"><X className="h-4 w-4" /></button>
                       )}
                     </div>
                   ))}
@@ -4552,6 +4573,7 @@ const InstructorDashboard = () => {
                   <button
                     onClick={() => {
                       setShowBulkGradeModal(false);
+                      setPersistedGradeFields([]);
                       setGradeFields([{ name: '', mark: '' }]);
                       setGradeLetter('');
                       setGradeAutoPopulated(false);
@@ -4561,7 +4583,7 @@ const InstructorDashboard = () => {
                     className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 text-sm font-medium"
                   >Submit Grade for All ({selectedStudents.size})</button>
                   <button
-                    onClick={() => { setShowBulkGradeModal(false); setGradeFields([{ name: '', mark: '' }]); setGradeLetter(''); setGradeAutoPopulated(false); }}
+                    onClick={() => { setShowBulkGradeModal(false); setGradeFields(persistedGradeFields.length > 0 ? persistedGradeFields : [{ name: '', mark: '' }]); setGradeLetter(''); setGradeAutoPopulated(false); }}
                     className="flex-1 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 text-sm"
                   >Cancel</button>
                 </div>
