@@ -27,7 +27,14 @@ const InstructorDashboard = () => {
   const [gradeAutoPopulated, setGradeAutoPopulated] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState(new Set());
   const [showBulkGradeModal, setShowBulkGradeModal] = useState(false);
-  const [persistedGradeFields, setPersistedGradeFields] = useState([]);
+  const [persistedGradeFields, setPersistedGradeFields] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('gradeFields') || '[]'); } catch { return []; }
+  });
+  const savePersistedGradeFields = (fields) => {
+    const saved = typeof fields === 'function' ? fields(persistedGradeFields) : fields;
+    savePersistedGradeFields(saved);
+    try { localStorage.setItem('gradeFields', JSON.stringify(saved)); } catch {}
+  };
   const [selectedStudentCourse, setSelectedStudentCourse] = useState(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showSubscribeMenu, setShowSubscribeMenu] = useState(false);
@@ -4347,7 +4354,7 @@ const InstructorDashboard = () => {
                               const newFields = [...gradeFields];
                               newFields[index].saved = true;
                               setGradeFields(newFields);
-                              setPersistedGradeFields(prev => {
+                              savePersistedGradeFields(prev => {
                                 const updated = prev.filter(p => p.name !== newFields[index].name);
                                 return [...updated, { ...newFields[index] }];
                               });
@@ -4374,7 +4381,7 @@ const InstructorDashboard = () => {
                             onClick={() => {
                               const newFields = gradeFields.filter((_, i) => i !== index);
                               setGradeFields(newFields);
-                              setPersistedGradeFields(prev => prev.filter(p => p.name !== gradeFields[index].name));
+                              savePersistedGradeFields(prev => prev.filter(p => p.name !== gradeFields[index].name));
                             }}
                             className="px-2 py-2 text-red-600 hover:bg-red-50 rounded"
                           >
@@ -4438,7 +4445,7 @@ const InstructorDashboard = () => {
                           gradeLetter
                         });
                         setSelectedStudentForGrading(null);
-                        setPersistedGradeFields([]);
+                        savePersistedGradeFields([]);
                         setGradeFields([{ name: '', mark: '' }]);
                         setGradeLetter('');
                         setGradeAutoPopulated(false);
@@ -4515,7 +4522,7 @@ const InstructorDashboard = () => {
                           onClick={() => {
                             if (!field.name || field.mark === '') return;
                             const f=[...gradeFields]; f[index].saved=true; setGradeFields(f);
-                            setPersistedGradeFields(prev => {
+                            savePersistedGradeFields(prev => {
                               const updated = prev.filter(p => p.name !== f[index].name);
                               return [...updated, { ...f[index] }];
                             });
@@ -4531,7 +4538,7 @@ const InstructorDashboard = () => {
                         >Edit</button>
                       )}
                       {gradeFields.length > 1 && (
-                        <button onClick={() => { const removed=gradeFields[index]; const f=gradeFields.filter((_,i)=>i!==index); setGradeFields(f); setPersistedGradeFields(prev=>prev.filter(p=>p.name!==removed.name)); }} className="px-2 py-2 text-red-600 hover:bg-red-50 rounded"><X className="h-4 w-4" /></button>
+                        <button onClick={() => { const removed=gradeFields[index]; const f=gradeFields.filter((_,i)=>i!==index); setGradeFields(f); savePersistedGradeFields(prev=>prev.filter(p=>p.name!==removed.name)); }} className="px-2 py-2 text-red-600 hover:bg-red-50 rounded"><X className="h-4 w-4" /></button>
                       )}
                     </div>
                   ))}
@@ -4573,7 +4580,7 @@ const InstructorDashboard = () => {
                   <button
                     onClick={() => {
                       setShowBulkGradeModal(false);
-                      setPersistedGradeFields([]);
+                      savePersistedGradeFields([]);
                       setGradeFields([{ name: '', mark: '' }]);
                       setGradeLetter('');
                       setGradeAutoPopulated(false);
