@@ -24,6 +24,9 @@ const InstructorDashboard = () => {
   const [selectedStudentForGrading, setSelectedStudentForGrading] = useState(null);
   const [gradeFields, setGradeFields] = useState([{ name: '', mark: '' }]);
   const [gradeLetter, setGradeLetter] = useState('');
+  const [gradeAutoPopulated, setGradeAutoPopulated] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState(new Set());
+  const [showBulkGradeModal, setShowBulkGradeModal] = useState(false);
   const [selectedStudentCourse, setSelectedStudentCourse] = useState(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showSubscribeMenu, setShowSubscribeMenu] = useState(false);
@@ -1022,6 +1025,61 @@ const InstructorDashboard = () => {
     if (!name) return 'IN';
     return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
   };
+
+  const getGradeLetter = (mark) => {
+    const m = parseFloat(mark);
+    if (isNaN(m)) return '';
+    if (m >= 91) return 'A+';
+    if (m >= 85) return 'A';
+    if (m >= 80) return 'A-';
+    if (m >= 75) return 'B+';
+    if (m >= 68) return 'B';
+    if (m >= 65) return 'B-';
+    if (m >= 60) return 'C+';
+    if (m >= 50) return 'C';
+    if (m >= 45) return 'C-';
+    if (m >= 40) return 'D';
+    return 'F';
+  };
+
+  // Auto-populate grade fields from graded assignments/exams when popup opens
+  useEffect(() => {
+    if (!selectedStudentForGrading || selectedCourseFilter === 'all') return;
+    const populate = async () => {
+      const fields = [];
+      // From assignments
+      assignments.forEach(a => {
+        if (a.course !== selectedCourseFilter) return;
+        const sub = a.submissions?.find(s => s.student?._id === selectedStudentForGrading._id || s.student === selectedStudentForGrading._id);
+        if (sub && sub.grade !== undefined) {
+          fields.push({ name: a.title, mark: String(sub.grade), max: a.weightMarks || 10, auto: true });
+        }
+      });
+      // From exams
+      try {
+        const examsRes = await examAPI.getInstructorExams();
+        const exams = examsRes.data.exams || [];
+        exams.forEach(e => {
+          if (String(e.course?._id || e.course) !== selectedCourseFilter) return;
+          const sub = e.submissions?.find(s => s.student?._id === selectedStudentForGrading._id || s.student === selectedStudentForGrading._id);
+          if (sub && sub.score !== undefined) {
+            fields.push({ name: e.title, mark: String(sub.score), max: e.totalMarks || 100, auto: true });
+          }
+        });
+      } catch {}
+      if (fields.length > 0) {
+        setGradeFields(fields);
+        setGradeAutoPopulated(true);
+        const total = fields.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
+        setGradeLetter(getGradeLetter(total));
+      } else {
+        setGradeFields([{ name: '', mark: '' }]);
+        setGradeAutoPopulated(false);
+        setGradeLetter('');
+      }
+    };
+    populate();
+  }, [selectedStudentForGrading]);
 
   const handleBackToWebsite = () => {
     window.location.href = '/';
@@ -4006,6 +4064,28 @@ const InstructorDashboard = () => {
         </div>
       ) : (
         <>
+          {/* Bulk Action Bar */}
+          {selectedCourseFilter !== 'all' && selectedStudents.size > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl px-4 py-3">
+              <span className="text-sm font-medium text-green-700 dark:text-green-300">{selectedStudents.size} student{selectedStudents.size > 1 ? 's' : ''} selected</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedStudents(new Set())}
+                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+                >Deselect All</button>
+                <button
+                  onClick={() => {
+                    setGradeFields([{ name: '', mark: '' }]);
+                    setGradeLetter('');
+                    setGradeAutoPopulated(false);
+                    setShowBulkGradeModal(true);
+                  }}
+                  className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-medium"
+                >Submit Grade for Selected ({selectedStudents.size})</button>
+              </div>
+            </div>
+          )}
+
           {/* Mobile Cards View */}
           <div className="lg:hidden space-y-3">
             {filteredStudents.map((student) => {
@@ -4015,6 +4095,19 @@ const InstructorDashboard = () => {
               
               return (
                 <div key={student._id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4">
+                  {selectedCourseFilter !== 'all' && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <input type="checkbox" checked={selectedStudents.has(student._id)}
+                        onChange={(e) => {
+                          const next = new Set(selectedStudents);
+                          e.target.checked ? next.add(student._id) : next.delete(student._id);
+                          setSelectedStudents(next);
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 cursor-pointer"
+                      />
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Select</span>
+                    </div>
+                  )}
                   <div className="flex items-start gap-3 mb-3">
                     <div className="h-12 w-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {student.profileImage ? (
@@ -4066,11 +4159,22 @@ const InstructorDashboard = () => {
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
+                    {selectedCourseFilter !== 'all' && (
+                      <th className="px-4 py-3 w-10">
+                        <input type="checkbox"
+                          checked={filteredStudents.length > 0 && filteredStudents.every(s => selectedStudents.has(s._id))}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedStudents(new Set(filteredStudents.map(s => s._id)));
+                            else setSelectedStudents(new Set());
+                          }}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 cursor-pointer"
+                        />
+                      </th>
+                    )}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Gender</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Courses</th>
-
                     {selectedCourseFilter !== 'all' && (
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                     )}
@@ -4084,6 +4188,18 @@ const InstructorDashboard = () => {
                     
                     return (
                       <tr key={student._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        {selectedCourseFilter !== 'all' && (
+                          <td className="px-4 py-4">
+                            <input type="checkbox" checked={selectedStudents.has(student._id)}
+                              onChange={(e) => {
+                                const next = new Set(selectedStudents);
+                                e.target.checked ? next.add(student._id) : next.delete(student._id);
+                                setSelectedStudents(next);
+                              }}
+                              className="h-4 w-4 rounded border-gray-300 text-blue-600 cursor-pointer"
+                            />
+                          </td>
+                        )}
                         <td className="px-6 py-4">
                           <div className="flex items-center">
                             <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-3 overflow-hidden flex-shrink-0">
@@ -4179,29 +4295,65 @@ const InstructorDashboard = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Grade Fields</label>
                     {gradeFields.map((field, index) => (
-                      <div key={index} className="flex gap-2 mb-2">
+                      <div key={index} className="flex gap-2 mb-2 items-center">
                         <input
                           type="text"
                           placeholder="Field name (e.g., Quiz 1)"
                           value={field.name}
+                          readOnly={!!field.auto}
                           onChange={(e) => {
                             const newFields = [...gradeFields];
                             newFields[index].name = e.target.value;
                             setGradeFields(newFields);
                           }}
-                          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                          readOnly={!!field.saved}
+                          className={`flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm${(field.auto || field.saved) ? ' bg-gray-50 dark:bg-gray-600' : ''}`}
                         />
+                        {field.auto ? (
+                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">{field.mark}/{field.max}</span>
+                        ) : (
                         <input
                           type="number"
                           placeholder="Mark"
                           value={field.mark}
+                          readOnly={false}
                           onChange={(e) => {
                             const newFields = [...gradeFields];
                             newFields[index].mark = e.target.value;
                             setGradeFields(newFields);
+                            const total = newFields.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
+                            setGradeLetter(getGradeLetter(total));
                           }}
-                          className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                          readOnly={!!field.saved}
+                          className={`w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm${field.saved ? ' bg-gray-50 dark:bg-gray-600' : ''}`}
                         />
+                        )}
+                        {/* Save button — only for unsaved non-auto fields */}
+                        {!field.auto && !field.saved && (
+                          <button
+                            onClick={() => {
+                              if (!field.name || field.mark === '') return;
+                              const newFields = [...gradeFields];
+                              newFields[index].saved = true;
+                              setGradeFields(newFields);
+                            }}
+                            disabled={!field.name || field.mark === ''}
+                            className="px-2 py-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium border border-green-300 dark:border-green-700 whitespace-nowrap"
+                            title="Save field"
+                          >Save</button>
+                        )}
+                        {/* Edit button — unsave a saved field */}
+                        {!field.auto && field.saved && (
+                          <button
+                            onClick={() => {
+                              const newFields = [...gradeFields];
+                              newFields[index].saved = false;
+                              setGradeFields(newFields);
+                            }}
+                            className="px-2 py-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded text-xs font-medium border border-blue-300 dark:border-blue-700 whitespace-nowrap"
+                            title="Edit field"
+                          >Edit</button>
+                        )}
                         {gradeFields.length > 1 && (
                           <button
                             onClick={() => {
@@ -4224,24 +4376,39 @@ const InstructorDashboard = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Grade Letter</label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Grade Letter</label>
+                      {gradeAutoPopulated && (
+                        <span className="text-xs text-green-600 dark:text-green-400">Auto-computed from marks</span>
+                      )}
+                    </div>
+                    {(() => {
+                      const filled = gradeFields.filter(f => f.mark !== '');
+                      if (filled.length === 0) return null;
+                      const total = filled.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
+                      return (
+                        <div className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                          Total mark: <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> → Auto grade: <span className="font-semibold text-blue-600">{getGradeLetter(total)}</span>
+                        </div>
+                      );
+                    })()}
                     <select
                       value={gradeLetter}
                       onChange={(e) => setGradeLetter(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
                     >
                       <option value="">Select Grade</option>
-                      <option value="A+">A+</option>
-                      <option value="A">A</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B">B</option>
-                      <option value="B-">B-</option>
-                      <option value="C+">C+</option>
-                      <option value="C">C</option>
-                      <option value="C-">C-</option>
-                      <option value="D">D</option>
-                      <option value="F">F</option>
+                      <option value="A+">A+ (91-100)</option>
+                      <option value="A">A (85-90)</option>
+                      <option value="A-">A- (80-84)</option>
+                      <option value="B+">B+ (75-79)</option>
+                      <option value="B">B (68-74)</option>
+                      <option value="B-">B- (65-67)</option>
+                      <option value="C+">C+ (60-64)</option>
+                      <option value="C">C (50-59)</option>
+                      <option value="C-">C- (45-49)</option>
+                      <option value="D">D (40-44)</option>
+                      <option value="F">F (below 40)</option>
                     </select>
                   </div>
                   
@@ -4257,6 +4424,7 @@ const InstructorDashboard = () => {
                         setSelectedStudentForGrading(null);
                         setGradeFields([{ name: '', mark: '' }]);
                         setGradeLetter('');
+                        setGradeAutoPopulated(false);
                         showNotification('success', 'Grade Submitted', 'Grade has been submitted successfully');
                       }}
                       className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 text-sm"
@@ -4268,12 +4436,134 @@ const InstructorDashboard = () => {
                         setSelectedStudentForGrading(null);
                         setGradeFields([{ name: '', mark: '' }]);
                         setGradeLetter('');
+                        setGradeAutoPopulated(false);
                       }}
                       className="flex-1 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 text-sm"
                     >
                       Cancel
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Grade Modal */}
+      {showBulkGradeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Submit Grade for Selected Students</h3>
+                <button onClick={() => { setShowBulkGradeModal(false); setGradeFields([{ name: '', mark: '' }]); setGradeLetter(''); setGradeAutoPopulated(false); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X className="h-6 w-6" /></button>
+              </div>
+
+              {/* Selected students list */}
+              <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3">
+                <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">{selectedStudents.size} student{selectedStudents.size > 1 ? 's' : ''} will receive this grade:</p>
+                <div className="flex flex-wrap gap-2">
+                  {filteredStudents.filter(s => selectedStudents.has(s._id)).map(s => (
+                    <span key={s._id} className="flex items-center gap-1 bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 rounded-full px-2 py-0.5 text-xs text-gray-700 dark:text-gray-200">
+                      {s.name}
+                      <button onClick={() => { const n = new Set(selectedStudents); n.delete(s._id); setSelectedStudents(n); if (n.size === 0) setShowBulkGradeModal(false); }} className="text-gray-400 hover:text-red-500 ml-0.5"><X className="h-3 w-3" /></button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Grade Fields</label>
+                  {gradeFields.map((field, index) => (
+                    <div key={index} className="flex gap-2 mb-2 items-center">
+                      <input type="text" placeholder="Field name (e.g., Midterm)" value={field.name}
+                        readOnly={!!field.saved}
+                        onChange={(e) => { if(field.saved) return; const f=[...gradeFields]; f[index].name=e.target.value; setGradeFields(f); }}
+                        className={`flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm${field.saved?' bg-gray-50 dark:bg-gray-600':''}`}
+                      />
+                      <input type="number" placeholder="Mark" value={field.mark}
+                        readOnly={!!field.saved}
+                        onChange={(e) => {
+                          if(field.saved) return;
+                          const f=[...gradeFields]; f[index].mark=e.target.value; setGradeFields(f);
+                          const total=f.reduce((s,x)=>s+parseFloat(x.mark||0),0);
+                          setGradeLetter(getGradeLetter(total));
+                        }}
+                        className={`w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm${field.saved?' bg-gray-50 dark:bg-gray-600':''}`}
+                      />
+                      {!field.saved && (
+                        <button
+                          onClick={() => {
+                            if (!field.name || field.mark === '') return;
+                            const f=[...gradeFields]; f[index].saved=true; setGradeFields(f);
+                          }}
+                          disabled={!field.name || field.mark === ''}
+                          className="px-2 py-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium border border-green-300 dark:border-green-700 whitespace-nowrap"
+                        >Save</button>
+                      )}
+                      {field.saved && (
+                        <button
+                          onClick={() => { const f=[...gradeFields]; f[index].saved=false; setGradeFields(f); }}
+                          className="px-2 py-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded text-xs font-medium border border-blue-300 dark:border-blue-700 whitespace-nowrap"
+                        >Edit</button>
+                      )}
+                      {gradeFields.length > 1 && (
+                        <button onClick={() => { const f=gradeFields.filter((_,i)=>i!==index); setGradeFields(f); }} className="px-2 py-2 text-red-600 hover:bg-red-50 rounded"><X className="h-4 w-4" /></button>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={() => setGradeFields([...gradeFields, { name: '', mark: '' }])} className="text-blue-600 text-sm hover:underline">+ Add Field</button>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Grade Letter</label>
+                  </div>
+                  {(() => {
+                    const filled = gradeFields.filter(f => f.mark !== '');
+                    if (filled.length === 0) return null;
+                    const total = filled.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
+                    return (
+                      <div className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                        Total mark: <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> → Auto grade: <span className="font-semibold text-blue-600">{getGradeLetter(total)}</span>
+                      </div>
+                    );
+                  })()}
+                  <select value={gradeLetter} onChange={(e) => setGradeLetter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm">
+                    <option value="">Select Grade</option>
+                    <option value="A+">A+ (91-100)</option>
+                    <option value="A">A (85-90)</option>
+                    <option value="A-">A- (80-84)</option>
+                    <option value="B+">B+ (75-79)</option>
+                    <option value="B">B (68-74)</option>
+                    <option value="B-">B- (65-67)</option>
+                    <option value="C+">C+ (60-64)</option>
+                    <option value="C">C (50-59)</option>
+                    <option value="C-">C- (45-49)</option>
+                    <option value="D">D (40-44)</option>
+                    <option value="F">F (below 40)</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      setShowBulkGradeModal(false);
+                      setGradeFields([{ name: '', mark: '' }]);
+                      setGradeLetter('');
+                      setGradeAutoPopulated(false);
+                      setSelectedStudents(new Set());
+                      showNotification('success', 'Grades Submitted', `Grade submitted for ${selectedStudents.size} student${selectedStudents.size > 1 ? 's' : ''} successfully`);
+                    }}
+                    className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 text-sm font-medium"
+                  >Submit Grade for All ({selectedStudents.size})</button>
+                  <button
+                    onClick={() => { setShowBulkGradeModal(false); setGradeFields([{ name: '', mark: '' }]); setGradeLetter(''); setGradeAutoPopulated(false); }}
+                    className="flex-1 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 text-sm"
+                  >Cancel</button>
                 </div>
               </div>
             </div>
