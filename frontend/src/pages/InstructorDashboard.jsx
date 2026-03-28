@@ -32,7 +32,7 @@ const InstructorDashboard = () => {
   });
   const savePersistedGradeFields = (fields) => {
     const saved = typeof fields === 'function' ? fields(persistedGradeFields) : fields;
-    savePersistedGradeFields(saved);
+    setPersistedGradeFields(saved);
     try { localStorage.setItem('gradeFields', JSON.stringify(saved)); } catch {}
   };
   const [selectedStudentCourse, setSelectedStudentCourse] = useState(null);
@@ -4313,39 +4313,48 @@ const InstructorDashboard = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Grade Fields</label>
                     {gradeFields.map((field, index) => (
-                      <div key={index} className="flex gap-2 mb-2 items-center">
+                      <div key={index} className="flex flex-wrap gap-2 mb-3 items-center p-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50">
                         <input
                           type="text"
                           placeholder="Field name (e.g., Quiz 1)"
                           value={field.name}
-                          readOnly={!!field.auto}
+                          readOnly={!!(field.auto || field.saved)}
                           onChange={(e) => {
                             const newFields = [...gradeFields];
                             newFields[index].name = e.target.value;
                             setGradeFields(newFields);
                           }}
-                          readOnly={!!field.saved}
-                          className={`flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm${(field.auto || field.saved) ? ' bg-gray-50 dark:bg-gray-600' : ''}`}
+                          className={`flex-1 min-w-[120px] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm${(field.auto || field.saved) ? ' bg-white dark:bg-gray-600 cursor-not-allowed' : ' bg-white dark:bg-gray-700'}`}
                         />
-                        {field.auto ? (
-                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">{field.mark}/{field.max}</span>
-                        ) : (
-                        <input
-                          type="number"
-                          placeholder="Mark"
-                          value={field.mark}
-                          readOnly={false}
-                          onChange={(e) => {
-                            const newFields = [...gradeFields];
-                            newFields[index].mark = e.target.value;
-                            setGradeFields(newFields);
-                            const total = newFields.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
-                            setGradeLetter(getGradeLetter(total));
-                          }}
-                          readOnly={!!field.saved}
-                          className={`w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm${field.saved ? ' bg-gray-50 dark:bg-gray-600' : ''}`}
-                        />
-                        )}
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            placeholder="Mark"
+                            value={field.mark}
+                            readOnly={!!(field.auto || field.saved)}
+                            onChange={(e) => {
+                              const newFields = [...gradeFields];
+                              newFields[index].mark = e.target.value;
+                              setGradeFields(newFields);
+                              const total = newFields.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
+                              setGradeLetter(getGradeLetter(total));
+                            }}
+                            className={`w-16 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:text-white text-sm text-center${(field.auto || field.saved) ? ' bg-white dark:bg-gray-600 cursor-not-allowed' : ' bg-white dark:bg-gray-700'}`}
+                          />
+                          <span className="text-gray-400 text-sm font-medium">/</span>
+                          <input
+                            type="number"
+                            placeholder="Out of"
+                            value={field.max || ''}
+                            readOnly={!!(field.auto || field.saved)}
+                            onChange={(e) => {
+                              const newFields = [...gradeFields];
+                              newFields[index].max = e.target.value;
+                              setGradeFields(newFields);
+                            }}
+                            className={`w-16 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:text-white text-sm text-center${(field.auto || field.saved) ? ' bg-white dark:bg-gray-600 cursor-not-allowed' : ' bg-white dark:bg-gray-700'}`}
+                          />
+                        </div>
                         {/* Save button — only for unsaved non-auto fields */}
                         {!field.auto && !field.saved && (
                           <button
@@ -4505,18 +4514,26 @@ const InstructorDashboard = () => {
                       <input type="text" placeholder="Field name (e.g., Midterm)" value={field.name}
                         readOnly={!!field.saved}
                         onChange={(e) => { if(field.saved) return; const f=[...gradeFields]; f[index].name=e.target.value; setGradeFields(f); }}
-                        className={`flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm${field.saved?' bg-gray-50 dark:bg-gray-600':''}`}
+                        className={`flex-1 min-w-[120px] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:text-white text-sm${field.saved?' bg-white dark:bg-gray-600 cursor-not-allowed':' bg-white dark:bg-gray-700'}`}
                       />
-                      <input type="number" placeholder="Mark" value={field.mark}
-                        readOnly={!!field.saved}
-                        onChange={(e) => {
-                          if(field.saved) return;
-                          const f=[...gradeFields]; f[index].mark=e.target.value; setGradeFields(f);
-                          const total=f.reduce((s,x)=>s+parseFloat(x.mark||0),0);
-                          setGradeLetter(getGradeLetter(total));
-                        }}
-                        className={`w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm${field.saved?' bg-gray-50 dark:bg-gray-600':''}`}
-                      />
+                      <div className="flex items-center gap-1">
+                        <input type="number" placeholder="Mark" value={field.mark}
+                          readOnly={!!field.saved}
+                          onChange={(e) => {
+                            if(field.saved) return;
+                            const f=[...gradeFields]; f[index].mark=e.target.value; setGradeFields(f);
+                            const total=f.reduce((s,x)=>s+parseFloat(x.mark||0),0);
+                            setGradeLetter(getGradeLetter(total));
+                          }}
+                          className={`w-16 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:text-white text-sm text-center${field.saved?' bg-white dark:bg-gray-600 cursor-not-allowed':' bg-white dark:bg-gray-700'}`}
+                        />
+                        <span className="text-gray-400 text-sm font-medium">/</span>
+                        <input type="number" placeholder="Out of" value={field.max||''}
+                          readOnly={!!field.saved}
+                          onChange={(e) => { if(field.saved) return; const f=[...gradeFields]; f[index].max=e.target.value; setGradeFields(f); }}
+                          className={`w-16 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:text-white text-sm text-center${field.saved?' bg-white dark:bg-gray-600 cursor-not-allowed':' bg-white dark:bg-gray-700'}`}
+                        />
+                      </div>
                       {!field.saved && (
                         <button
                           onClick={() => {
