@@ -34,6 +34,7 @@ const StudentDashboard = () => {
   const [gradesLoading, setGradesLoading] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState(null);
   const [showGradeDetail, setShowGradeDetail] = useState(false);
+  const [viewingCertificate, setViewingCertificate] = useState(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showSubscribeMenu, setShowSubscribeMenu] = useState(false);
   const [showLikedOnly, setShowLikedOnly] = useState(false);
@@ -3374,7 +3375,6 @@ const renderPayments = () => (
       const gradeLetter = grade.gradeLetter || '';
       const instructorName = grade.instructor?.name || 'Instructor';
       const dateStr = new Date(grade.submittedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-      const certId = 'AAU-' + String(grade._id).slice(-8).toUpperCase();
 
       const html = `<!DOCTYPE html>
 <html>
@@ -3396,7 +3396,6 @@ const renderPayments = () => (
   .corner-br { bottom: 8px; right: 8px; transform: scale(-1); }
   .header { background: linear-gradient(135deg, #1a3a5c 0%, #0d2137 100%); padding: 28px 60px 22px; text-align: center; }
   .header-logo { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 8px; }
-  .logo-circle { width: 56px; height: 56px; background: #c9a84c; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #1a3a5c; font-family: 'Playfair Display', serif; }
   .uni-name { color: #fff; font-size: 22px; font-weight: 700; letter-spacing: 2px; font-family: 'Playfair Display', serif; }
   .uni-sub { color: #c9a84c; font-size: 11px; letter-spacing: 4px; text-transform: uppercase; margin-top: 2px; }
   .gold-line { height: 3px; background: linear-gradient(90deg, transparent, #c9a84c, transparent); margin: 0 60px; }
@@ -3426,7 +3425,6 @@ const renderPayments = () => (
   .seal-circle { width: 80px; height: 80px; border-radius: 50%; border: 3px solid #c9a84c; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto 4px; background: #fff; }
   .seal-text { font-size: 7px; letter-spacing: 1px; text-transform: uppercase; color: #c9a84c; font-weight: 700; text-align: center; line-height: 1.4; }
   .seal-star { font-size: 18px; color: #c9a84c; }
-  .cert-id { font-size: 9px; color: #aaa; letter-spacing: 1px; margin-top: 4px; }
   .date-block { text-align: center; min-width: 160px; }
   .date-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #888; margin-bottom: 4px; }
   .date-value { font-size: 13px; font-weight: 700; color: #1a3a5c; }
@@ -3444,7 +3442,7 @@ const renderPayments = () => (
 
   <div class="header">
     <div class="header-logo">
-      <div class="logo-circle">AAU</div>
+      <img src="${window.location.origin}/assets/images/aaulogo.png" alt="AAU Logo" style="width:56px;height:56px;object-fit:contain;border-radius:50%;background:#fff;padding:4px;" onerror="this.style.display='none'" />
       <div>
         <div class="uni-name">Addis Ababa University</div>
         <div class="uni-sub">E-Learning Platform &nbsp;&#9670;&nbsp; Center of Excellence</div>
@@ -3490,7 +3488,6 @@ const renderPayments = () => (
         <div class="seal-star">&#9733;</div>
         <div class="seal-text">AAU<br/>E-LEARNING<br/>CERTIFIED</div>
       </div>
-      <div class="cert-id">ID: ${certId}</div>
     </div>
     <div class="date-block">
       <div class="date-label">Date of Completion</div>
@@ -3510,6 +3507,8 @@ const renderPayments = () => (
       window.open(url, '_blank');
       setTimeout(() => URL.revokeObjectURL(url), 2000);
     };
+
+    const viewCertificate = (grade) => setViewingCertificate(grade);
 
     return (
       <div className="space-y-6">
@@ -3562,18 +3561,79 @@ const renderPayments = () => (
                     Completed: {new Date(grade.submittedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                   </p>
 
-                  <button
-                    onClick={() => downloadCertificate(grade)}
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-2.5 rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download Certificate
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => viewCertificate(grade)}
+                      className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2"
+                    >
+                      <Eye className="h-4 w-4" />
+                      View
+                    </button>
+                    <button
+                      onClick={() => downloadCertificate(grade)}
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 shadow-md"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </button>
+                  </div>
                   </button>
                 </div>
               </div>
             ))}
           </div>
         )}
+
+        {viewingCertificate && (() => {
+          const g = viewingCertificate;
+          const sName = user?.name || 'Student';
+          const dStr = new Date(g.submittedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+          return (
+            <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4" onClick={() => setViewingCertificate(null)}>
+              <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                  <h3 className="text-lg font-bold text-gray-900">Certificate Preview</h3>
+                  <div className="flex gap-2">
+                    <button onClick={() => downloadCertificate(g)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium"><Download className="h-4 w-4" /> Download</button>
+                    <button onClick={() => setViewingCertificate(null)} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"><X className="h-5 w-5" /></button>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div style={{border:'3px solid #1a3a5c', borderRadius:'12px', overflow:'hidden'}}>
+                    <div style={{background:'linear-gradient(135deg,#1a3a5c,#0d2137)', padding:'24px 40px 18px', textAlign:'center', borderBottom:'3px solid #c9a84c'}}>
+                      <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'16px'}}>
+                        <img src="/assets/images/aaulogo.png" alt="AAU" style={{width:'52px',height:'52px',objectFit:'contain',borderRadius:'50%',background:'#fff',padding:'4px'}} onError={e => e.target.style.display='none'} />
+                        <div>
+                          <div style={{color:'#fff',fontSize:'20px',fontWeight:'700',letterSpacing:'2px'}}>Addis Ababa University</div>
+                          <div style={{color:'#c9a84c',fontSize:'10px',letterSpacing:'3px',textTransform:'uppercase'}}>E-Learning Platform · Center of Excellence</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{background:'#fff', padding:'28px 40px', textAlign:'center'}}>
+                      <div style={{fontSize:'11px',letterSpacing:'4px',textTransform:'uppercase',color:'#888',marginBottom:'6px'}}>This is to certify that</div>
+                      <div style={{fontFamily:'Georgia,serif',fontSize:'32px',color:'#1a3a5c',fontStyle:'italic',marginBottom:'4px'}}>Certificate of Completion</div>
+                      <div style={{fontSize:'10px',letterSpacing:'3px',textTransform:'uppercase',color:'#888',marginBottom:'16px'}}>Academic Achievement Award</div>
+                      <div style={{display:'flex',alignItems:'center',gap:'10px',margin:'0 auto 16px',maxWidth:'320px'}}><div style={{flex:1,height:'1px',background:'#c9a84c'}}></div><div style={{width:'7px',height:'7px',background:'#c9a84c',transform:'rotate(45deg)'}}></div><div style={{flex:1,height:'1px',background:'#c9a84c'}}></div></div>
+                      <div style={{fontSize:'11px',letterSpacing:'2px',textTransform:'uppercase',color:'#888',marginBottom:'6px'}}>Proudly Presented To</div>
+                      <div style={{fontFamily:'Georgia,serif',fontSize:'34px',color:'#1a3a5c',borderBottom:'2px solid #c9a84c',display:'inline-block',paddingBottom:'4px',marginBottom:'14px'}}>{sName}</div>
+                      <div style={{fontSize:'13px',color:'#555',marginBottom:'10px',lineHeight:'1.7'}}>Has successfully completed all requirements and demonstrated outstanding performance in the course</div>
+                      <div style={{fontFamily:'Georgia,serif',fontSize:'18px',color:'#1a3a5c',fontWeight:'700',marginBottom:'18px'}}>{g.course?.title || 'Course'}</div>
+                      <div style={{display:'flex',justifyContent:'center',gap:'24px',marginBottom:'20px'}}>
+                        <div style={{textAlign:'center',background:'#f8f5ee',border:'1px solid #c9a84c',borderRadius:'8px',padding:'10px 22px'}}><div style={{fontSize:'9px',letterSpacing:'2px',textTransform:'uppercase',color:'#888',marginBottom:'4px'}}>Total Score</div><div style={{fontFamily:'Georgia,serif',fontSize:'26px',color:'#1a3a5c',fontWeight:'700'}}>{g.totalMark||0}</div><div style={{fontSize:'9px',color:'#888'}}>out of 100</div></div>
+                        <div style={{textAlign:'center',background:'#f8f5ee',border:'1px solid #c9a84c',borderRadius:'8px',padding:'10px 22px'}}><div style={{fontSize:'9px',letterSpacing:'2px',textTransform:'uppercase',color:'#888',marginBottom:'4px'}}>Final Grade</div><div style={{fontFamily:'Georgia,serif',fontSize:'26px',color:'#1a3a5c',fontWeight:'700'}}>{g.gradeLetter||'N/A'}</div><div style={{fontSize:'9px',color:'#888'}}>Letter Grade</div></div>
+                      </div>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',paddingTop:'14px',borderTop:'1px solid #eee'}}>
+                        <div style={{textAlign:'center',minWidth:'130px'}}><div style={{fontFamily:'Georgia,serif',fontStyle:'italic',fontSize:'16px',color:'#1a3a5c',marginBottom:'2px'}}>{g.instructor?.name||'Instructor'}</div><div style={{width:'130px',height:'1px',background:'#1a3a5c',margin:'0 auto 4px'}}></div><div style={{fontSize:'10px',fontWeight:'700',color:'#1a3a5c'}}>{g.instructor?.name||'Instructor'}</div><div style={{fontSize:'8px',color:'#888',letterSpacing:'1px',textTransform:'uppercase'}}>Course Instructor</div></div>
+                        <div style={{textAlign:'center'}}><div style={{width:'64px',height:'64px',borderRadius:'50%',border:'3px solid #c9a84c',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',margin:'0 auto 4px'}}><div style={{fontSize:'14px',color:'#c9a84c'}}>★</div><div style={{fontSize:'6px',letterSpacing:'1px',textTransform:'uppercase',color:'#c9a84c',fontWeight:'700',textAlign:'center',lineHeight:'1.4'}}>AAU<br/>CERTIFIED</div></div></div>
+                        <div style={{textAlign:'center',minWidth:'130px'}}><div style={{fontSize:'9px',letterSpacing:'2px',textTransform:'uppercase',color:'#888',marginBottom:'4px'}}>Date of Completion</div><div style={{fontSize:'11px',fontWeight:'700',color:'#1a3a5c',marginBottom:'6px'}}>{dStr}</div><div style={{width:'130px',height:'1px',background:'#1a3a5c',margin:'0 auto 4px'}}></div><div style={{fontSize:'10px',fontWeight:'700',color:'#1a3a5c'}}>Academic Registrar</div><div style={{fontSize:'8px',color:'#888',letterSpacing:'1px',textTransform:'uppercase'}}>Addis Ababa University</div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     );
   };
