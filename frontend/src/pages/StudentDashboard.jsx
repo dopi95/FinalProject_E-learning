@@ -57,6 +57,8 @@ const StudentDashboard = () => {
   const [assignmentsLoading, setAssignmentsLoading] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [showAssignmentDetail, setShowAssignmentDetail] = useState(false);
+  const [showFileViewer, setShowFileViewer] = useState(false);
+  const [fileViewerData, setFileViewerData] = useState({ url: '', fileName: '', type: '' });
   const [showSubmissionModal, setShowSubmissionModal] = useState(false);
   const [submissionFile, setSubmissionFile] = useState(null);
   const [activeAssignmentTab, setActiveAssignmentTab] = useState('pending');
@@ -142,6 +144,52 @@ const StudentDashboard = () => {
     } catch (error) {
       console.error('Remove image error:', error);
       showNotification('error', 'Remove Failed', error.response?.data?.message || 'Failed to remove image');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle assignment file view
+  const handleViewAssignmentFile = async (assignmentId, fileName, fileType) => {
+    try {
+      setLoading(true);
+      const response = await assignmentAPI.downloadAssignment(assignmentId);
+      const url = response.data.file.url;
+      let viewUrl = url, type = 'file';
+      if (fileType?.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf')) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'pdf'; }
+      else if (fileType?.includes('word') || fileName?.toLowerCase().match(/\.docx?$/)) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
+      else if (fileType?.includes('powerpoint') || fileName?.toLowerCase().match(/\.pptx?$/)) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
+      else if (fileType?.includes('image') || fileName?.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/)) { type = 'image'; }
+      else if (fileName?.toLowerCase().match(/\.(mp4|webm|mov|avi)$/)) { type = 'video'; }
+      else if (fileName?.toLowerCase().match(/\.(txt|csv|json|xml)$/)) { type = 'text'; }
+      else { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
+      setFileViewerData({ url: viewUrl, originalUrl: url, fileName, type });
+      setShowFileViewer(true);
+    } catch (error) {
+      showNotification('error', 'View Failed', error.message || 'Failed to open file');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle submission file view
+  const handleViewSubmissionFile = async (assignmentId, fileName, fileType) => {
+    try {
+      setLoading(true);
+      const response = await assignmentAPI.downloadStudentSubmission(assignmentId);
+      const url = response.data.file.url;
+      let viewUrl = url, type = 'file';
+      if (fileType?.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf')) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'pdf'; }
+      else if (fileType?.includes('word') || fileName?.toLowerCase().match(/\.docx?$/)) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
+      else if (fileType?.includes('powerpoint') || fileName?.toLowerCase().match(/\.pptx?$/)) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
+      else if (fileType?.includes('image') || fileName?.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/)) { type = 'image'; }
+      else if (fileName?.toLowerCase().match(/\.(mp4|webm|mov|avi)$/)) { type = 'video'; }
+      else if (fileName?.toLowerCase().match(/\.(txt|csv|json|xml)$/)) { type = 'text'; }
+      else { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
+      setFileViewerData({ url: viewUrl, originalUrl: url, fileName, type });
+      setShowFileViewer(true);
+    } catch (error) {
+      showNotification('error', 'View Failed', error.message || 'Failed to open file');
     } finally {
       setLoading(false);
     }
@@ -1994,17 +2042,22 @@ const renderPayments = () => (
                         )}
                         
                         {assignment.file && (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleDownloadAssignmentFile(assignment._id, assignment.file.fileName);
-                            }}
-                            className="bg-green-600 hover:bg-green-700 text-white py-2.5 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
-                            type="button"
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
+                          <>
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleViewAssignmentFile(assignment._id, assignment.file.fileName, assignment.file.fileType); }}
+                              className="bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+                              type="button" title="View File"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadAssignmentFile(assignment._id, assignment.file.fileName); }}
+                              className="bg-green-600 hover:bg-green-700 text-white py-2.5 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+                              type="button" title="Download File"
+                            >
+                              <Download className="h-4 w-4" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -2087,18 +2140,24 @@ const renderPayments = () => (
                           )}
                           
                           {assignment.file && (
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleDownloadAssignmentFile(assignment._id, assignment.file.fileName);
-                              }}
-                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                              type="button"
-                            >
-                              <Download className="h-4 w-4" />
-                              Download
-                            </button>
+                            <>
+                              <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleViewAssignmentFile(assignment._id, assignment.file.fileName, assignment.file.fileType); }}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                                type="button"
+                              >
+                                <Eye className="h-4 w-4" />
+                                View
+                              </button>
+                              <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadAssignmentFile(assignment._id, assignment.file.fileName); }}
+                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                                type="button"
+                              >
+                                <Download className="h-4 w-4" />
+                                Download
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -2165,18 +2224,25 @@ const renderPayments = () => (
                           Submitted: {new Date(selectedAssignment.submission.submittedAt).toLocaleString()}
                         </p>
                         {selectedAssignment.submission && selectedAssignment.submission.file && (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleDownloadSubmissionFile(selectedAssignment._id, selectedAssignment.submission.file.fileName);
-                            }}
-                            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm"
-                            type="button"
-                          >
-                            <Download className="h-4 w-4" />
-                            {selectedAssignment.submission.file.fileName}
-                          </button>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleViewSubmissionFile(selectedAssignment._id, selectedAssignment.submission.file.fileName, selectedAssignment.submission.file.fileType); }}
+                              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+                              type="button"
+                            >
+                              <Eye className="h-4 w-4" />
+                              View Submission
+                            </button>
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadSubmissionFile(selectedAssignment._id, selectedAssignment.submission.file.fileName); }}
+                              className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+                              type="button"
+                            >
+                              <Download className="h-4 w-4" />
+                              Download
+                            </button>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 self-center">{selectedAssignment.submission.file.fileName}</span>
+                          </div>
                         )}
                         {selectedAssignment.submission.grade !== undefined && (
                           <div className="mt-3">
@@ -2201,6 +2267,122 @@ const renderPayments = () => (
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+
+        {/* File Viewer Modal */}
+        {showFileViewer && (
+          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full h-full max-w-7xl max-h-[95vh] flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-2xl">
+                <div>
+                  <h3 className="text-lg font-bold text-white truncate max-w-xs sm:max-w-md">{fileViewerData.fileName}</h3>
+                  <p className="text-sm text-blue-100 mt-0.5">File Viewer</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => window.open(fileViewerData.originalUrl || fileViewerData.url, '_blank')}
+                    className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm"
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span className="hidden sm:inline">Open Tab</span>
+                  </button>
+                  <button
+                    onClick={() => setShowFileViewer(false)}
+                    className="text-white hover:text-gray-200 transition-colors p-1"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-gray-900 rounded-b-2xl">
+                {fileViewerData.type === 'pdf' || fileViewerData.type === 'office' ? (
+                  <iframe src={fileViewerData.url} className="w-full h-full border-0" title="Document Viewer" />
+                ) : fileViewerData.type === 'image' ? (
+                  <div className="w-full h-full flex items-center justify-center p-4">
+                    <img src={fileViewerData.url} alt={fileViewerData.fileName} className="max-w-full max-h-full object-contain rounded-lg" />
+                  </div>
+                ) : fileViewerData.type === 'video' ? (
+                  <div className="w-full h-full flex items-center justify-center p-4">
+                    <video src={fileViewerData.url} controls className="max-w-full max-h-full rounded-lg">Your browser does not support video.</video>
+                  </div>
+                ) : fileViewerData.type === 'text' ? (
+                  <iframe src={fileViewerData.url} className="w-full h-full border-0" title="Text Viewer" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center p-8">
+                    <div className="text-center">
+                      <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{fileViewerData.fileName}</h3>
+                      <p className="text-gray-500 dark:text-gray-400 mb-4">This file type cannot be previewed in the browser.</p>
+                      <button
+                        onClick={() => window.open(fileViewerData.originalUrl || fileViewerData.url, '_blank')}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
+                      >
+                        <Eye className="h-4 w-4" />
+                        Open in New Tab
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* File Viewer Modal */}
+        {showFileViewer && (
+          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full h-full max-w-7xl max-h-[95vh] flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-2xl">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-lg font-bold text-white truncate">{fileViewerData.fileName}</h3>
+                  <p className="text-sm text-blue-100 mt-0.5">File Viewer</p>
+                </div>
+                <div className="flex items-center gap-2 ml-4">
+                  <button
+                    onClick={() => window.open(fileViewerData.originalUrl || fileViewerData.url, '_blank')}
+                    className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm"
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span className="hidden sm:inline">New Tab</span>
+                  </button>
+                  <button onClick={() => setShowFileViewer(false)} className="text-white hover:text-gray-200 transition-colors p-1">
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-gray-900 rounded-b-2xl">
+                {fileViewerData.type === 'pdf' || fileViewerData.type === 'office' ? (
+                  <iframe src={fileViewerData.url} className="w-full h-full border-0" title="Document Viewer" />
+                ) : fileViewerData.type === 'image' ? (
+                  <div className="w-full h-full flex items-center justify-center p-4">
+                    <img src={fileViewerData.url} alt={fileViewerData.fileName} className="max-w-full max-h-full object-contain rounded-lg" />
+                  </div>
+                ) : fileViewerData.type === 'video' ? (
+                  <div className="w-full h-full flex items-center justify-center p-4">
+                    <video src={fileViewerData.url} controls className="max-w-full max-h-full rounded-lg">Your browser does not support video.</video>
+                  </div>
+                ) : fileViewerData.type === 'text' ? (
+                  <iframe src={fileViewerData.url} className="w-full h-full border-0" title="Text Viewer" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center p-8">
+                    <div className="text-center">
+                      <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{fileViewerData.fileName}</h3>
+                      <p className="text-gray-500 dark:text-gray-400 mb-4">This file type cannot be previewed. Click below to open it.</p>
+                      <button
+                        onClick={() => window.open(fileViewerData.originalUrl || fileViewerData.url, '_blank')}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
+                      >
+                        <Eye className="h-4 w-4" />
+                        Open in New Tab
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

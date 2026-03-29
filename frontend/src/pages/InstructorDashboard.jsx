@@ -1366,7 +1366,7 @@ const InstructorDashboard = () => {
                       </div>
                       {session.room && (
                         <>
-                          <span className="hidden sm:inline">Ã¢â‚¬Â¢</span>
+                          <span className="hidden sm:inline">•</span>
                           <div className="flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
                             <span>Room {session.room}</span>
@@ -1375,7 +1375,7 @@ const InstructorDashboard = () => {
                       )}
                       {session.link && (
                         <>
-                          <span className="hidden sm:inline">Ã¢â‚¬Â¢</span>
+                          <span className="hidden sm:inline">•</span>
                           <div className="flex items-center gap-1">
                             <Globe className="h-3 w-3" />
                             <span>Online</span>
@@ -2739,7 +2739,7 @@ const InstructorDashboard = () => {
                           <div className="text-xs text-gray-500">
                             {gradedCount} graded
                             {assignment.sentToStudents > 0 && (
-                              <span className="ml-2">Ã¢â‚¬Â¢ Sent to {assignment.sentToStudents} students</span>
+                              <span className="ml-2">• Sent to {assignment.sentToStudents} students</span>
                             )}
                           </div>
                         </td>
@@ -3215,7 +3215,7 @@ const InstructorDashboard = () => {
                     )}
                     {selectedAssignment.status === 'active' && (
                       <span className="text-sm text-green-600 dark:text-green-400 font-medium">
-                        Ã¢Å“â€œ Sent to Students
+                        ✓ Sent to Students
                       </span>
                     )}
                   </div>
@@ -3433,7 +3433,7 @@ const InstructorDashboard = () => {
               </span>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Mathematics Course</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{10 + quiz} Questions Ã¢â‚¬Â¢ {20 + quiz} min</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{10 + quiz} Questions • {20 + quiz} min</p>
             <div className="flex justify-between text-sm mb-4">
               <span className="text-gray-600 dark:text-gray-400">Attempts: {25 + quiz}</span>
               <span className="text-gray-600 dark:text-gray-400">Avg: {80 + quiz}%</span>
@@ -3983,7 +3983,7 @@ const InstructorDashboard = () => {
                     {selectedSessionForLink.course.title}
                   </p>
                   <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                    {selectedSessionForLink.day.charAt(0).toUpperCase() + selectedSessionForLink.day.slice(1)} Ã¢â‚¬Â¢ {formatTime(selectedSessionForLink.startTime)}
+                    {selectedSessionForLink.day.charAt(0).toUpperCase() + selectedSessionForLink.day.slice(1)} • {formatTime(selectedSessionForLink.startTime)}
                   </p>
                 </div>
                 
