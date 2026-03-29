@@ -1669,7 +1669,7 @@ const InstructorDashboard = () => {
                   <div className="flex items-start gap-3 mb-3">
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{course.title}</h3>
-                      {completedCourseIds.has(course._id) && <span className="px-2 py-0.5 bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 text-xs rounded-full font-medium">âœ“ Completed</span>}
+                      {completedCourseIds.has(course._id) && <span className="px-2 py-0.5 bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 text-xs rounded-full font-medium"><svg className="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Completed</span>}
                       <p className="text-xs text-gray-500 dark:text-gray-400">{course.category || 'General'}</p>
                     </div>
                   </div>
@@ -1744,7 +1744,7 @@ const InstructorDashboard = () => {
                         <td className="px-6 py-4 border-r border-gray-200 dark:border-gray-600">
                           <div className="flex items-center gap-2">
                               <span className="text-sm font-semibold text-gray-900 dark:text-white">{course.title}</span>
-                              {completedCourseIds.has(course._id) && <span className="px-2 py-0.5 bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 text-xs rounded-full font-medium">âœ“ Completed</span>}
+                              {completedCourseIds.has(course._id) && <span className="px-2 py-0.5 bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 text-xs rounded-full font-medium"><svg className="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Completed</span>}
                             </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">{course.category || 'General'}</div>
                         </td>
