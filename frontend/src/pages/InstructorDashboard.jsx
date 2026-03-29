@@ -4102,7 +4102,7 @@ const InstructorDashboard = () => {
                 >Deselect All</button>
                 <button
                   onClick={() => {
-                    setGradeFields(persistedGradeFields.length > 0 ? persistedGradeFields : [{ name: '', mark: '' }]);
+                    setGradeFields(getPersistedForStudent('bulk').length > 0 ? getPersistedForStudent('bulk') : [{ name: '', mark: '' }]);
                     setGradeLetter('');
                     setGradeAutoPopulated(false);
                     setShowBulkGradeModal(true);
