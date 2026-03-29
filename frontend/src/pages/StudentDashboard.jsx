@@ -2446,7 +2446,9 @@ const renderPayments = () => (
                           actionText,
                           canJoin,
                           session,
-                          link: session.link
+                          link: session.link,
+                          courseId: session.course?._id || session.course,
+                          day: session.day
                         });
                         setShowJoinModal(true);
                       }}
@@ -2585,7 +2587,9 @@ const renderPayments = () => (
                                                   actionText,
                                                   canJoin,
                                                   session,
-                                                  link: session.link
+                                                  link: session.link,
+                                                  courseId: session.course?._id || session.course,
+                                                  day: session.day
                                                 });
                                                 setShowJoinModal(true);
                                               }}
