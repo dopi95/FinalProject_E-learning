@@ -225,8 +225,8 @@ const PaymentPage = () => {
                       className="w-10 h-10 sm:w-12 sm:h-12 object-contain flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Commercial Bank of Ethiopia</h3>
-                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 break-words">Pay with CBE mobile banking</p>
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">CBE Birr</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 break-words">Pay with CBE Birr mobile wallet</p>
                     </div>
                     <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex-shrink-0 ${
                       selectedMethod === 'cbe' 
