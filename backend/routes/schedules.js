@@ -28,6 +28,13 @@ router.get('/', auth, async (req, res) => {
       const courseIds = instructorCourses.map(c => c._id);
       filter = course ? { course, course: { $in: courseIds } } : { course: { $in: courseIds } };
     }
+
+    // If student, only show schedules for courses they are enrolled in
+    if (req.user.role === 'student') {
+      const enrolledCourses = await Course.find({ students: req.user._id || req.user.id }).select('_id');
+      const enrolledIds = enrolledCourses.map(c => c._id);
+      filter = course ? { course: { $in: enrolledIds, $eq: course } } : { course: { $in: enrolledIds } };
+    }
     
     const schedules = await Schedule.find(filter)
       .populate({ path: 'course', select: 'title', strictPopulate: false })
