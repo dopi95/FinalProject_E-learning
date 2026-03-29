@@ -3831,6 +3831,7 @@ const renderPayments = () => (
                   <button
                     onClick={() => {
                       window.open(joinModalData.link, '_blank');
+                      try { attendanceAPI.join({ courseId: joinModalData.courseId, sessionDay: joinModalData.day }); } catch {}
                       setShowJoinModal(false);
                     }}
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
