@@ -109,6 +109,9 @@ app.use('/api/exams', require('./routes/exams'));
 // Admin Activities routes
 app.use('/api/admin', require('./routes/adminActivities'));
 
+// Attendance routes
+app.use('/api/attendance', require('./routes/attendance'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

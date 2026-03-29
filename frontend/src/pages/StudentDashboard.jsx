@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellRing, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star, Globe, Heart, Settings, MapPin, MessageCircle, Upload } from 'lucide-react';
-import { profileAPI, enrollmentAPI, paymentAPI, subscriptionAPI, notificationAPI, assignmentAPI } from '../services/api';
+import { profileAPI, enrollmentAPI, paymentAPI, subscriptionAPI, notificationAPI, assignmentAPI, attendanceAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import CourseMaterials from '../components/CourseMaterials';
 import ChatInterface from '../components/ChatInterface';
@@ -1400,7 +1400,9 @@ const StudentDashboard = () => {
                             actionText,
                             canJoin,
                             session,
-                            link: session.link
+                            link: session.link,
+                            courseId: session.course?._id || session.course,
+                            day: session.day
                           });
                           setShowJoinModal(true);
                         }}
@@ -3724,6 +3726,7 @@ const renderPayments = () => (
                   <button
                     onClick={() => {
                       window.open(joinModalData.link, '_blank', 'noopener,noreferrer');
+                      try { attendanceAPI.join({ courseId: joinModalData.courseId, sessionDay: joinModalData.day }); } catch {}
                       setShowJoinModal(false);
                     }}
                     className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-2"

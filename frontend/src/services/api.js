@@ -598,4 +598,10 @@ export const examAPI = {
   getSubmission: (id) => api.get(`/exams/${id}/submission`),
 };
 
+export const attendanceAPI = {
+  join: (data) => api.post('/attendance/join', data),
+  getCourseAttendance: (courseId) => api.get(`/attendance/course/${courseId}`),
+  getMyAttendance: (courseId) => api.get(`/attendance/my/${courseId}`),
+};
+
 export default api;

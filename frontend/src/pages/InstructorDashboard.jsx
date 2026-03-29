@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, BellRing, BellOff, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe, Heart, MapPin, Edit, MessageCircle, Plus, Download, Edit3, Trash2 } from 'lucide-react';
-import { profileAPI, courseAPI, instructorAPI, subscriptionAPI, notificationAPI, scheduleAPI, scheduleUpdateRequestAPI, materialAPI, assignmentAPI, examAPI } from '../services/api';
+import { profileAPI, courseAPI, instructorAPI, subscriptionAPI, notificationAPI, scheduleAPI, scheduleUpdateRequestAPI, materialAPI, assignmentAPI, examAPI, attendanceAPI } from '../services/api';
 import ExamManager from '../components/ExamManager';
 import PopupNotification from '../components/PopupNotification';
 import ChatInterface from '../components/ChatInterface';
@@ -27,6 +27,9 @@ const InstructorDashboard = () => {
   const [gradeAutoPopulated, setGradeAutoPopulated] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState(new Set());
   const [showBulkGradeModal, setShowBulkGradeModal] = useState(false);
+  const [analyticsCourseSel, setAnalyticsCourseSel] = useState('');
+  const [attendanceData, setAttendanceData] = useState([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [persistedGradeFields, setPersistedGradeFields] = useState(() => {
     try { return JSON.parse(localStorage.getItem('gradeFields') || '[]'); } catch { return []; }
   });
@@ -1083,7 +1086,13 @@ const InstructorDashboard = () => {
         setGradeFields(merged);
         setGradeAutoPopulated(fields.length > 0);
         const total = merged.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
-        setGradeLetter(getGradeLetter(total));
+        // Check attendance — auto NG if below 70%
+        const attRecord = attendanceData.find(a => a.student._id === selectedStudentForGrading._id || a.student._id?.toString() === selectedStudentForGrading._id?.toString());
+        if (attRecord && attRecord.percentage < 70) {
+          setGradeLetter('NG');
+        } else {
+          setGradeLetter(getGradeLetter(total));
+        }
       } else {
         const base = persistedGradeFields.length > 0 ? persistedGradeFields : [{ name: '', mark: '' }];
         setGradeFields(base);
@@ -4307,6 +4316,15 @@ const InstructorDashboard = () => {
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {instructorCourses.find(c => c._id === selectedCourseFilter)?.title || 'Course'}
                   </p>
+                  {(() => {
+                    const att = attendanceData.find(a => a.student._id === selectedStudentForGrading._id || a.student._id?.toString() === selectedStudentForGrading._id?.toString());
+                    if (!att) return null;
+                    return (
+                      <div className={`mt-1 px-2 py-1 rounded-lg text-xs font-medium inline-block ${att.percentage < 70 ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' : 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'}`}>
+                        Attendance: {att.percentage}% {att.percentage < 70 ? '— Auto NG' : ''}
+                      </div>
+                    );
+                  })()}
                 </div>
                 
                 <div className="space-y-4">
@@ -4430,6 +4448,7 @@ const InstructorDashboard = () => {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
                     >
                       <option value="">Select Grade</option>
+                      <option value="NG" style={{color:'red'}}>NG (Below 70% attendance)</option>
                       <option value="A+">A+ (91-100)</option>
                       <option value="A">A (85-90)</option>
                       <option value="A-">A- (80-84)</option>
@@ -4579,6 +4598,7 @@ const InstructorDashboard = () => {
                   <select value={gradeLetter} onChange={(e) => setGradeLetter(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm">
                     <option value="">Select Grade</option>
+                    <option value="NG" style={{color:'red'}}>NG (Below 70% attendance)</option>
                     <option value="A+">A+ (91-100)</option>
                     <option value="A">A (85-90)</option>
                     <option value="A-">A- (80-84)</option>
@@ -5093,28 +5113,208 @@ const InstructorDashboard = () => {
     <ExamManager courses={courses} showNotification={showNotification} />
   );
 
-  const renderAnalytics = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Analytics</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Course Performance</h3>
-          <div className="text-3xl font-bold text-blue-600 mb-2">85%</div>
-          <p className="text-gray-600 dark:text-gray-400">Average completion rate</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Student Engagement</h3>
-          <div className="text-3xl font-bold text-green-600 mb-2">92%</div>
-          <p className="text-gray-600 dark:text-gray-400">Active participation</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Assignment Scores</h3>
-          <div className="text-3xl font-bold text-purple-600 mb-2">78%</div>
-          <p className="text-gray-600 dark:text-gray-400">Average score</p>
-        </div>
+  const fetchAttendance = async (courseId) => {
+    if (!courseId) return;
+    try {
+      setAttendanceLoading(true);
+      // Get attendance records
+      let attRecords = [];
+      try {
+        const res = await attendanceAPI.getCourseAttendance(courseId);
+        attRecords = res.data.attendance || [];
+      } catch {}
+      // Get all enrolled students for this course from the students list
+      const courseStudents = students.filter(s =>
+        s.courses && s.courses.some(sc => sc._id?.toString() === courseId || sc._id === courseId)
+      );
+      // Merge: all students get a record, 0% if no attendance
+      const totalHeld = attRecords.length > 0 ? (attRecords[0]?.total || 1) : 1;
+      const merged = courseStudents.map(s => {
+        const att = attRecords.find(a =>
+          a.student._id?.toString() === s._id?.toString() || a.student._id === s._id
+        );
+        return att
+          ? att
+          : { student: { _id: s._id, name: s.name, email: s.email, systemId: s.systemId, profileImage: s.profileImage }, attended: 0, total: totalHeld, percentage: 0 };
+      });
+      setAttendanceData(merged);
+    } catch {
+      setAttendanceData([]);
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+
+  const renderAnalytics = () => {
+    const selCourse = courses.find(c => c._id === analyticsCourseSel);
+    // All enrolled students for selected course (from courses state which has students array)
+    const enrolledStudents = selCourse?.students || [];
+    return (
+    <div className="space-y-4 lg:space-y-6">
+      <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Analytics</h2>
+
+      {/* Course selector */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Course to View Attendance</label>
+        <select
+          value={analyticsCourseSel}
+          onChange={(e) => { setAnalyticsCourseSel(e.target.value); fetchAttendance(e.target.value); }}
+          className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-700 dark:text-white text-sm"
+        >
+          <option value="">-- Select a course --</option>
+          {courses.map(course => (
+            <option key={course._id} value={course._id}>{course.title} ({course.students?.length || 0} students)</option>
+          ))}
+        </select>
       </div>
+
+      {!analyticsCourseSel ? (
+        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+          <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500 dark:text-gray-400">Select a course to view student attendance</p>
+        </div>
+      ) : attendanceLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : attendanceData.length === 0 && enrolledStudents.length === 0 ? (
+        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+          <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500 dark:text-gray-400">No students enrolled in this course yet.</p>
+        </div>
+      ) : (
+        <>
+          {/* Summary cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+            <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow text-center">
+              <p className="text-xl lg:text-2xl font-bold text-blue-600">{attendanceData.length}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Students</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow text-center">
+              <p className="text-xl lg:text-2xl font-bold text-green-600">
+                {attendanceData.length > 0 ? Math.round(attendanceData.reduce((s, a) => s + a.percentage, 0) / attendanceData.length) : 0}%
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Avg Attendance</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow text-center">
+              <p className="text-xl lg:text-2xl font-bold text-purple-600">
+                {attendanceData.filter(a => a.percentage >= 70).length}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Above 70%</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-3 lg:p-4 rounded-xl shadow text-center">
+              <p className="text-xl lg:text-2xl font-bold text-red-600">
+                {attendanceData.filter(a => a.percentage < 70).length}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Below 70% (NG)</p>
+            </div>
+          </div>
+
+          {/* Attendance table */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+            <div className="p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div>
+                <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white">Student Attendance</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Below 70% = NG grade automatically</p>
+              </div>
+              <span className="text-sm text-gray-500 dark:text-gray-400">{attendanceData.length} students</span>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="lg:hidden divide-y divide-gray-200 dark:divide-gray-700">
+              {attendanceData.sort((a, b) => a.percentage - b.percentage).map((record) => {
+                const isNG = record.percentage < 70;
+                return (
+                  <div key={record.student._id} className="p-4 flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {record.student.profileImage
+                        ? <img src={record.student.profileImage} alt={record.student.name} className="w-full h-full object-cover" />
+                        : <span className="text-sm font-bold text-gray-600 dark:text-gray-300">{record.student.name?.charAt(0)?.toUpperCase()}</span>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{record.student.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{record.student.systemId || record.student.email}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+                          <div className={`h-1.5 rounded-full ${isNG ? 'bg-red-500' : record.percentage >= 85 ? 'bg-green-500' : 'bg-yellow-500'}`} style={{ width: `${record.percentage}%` }} />
+                        </div>
+                        <span className={`text-xs font-bold ${isNG ? 'text-red-600' : record.percentage >= 85 ? 'text-green-600' : 'text-yellow-600'}`}>{record.percentage}%</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{record.attended}/{record.total}</span>
+                      {isNG
+                        ? <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-xs font-bold rounded-full">NG</span>
+                        : record.percentage >= 85
+                          ? <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs rounded-full">Good</span>
+                          : <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 text-xs rounded-full">Warning</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">#</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Student</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Sessions Attended</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Attendance %</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {attendanceData.sort((a, b) => a.percentage - b.percentage).map((record, idx) => {
+                    const isNG = record.percentage < 70;
+                    return (
+                      <tr key={record.student._id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${isNG ? 'bg-red-50/30 dark:bg-red-900/5' : ''}`}>
+                        <td className="px-6 py-3 text-sm text-gray-500 dark:text-gray-400">{idx + 1}</td>
+                        <td className="px-6 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+                              {record.student.profileImage
+                                ? <img src={record.student.profileImage} alt={record.student.name} className="w-full h-full object-cover" />
+                                : <span className="text-sm font-bold text-gray-600 dark:text-gray-300">{record.student.name?.charAt(0)?.toUpperCase()}</span>}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white">{record.student.name}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{record.student.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-3 text-sm text-gray-700 dark:text-gray-300">{record.student.systemId || '—'}</td>
+                        <td className="px-6 py-3 text-sm text-gray-700 dark:text-gray-300 font-medium">{record.attended} / {record.total}</td>
+                        <td className="px-6 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-28 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                              <div className={`h-2 rounded-full transition-all ${isNG ? 'bg-red-500' : record.percentage >= 85 ? 'bg-green-500' : 'bg-yellow-500'}`} style={{ width: `${record.percentage}%` }} />
+                            </div>
+                            <span className={`text-sm font-bold ${isNG ? 'text-red-600' : record.percentage >= 85 ? 'text-green-600' : 'text-yellow-600'}`}>{record.percentage}%</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-3">
+                          {isNG
+                            ? <span className="px-2 py-1 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-xs font-bold rounded-full">NG</span>
+                            : record.percentage >= 85
+                              ? <span className="px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-medium rounded-full">Good</span>
+                              : <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 text-xs font-medium rounded-full">Warning</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
-  );
+    );
+  };
 
   const renderSendNotification = () => (
     <div className="space-y-6">
