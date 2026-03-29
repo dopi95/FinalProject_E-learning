@@ -194,6 +194,45 @@ const StudentDashboard = () => {
       setLoading(false);
     }
   };
+      let viewUrl = url, type = 'file';
+      if (fileType?.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf')) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'pdf'; }
+      else if (fileType?.includes('word') || fileName?.toLowerCase().match(/\.docx?$/)) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
+      else if (fileType?.includes('powerpoint') || fileName?.toLowerCase().match(/\.pptx?$/)) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
+      else if (fileType?.includes('image') || fileName?.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/)) { type = 'image'; }
+      else if (fileName?.toLowerCase().match(/\.(mp4|webm|mov|avi)$/)) { type = 'video'; }
+      else if (fileName?.toLowerCase().match(/\.(txt|csv|json|xml)$/)) { type = 'text'; }
+      else { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
+      setFileViewerData({ url: viewUrl, originalUrl: url, fileName, type });
+      setShowFileViewer(true);
+    } catch (error) {
+      showNotification('error', 'View Failed', error.message || 'Failed to open file');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle submission file view
+  const handleViewSubmissionFile = async (assignmentId, fileName, fileType) => {
+    try {
+      setLoading(true);
+      const response = await assignmentAPI.downloadStudentSubmission(assignmentId);
+      const url = response.data.file.url;
+      let viewUrl = url, type = 'file';
+      if (fileType?.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf')) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'pdf'; }
+      else if (fileType?.includes('word') || fileName?.toLowerCase().match(/\.docx?$/)) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
+      else if (fileType?.includes('powerpoint') || fileName?.toLowerCase().match(/\.pptx?$/)) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
+      else if (fileType?.includes('image') || fileName?.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/)) { type = 'image'; }
+      else if (fileName?.toLowerCase().match(/\.(mp4|webm|mov|avi)$/)) { type = 'video'; }
+      else if (fileName?.toLowerCase().match(/\.(txt|csv|json|xml)$/)) { type = 'text'; }
+      else { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
+      setFileViewerData({ url: viewUrl, originalUrl: url, fileName, type });
+      setShowFileViewer(true);
+    } catch (error) {
+      showNotification('error', 'View Failed', error.message || 'Failed to open file');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Play notification sound
   // Handle file download
@@ -249,38 +288,8 @@ const StudentDashboard = () => {
   const handleDownloadAssignmentFile = async (assignmentId, fileName) => {
     try {
       setLoading(true);
-      
-      // Get file info from backend
-      const response = await assignmentAPI.downloadAssignment(assignmentId);
-      const fileData = response.data.file;
-      
-      // Use the working download pattern
-      const token = localStorage.getItem('token');
-      const downloadResponse = await fetch(fileData.url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!downloadResponse.ok) {
-        throw new Error(`Failed to download file: ${downloadResponse.status}`);
-      }
-      
-      // Get the raw array buffer to preserve file integrity
-      const arrayBuffer = await downloadResponse.arrayBuffer();
-      
-      if (arrayBuffer.byteLength === 0) {
-        throw new Error('File is empty');
-      }
-      
-      // Get content type from response headers or file data
-      const contentType = downloadResponse.headers.get('content-type') || fileData.fileType || 'application/octet-stream';
-      
-      // Create blob with proper content type from array buffer
-      const blob = new Blob([arrayBuffer], { type: contentType });
-      
-      // Force download
+      const response = await assignmentAPI.downloadAssignmentBlob(assignmentId);
+      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -289,7 +298,6 @@ const StudentDashboard = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
       showNotification('success', 'Downloaded', `${fileName} downloaded successfully`);
     } catch (error) {
       console.error('Download error:', error);
@@ -303,38 +311,8 @@ const StudentDashboard = () => {
   const handleDownloadSubmissionFile = async (assignmentId, fileName) => {
     try {
       setLoading(true);
-      
-      // Get file info from backend
-      const response = await assignmentAPI.downloadStudentSubmission(assignmentId);
-      const fileData = response.data.file;
-      
-      // Use the working download pattern
-      const token = localStorage.getItem('token');
-      const downloadResponse = await fetch(fileData.url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!downloadResponse.ok) {
-        throw new Error(`Failed to download file: ${downloadResponse.status}`);
-      }
-      
-      // Get the raw array buffer to preserve file integrity
-      const arrayBuffer = await downloadResponse.arrayBuffer();
-      
-      if (arrayBuffer.byteLength === 0) {
-        throw new Error('File is empty');
-      }
-      
-      // Get content type from response headers or file data
-      const contentType = downloadResponse.headers.get('content-type') || fileData.fileType || 'application/octet-stream';
-      
-      // Create blob with proper content type from array buffer
-      const blob = new Blob([arrayBuffer], { type: contentType });
-      
-      // Force download
+      const response = await assignmentAPI.downloadStudentSubmissionBlob(assignmentId);
+      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -343,7 +321,6 @@ const StudentDashboard = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
       showNotification('success', 'Downloaded', `${fileName} downloaded successfully`);
     } catch (error) {
       console.error('Download error:', error);

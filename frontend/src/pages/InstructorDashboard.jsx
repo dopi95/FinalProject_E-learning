@@ -106,7 +106,7 @@ const InstructorDashboard = () => {
   const [gradingSubmission, setGradingSubmission] = useState(null);
   const [showAssignmentDetail, setShowAssignmentDetail] = useState(false);
   const [showFileViewer, setShowFileViewer] = useState(false);
-  const [fileViewerData, setFileViewerData] = useState({ url: '', fileName: '', type: '' });
+  const [fileViewerData, setFileViewerData] = useState({ url: '', fileName: '', type: '', assignmentId: null, submissionId: null });
   const [showMaterialFileViewer, setShowMaterialFileViewer] = useState(false);
   const [materialFileViewerData, setMaterialFileViewerData] = useState({ url: '', fileName: '', type: '' });
 
@@ -257,46 +257,38 @@ const InstructorDashboard = () => {
     }
   };
 
-  // Handle file download
+  // Handle file download - uses assignmentId/submissionId to go through backend (avoids 401 on Cloudinary)
   const handleDownloadFile = async (fileUrl, fileName, assignmentId = null, submissionId = null) => {
     try {
       setLoading(true);
-      
-      const token = localStorage.getItem('token');
-      const response = await fetch(fileUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to download file: ${response.status}`);
+      let response;
+      if (assignmentId && submissionId) {
+        // Instructor downloading a student submission
+        response = await assignmentAPI.downloadSubmissionBlob(assignmentId, submissionId);
+      } else if (assignmentId) {
+        // Downloading the assignment file itself
+        response = await assignmentAPI.downloadAssignmentBlob(assignmentId);
+      } else {
+        // Fallback: direct fetch with auth token (for non-assignment files)
+        const token = localStorage.getItem('token');
+        const res = await fetch(fileUrl, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) throw new Error(`Failed to download file: ${res.status}`);
+        const arrayBuffer = await res.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: res.headers.get('content-type') || 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fileName;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a); URL.revokeObjectURL(url);
+        showNotification('success', 'Downloaded', `${fileName} downloaded successfully`);
+        return;
       }
-      
-      // Get the raw array buffer to preserve file integrity
-      const arrayBuffer = await response.arrayBuffer();
-      
-      if (arrayBuffer.byteLength === 0) {
-        throw new Error('File is empty');
-      }
-      
-      // Get content type from response headers
-      const contentType = response.headers.get('content-type') || 'application/octet-stream';
-      
-      // Create blob with proper content type from array buffer
-      const blob = new Blob([arrayBuffer], { type: contentType });
-      
-      // Force download
+      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
+      a.href = url; a.download = fileName;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
       showNotification('success', 'Downloaded', `${fileName} downloaded successfully`);
     } catch (error) {
       console.error('Download error:', error);
@@ -359,7 +351,7 @@ const InstructorDashboard = () => {
   };
 
   // Handle file viewing for assignments
-  const handleViewFile = (fileUrl, fileName, fileType) => {
+  const handleViewFile = (fileUrl, fileName, fileType, assignmentId = null, submissionId = null) => {
     let viewUrl = fileUrl;
     let type = 'file';
     
@@ -400,9 +392,11 @@ const InstructorDashboard = () => {
     
     setFileViewerData({
       url: viewUrl,
-      originalUrl: fileUrl, // Store original URL for download
+      originalUrl: fileUrl,
       fileName: fileName,
-      type: type
+      type: type,
+      assignmentId,
+      submissionId,
     });
     setShowFileViewer(true);
   };
@@ -2968,8 +2962,10 @@ const InstructorDashboard = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleDownloadFile(
-                    fileViewerData.originalUrl || fileViewerData.url, 
-                    fileViewerData.fileName
+                    fileViewerData.originalUrl || fileViewerData.url,
+                    fileViewerData.fileName,
+                    fileViewerData.assignmentId,
+                    fileViewerData.submissionId
                   )}
                   className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition-colors flex items-center gap-2"
                 >
@@ -3169,7 +3165,8 @@ const InstructorDashboard = () => {
                           handleViewFile(
                             selectedAssignment.file.fileUrl,
                             selectedAssignment.file.fileName,
-                            selectedAssignment.file.fileType
+                            selectedAssignment.file.fileType,
+                            selectedAssignment._id
                           );
                           setShowAssignmentDetail(false);
                         }}
@@ -3273,7 +3270,9 @@ const InstructorDashboard = () => {
                                 onClick={() => handleViewFile(
                                   submission.file.fileUrl, 
                                   submission.file.fileName, 
-                                  submission.file.fileType
+                                  submission.file.fileType,
+                                  selectedAssignment._id,
+                                  submission._id
                                 )}
                                 className="inline-flex items-center gap-2 text-green-600 hover:text-green-700 text-sm bg-green-50 hover:bg-green-100 px-3 py-1 rounded-lg transition-colors"
                               >

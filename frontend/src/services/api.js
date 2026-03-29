@@ -565,17 +565,29 @@ export const assignmentAPI = {
   gradeSubmission: (assignmentId, submissionId, gradeData) => 
     api.put(`/assignments/${assignmentId}/grade/${submissionId}`, gradeData),
   
-  // Download submission file (instructor)
+  // Download submission file (instructor) - returns blob directly
   downloadSubmission: (assignmentId, submissionId) => 
     api.get(`/assignments/${assignmentId}/download/${submissionId}`),
   
-  // Download assignment file (student)
+  // Download assignment file as blob (student)
   downloadAssignment: (assignmentId) => 
     api.get(`/assignments/download/${assignmentId}`),
   
   // Download student's own submission file
   downloadStudentSubmission: (assignmentId) => 
     api.get(`/assignments/download-submission/${assignmentId}`),
+
+  // Download assignment file as blob directly from backend
+  downloadAssignmentBlob: (assignmentId) =>
+    api.get(`/assignments/download/${assignmentId}`, { responseType: 'blob' }),
+
+  // Download submission blob directly from backend (instructor)
+  downloadSubmissionBlob: (assignmentId, submissionId) =>
+    api.get(`/assignments/${assignmentId}/download/${submissionId}`, { responseType: 'blob' }),
+
+  // Download student's own submission blob
+  downloadStudentSubmissionBlob: (assignmentId) =>
+    api.get(`/assignments/download-submission/${assignmentId}`, { responseType: 'blob' }),
 };
 
 // Admin Activity API functions
