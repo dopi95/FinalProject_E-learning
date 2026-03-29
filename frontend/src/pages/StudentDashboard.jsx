@@ -1405,7 +1405,8 @@ const StudentDashboard = () => {
                             session,
                             link: session.link,
                             courseId: session.course?._id || session.course,
-                            day: session.day
+                            day: session.day,
+                          startTime: session.startTime
                           });
                           setShowJoinModal(true);
                         }}
@@ -2451,7 +2452,8 @@ const renderPayments = () => (
                           session,
                           link: session.link,
                           courseId: session.course?._id || session.course,
-                          day: session.day
+                          day: session.day,
+                          startTime: session.startTime
                         });
                         setShowJoinModal(true);
                       }}
@@ -2592,7 +2594,8 @@ const renderPayments = () => (
                                                   session,
                                                   link: session.link,
                                                   courseId: session.course?._id || session.course,
-                                                  day: session.day
+                                                  day: session.day,
+                                                  startTime: session.startTime
                                                 });
                                                 setShowJoinModal(true);
                                               }}
@@ -2689,7 +2692,10 @@ const renderPayments = () => (
                                           actionText,
                                           canJoin,
                                           session,
-                                          link: session.link
+                                          link: session.link,
+                                          courseId: session.course?._id || session.course,
+                                          day: session.day,
+                                          startTime: session.startTime
                                         });
                                         setShowJoinModal(true);
                                       }}
@@ -3823,7 +3829,7 @@ const renderPayments = () => (
                   <button
                     onClick={() => {
                       window.open(joinModalData.link, '_blank', 'noopener,noreferrer');
-                      try { attendanceAPI.join({ courseId: joinModalData.courseId, sessionDay: joinModalData.day }); } catch {}
+                      try { attendanceAPI.join({ courseId: joinModalData.courseId, sessionDay: joinModalData.day, sessionStartTime: joinModalData.startTime }); } catch {}
                       setShowJoinModal(false);
                     }}
                     className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-2"
@@ -3928,7 +3934,7 @@ const renderPayments = () => (
                   <button
                     onClick={() => {
                       window.open(joinModalData.link, '_blank');
-                      try { attendanceAPI.join({ courseId: joinModalData.courseId, sessionDay: joinModalData.day }); } catch {}
+                      try { attendanceAPI.join({ courseId: joinModalData.courseId, sessionDay: joinModalData.day, sessionStartTime: joinModalData.startTime }); } catch {}
                       setShowJoinModal(false);
                     }}
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
