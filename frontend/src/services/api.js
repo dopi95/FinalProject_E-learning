@@ -604,4 +604,11 @@ export const attendanceAPI = {
   getMyAttendance: (courseId) => api.get(`/attendance/my/${courseId}`),
 };
 
+export const gradeAPI = {
+  submitGrade: (data) => api.post('/grades', data),
+  submitBulkGrade: (data) => api.post('/grades/bulk', data),
+  getMyGrades: () => api.get('/grades/my'),
+  getCourseGrades: (courseId) => api.get(`/grades/course/${courseId}`),
+};
+
 export default api;

@@ -205,7 +205,6 @@ router.post('/send', auth, async (req, res) => {
 router.get('/my-notifications', auth, async (req, res) => {
   try {
     const userId = req.user._id;
-    console.log('Fetching notifications for user:', userId);
 
     // Get notifications with population
     const notifications = await Notification.find({
@@ -216,8 +215,6 @@ router.get('/my-notifications', auth, async (req, res) => {
     .sort({ createdAt: -1 })
     .limit(20)
     .lean();
-
-    console.log('Found notifications:', notifications.length);
 
     // Transform notifications with full info
     const userNotifications = notifications.map(notification => {
@@ -251,8 +248,6 @@ router.get('/my-notifications', auth, async (req, res) => {
       );
       return userRecipient && !userRecipient.read;
     }).length;
-
-    console.log('Unread count:', unreadCount);
 
     res.json({
       notifications: userNotifications,

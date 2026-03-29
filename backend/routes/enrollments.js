@@ -9,7 +9,7 @@ router.get('/my-courses', auth, async (req, res) => {
   try {
     const enrollments = await Enrollment.find({ 
       user: req.user.id,
-      status: 'active'
+      status: { $in: ['active', 'completed'] }
     })
     .populate({
       path: 'course',

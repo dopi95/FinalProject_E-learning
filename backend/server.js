@@ -112,6 +112,9 @@ app.use('/api/admin', require('./routes/adminActivities'));
 // Attendance routes
 app.use('/api/attendance', require('./routes/attendance'));
 
+// Grades routes
+app.use('/api/grades', require('./routes/grades'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

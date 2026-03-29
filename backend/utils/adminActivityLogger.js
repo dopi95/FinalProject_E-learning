@@ -2,16 +2,12 @@ const AdminActivity = require('../models/AdminActivity');
 
 const logAdminActivity = async (adminId, action, description, targetType = null, targetId = null, metadata = {}) => {
   try {
-    await AdminActivity.create({
-      admin: adminId,
-      action,
-      description,
-      targetType,
-      targetId,
-      metadata
-    });
+    const data = { admin: adminId, action, description, metadata };
+    if (targetType) data.targetType = targetType;
+    if (targetId) data.targetId = targetId;
+    await AdminActivity.create(data);
   } catch (error) {
-    console.error('Error logging admin activity:', error);
+    // silently ignore logging errors
   }
 };
 

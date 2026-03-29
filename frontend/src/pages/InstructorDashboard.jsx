@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, BellRing, BellOff, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe, Heart, MapPin, Edit, MessageCircle, Plus, Download, Edit3, Trash2 } from 'lucide-react';
-import { profileAPI, courseAPI, instructorAPI, subscriptionAPI, notificationAPI, scheduleAPI, scheduleUpdateRequestAPI, materialAPI, assignmentAPI, examAPI, attendanceAPI } from '../services/api';
+import { profileAPI, courseAPI, instructorAPI, subscriptionAPI, notificationAPI, scheduleAPI, scheduleUpdateRequestAPI, materialAPI, assignmentAPI, examAPI, attendanceAPI, gradeAPI } from '../services/api';
 import ExamManager from '../components/ExamManager';
 import PopupNotification from '../components/PopupNotification';
 import ChatInterface from '../components/ChatInterface';
@@ -26,6 +26,8 @@ const InstructorDashboard = () => {
   const [gradeLetter, setGradeLetter] = useState('');
   const [gradeAutoPopulated, setGradeAutoPopulated] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState(new Set());
+  const [courseGrades, setCourseGrades] = useState({});
+  const [allCourseGrades, setAllCourseGrades] = useState({});
   const [showBulkGradeModal, setShowBulkGradeModal] = useState(false);
   const [analyticsCourseSel, setAnalyticsCourseSel] = useState('');
   const [attendanceData, setAttendanceData] = useState([]);
@@ -207,17 +209,17 @@ const InstructorDashboard = () => {
     const todayName = dayNames[today];
     
     const todaySessions = [];
-    schedules.forEach(schedule => {
-      schedule.sessions.forEach(session => {
-        if (session.day === todayName) {
-          todaySessions.push({
-            ...session,
-            course: schedule.course
-          });
-        }
-      });
-    });
-    
+     schedules.forEach(schedule => {
+       if (completedCourseIds.has(schedule.course?._id || schedule.course)) return;
+       schedule.sessions.forEach(session => {
+         if (session.day === todayName) {
+           todaySessions.push({
+             ...session,
+             course: schedule.course
+           });
+         }
+       });
+     });
     return todaySessions.sort((a, b) => a.startTime.localeCompare(b.startTime));
   };
 
@@ -712,6 +714,17 @@ const InstructorDashboard = () => {
       
       setStudents(studentsData);
       setInstructorCourses(coursesData);
+        // Fetch grades for all courses to compute completed status
+        const gradeMap = {};
+        await Promise.all((coursesData || []).map(async (course) => {
+          try {
+            const r = await gradeAPI.getCourseGrades(course._id);
+            const m = {};
+            (r.data.grades || []).forEach(g => { m[String(g.student?._id || g.student)] = g; });
+            gradeMap[course._id] = m;
+          } catch {}
+        }));
+        setAllCourseGrades(gradeMap);
       
       // Calculate gender statistics
       const genderCount = studentsData.reduce((acc, student) => {
@@ -733,6 +746,18 @@ const InstructorDashboard = () => {
 
   useEffect(() => {
     fetchInstructorStudents();
+  }, [selectedCourseFilter]);
+
+  // Fetch submitted grades for selected course to show Submitted badge
+  useEffect(() => {
+    if (!selectedCourseFilter || selectedCourseFilter === 'all') { setCourseGrades({}); return; }
+    gradeAPI.getCourseGrades(selectedCourseFilter)
+      .then(res => {
+        const map = {};
+        (res.data.grades || []).forEach(g => { map[String(g.student?._id || g.student)] = g; });
+        setCourseGrades(map);
+      })
+      .catch(() => setCourseGrades({}));
   }, [selectedCourseFilter]);
 
   const filteredStudents = students.filter(student => {
@@ -1086,7 +1111,7 @@ const InstructorDashboard = () => {
         setGradeFields(merged);
         setGradeAutoPopulated(fields.length > 0);
         const total = merged.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
-        // Check attendance — auto NG if below 70%
+        // Check attendance Ã¢â‚¬â€ auto NG if below 70%
         const attRecord = attendanceData.find(a => a.student._id === selectedStudentForGrading._id || a.student._id?.toString() === selectedStudentForGrading._id?.toString());
         if (attRecord && attRecord.percentage < 70) {
           setGradeLetter('NG');
@@ -1239,7 +1264,7 @@ const InstructorDashboard = () => {
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">My Courses</p>
               <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{courses?.length || 0}</p>
-              <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Active courses</p>
+              <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Active / {completedCourseIds.size} Completed</p>
             </div>
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl">
               <BookOpen className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
@@ -1341,7 +1366,7 @@ const InstructorDashboard = () => {
                       </div>
                       {session.room && (
                         <>
-                          <span className="hidden sm:inline">•</span>
+                          <span className="hidden sm:inline">Ã¢â‚¬Â¢</span>
                           <div className="flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
                             <span>Room {session.room}</span>
@@ -1350,7 +1375,7 @@ const InstructorDashboard = () => {
                       )}
                       {session.link && (
                         <>
-                          <span className="hidden sm:inline">•</span>
+                          <span className="hidden sm:inline">Ã¢â‚¬Â¢</span>
                           <div className="flex items-center gap-1">
                             <Globe className="h-3 w-3" />
                             <span>Online</span>
@@ -1593,6 +1618,16 @@ const InstructorDashboard = () => {
     </div>
   );
 
+  // Compute which courses are fully graded (all enrolled students have grades)
+  const completedCourseIds = new Set(
+    (courses || []).filter(course => {
+      const enrolled = course.students || [];
+      if (enrolled.length === 0) return false;
+      const grades = allCourseGrades[course._id] || {};
+      return enrolled.every(sid => grades[String(sid._id || sid)]);
+    }).map(c => c._id)
+  );
+
   const renderCourses = () => {
     const sortedCourses = sortByLikes 
       ? [...(courses || [])].sort((a, b) => (b.stars?.length || 0) - (a.stars?.length || 0))
@@ -1634,6 +1669,7 @@ const InstructorDashboard = () => {
                   <div className="flex items-start gap-3 mb-3">
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{course.title}</h3>
+                      {completedCourseIds.has(course._id) && <span className="px-2 py-0.5 bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 text-xs rounded-full font-medium">âœ“ Completed</span>}
                       <p className="text-xs text-gray-500 dark:text-gray-400">{course.category || 'General'}</p>
                     </div>
                   </div>
@@ -1706,7 +1742,10 @@ const InstructorDashboard = () => {
                         index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-750'
                       }`}>
                         <td className="px-6 py-4 border-r border-gray-200 dark:border-gray-600">
-                          <div className="text-sm font-semibold text-gray-900 dark:text-white">{course.title}</div>
+                          <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold text-gray-900 dark:text-white">{course.title}</span>
+                              {completedCourseIds.has(course._id) && <span className="px-2 py-0.5 bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 text-xs rounded-full font-medium">âœ“ Completed</span>}
+                            </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">{course.category || 'General'}</div>
                         </td>
                         <td className="px-6 py-4 border-r border-gray-200 dark:border-gray-600">
@@ -2700,7 +2739,7 @@ const InstructorDashboard = () => {
                           <div className="text-xs text-gray-500">
                             {gradedCount} graded
                             {assignment.sentToStudents > 0 && (
-                              <span className="ml-2">• Sent to {assignment.sentToStudents} students</span>
+                              <span className="ml-2">Ã¢â‚¬Â¢ Sent to {assignment.sentToStudents} students</span>
                             )}
                           </div>
                         </td>
@@ -3176,7 +3215,7 @@ const InstructorDashboard = () => {
                     )}
                     {selectedAssignment.status === 'active' && (
                       <span className="text-sm text-green-600 dark:text-green-400 font-medium">
-                        ✓ Sent to Students
+                        Ã¢Å“â€œ Sent to Students
                       </span>
                     )}
                   </div>
@@ -3394,7 +3433,7 @@ const InstructorDashboard = () => {
               </span>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Mathematics Course</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{10 + quiz} Questions • {20 + quiz} min</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{10 + quiz} Questions Ã¢â‚¬Â¢ {20 + quiz} min</p>
             <div className="flex justify-between text-sm mb-4">
               <span className="text-gray-600 dark:text-gray-400">Attempts: {25 + quiz}</span>
               <span className="text-gray-600 dark:text-gray-400">Avg: {80 + quiz}%</span>
@@ -3509,8 +3548,8 @@ const InstructorDashboard = () => {
                   <div>
                     <h4 className="font-semibold text-sm lg:text-base">{session.course?.title}</h4>
                     <div className="flex items-center gap-4 text-xs lg:text-sm text-white/80 mt-1">
-                      <span>🕐 {formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
-                      {session.room && <span>📍 Room: {session.room}</span>}
+                      <span>Ã°Å¸â€¢Â {formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
+                      {session.room && <span>Ã°Å¸â€œÂ Room: {session.room}</span>}
                     </div>
                   </div>
                   {session.link && (
@@ -3542,7 +3581,7 @@ const InstructorDashboard = () => {
         </div>
       ) : (
         <div className="space-y-4 lg:space-y-6">
-          {(courses || []).map((course) => {
+          {(courses || []).filter(course => !completedCourseIds.has(course._id)).map((course) => {
             const courseSchedules = schedules.filter(s => s.course?._id === course._id);
             const hasSchedule = courseSchedules.length > 0;
             
@@ -3643,7 +3682,7 @@ const InstructorDashboard = () => {
                                             }}
                                             className="px-1 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
                                           >
-                                            ×
+                                            Ãƒâ€”
                                           </button>
                                         </>
                                       ) : (
@@ -3721,7 +3760,7 @@ const InstructorDashboard = () => {
                                     }}
                                     className="px-1 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
                                   >
-                                    ×
+                                    Ãƒâ€”
                                   </button>
                                 </div>
                               ) : (
@@ -3944,7 +3983,7 @@ const InstructorDashboard = () => {
                     {selectedSessionForLink.course.title}
                   </p>
                   <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                    {selectedSessionForLink.day.charAt(0).toUpperCase() + selectedSessionForLink.day.slice(1)} • {formatTime(selectedSessionForLink.startTime)}
+                    {selectedSessionForLink.day.charAt(0).toUpperCase() + selectedSessionForLink.day.slice(1)} Ã¢â‚¬Â¢ {formatTime(selectedSessionForLink.startTime)}
                   </p>
                 </div>
                 
@@ -4101,11 +4140,38 @@ const InstructorDashboard = () => {
                   className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
                 >Deselect All</button>
                 <button
-                  onClick={() => {
-                    setGradeFields(getPersistedForStudent('bulk').length > 0 ? getPersistedForStudent('bulk') : [{ name: '', mark: '' }]);
-                    setGradeLetter('');
-                    setGradeAutoPopulated(false);
-                    setShowBulkGradeModal(true);
+                  onClick={async () => {
+                    const selectedList = filteredStudents.filter(s => selectedStudents.has(s._id) && !courseGrades[String(s._id)]);
+                    let exams = [];
+                    try { const r = await examAPI.getInstructorExams(); exams = r.data.exams || []; } catch {}
+                    let successCount = 0;
+                    for (const student of selectedList) {
+                      const fields = [];
+                      assignments.forEach(a => {
+                        if (a.course !== selectedCourseFilter) return;
+                        const sub = a.submissions?.find(s => s.student?._id === student._id || s.student === student._id);
+                        if (sub && sub.grade !== undefined) fields.push({ name: a.title, mark: String(sub.grade), max: a.weightMarks || 10, auto: true });
+                      });
+                      exams.forEach(e => {
+                        if (String(e.course?._id || e.course) !== selectedCourseFilter) return;
+                        const sub = e.submissions?.find(s => s.student?._id === student._id || s.student === student._id);
+                        if (sub && sub.score !== undefined) fields.push({ name: e.title, mark: String(sub.score), max: e.totalMarks || 100, auto: true });
+                      });
+                      const finalFields = fields.length > 0 ? fields : persistedGradeFields.length > 0 ? persistedGradeFields : [];
+                      if (!finalFields.length) continue;
+                      const total = finalFields.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
+                      const attRecord = attendanceData.find(a => a.student._id === student._id || a.student._id?.toString() === student._id?.toString());
+                      const letter = (attRecord && attRecord.percentage < 70) ? 'NG' : getGradeLetter(total);
+                      if (!letter) continue;
+                      try {
+                        await gradeAPI.submitGrade({ studentId: student._id, courseId: selectedCourseFilter, fields: finalFields, gradeLetter: letter });
+                        successCount++;
+                      } catch {}
+                    }
+                      setCourseGrades(prev => { const next = {...prev}; selectedList.forEach(s => { next[String(s._id)] = { gradeLetter: '?', fields: [] }; }); return next; });
+                    if (successCount > 0) showNotification('success', 'Grades Submitted', `Grades submitted for ${successCount} student${successCount > 1 ? 's' : ''}`);
+                    else showNotification('error', 'Error', 'No grades to submit Ã¢â‚¬â€ students may have no assessed work yet');
+                    setSelectedStudents(new Set());
                   }}
                   className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-medium"
                 >Submit Grade for Selected ({selectedStudents.size})</button>
@@ -4124,7 +4190,7 @@ const InstructorDashboard = () => {
                 <div key={student._id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4">
                   {selectedCourseFilter !== 'all' && (
                     <div className="flex items-center gap-2 mb-2">
-                      <input type="checkbox" checked={selectedStudents.has(student._id)}
+                      <input type="checkbox" checked={selectedStudents.has(student._id)} disabled={!!courseGrades[String(student._id)]}
                         onChange={(e) => {
                           const next = new Set(selectedStudents);
                           e.target.checked ? next.add(student._id) : next.delete(student._id);
@@ -4189,9 +4255,9 @@ const InstructorDashboard = () => {
                     {selectedCourseFilter !== 'all' && (
                       <th className="px-4 py-3 w-10">
                         <input type="checkbox"
-                          checked={filteredStudents.length > 0 && filteredStudents.every(s => selectedStudents.has(s._id))}
+                          checked={filteredStudents.filter(s => !courseGrades[String(s._id)]).length > 0 && filteredStudents.filter(s => !courseGrades[String(s._id)]).every(s => selectedStudents.has(s._id))}
                           onChange={(e) => {
-                            if (e.target.checked) setSelectedStudents(new Set(filteredStudents.map(s => s._id)));
+                            if (e.target.checked) setSelectedStudents(new Set(filteredStudents.filter(s => !courseGrades[String(s._id)]).map(s => s._id)));
                             else setSelectedStudents(new Set());
                           }}
                           className="h-4 w-4 rounded border-gray-300 text-blue-600 cursor-pointer"
@@ -4217,7 +4283,7 @@ const InstructorDashboard = () => {
                       <tr key={student._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         {selectedCourseFilter !== 'all' && (
                           <td className="px-4 py-4">
-                            <input type="checkbox" checked={selectedStudents.has(student._id)}
+                            <input type="checkbox" checked={selectedStudents.has(student._id)} disabled={!!courseGrades[String(student._id)]}
                               onChange={(e) => {
                                 const next = new Set(selectedStudents);
                                 e.target.checked ? next.add(student._id) : next.delete(student._id);
@@ -4262,12 +4328,18 @@ const InstructorDashboard = () => {
 
                         {selectedCourseFilter !== 'all' && (
                           <td className="px-6 py-4">
-                            <button
-                              onClick={() => setSelectedStudentForGrading(student)}
-                              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
-                            >
-                              Grade
-                            </button>
+                             {courseGrades[String(student._id)] ? (
+                               <span className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 px-3 py-1 rounded text-sm font-medium">
+                                   Submitted ({courseGrades[String(student._id)].gradeLetter})
+                               </span>
+                             ) : (
+                               <button
+                                 onClick={() => setSelectedStudentForGrading(student)}
+                                 className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                               >
+                                 Grade
+                               </button>
+                             )}
                           </td>
                         )}
                       </tr>
@@ -4321,7 +4393,7 @@ const InstructorDashboard = () => {
                     if (!att) return null;
                     return (
                       <div className={`mt-1 px-2 py-1 rounded-lg text-xs font-medium inline-block ${att.percentage < 70 ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' : 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'}`}>
-                        Attendance: {att.percentage}% {att.percentage < 70 ? '— Auto NG' : ''}
+                        Attendance: {att.percentage}% {att.percentage < 70 ? 'Ã¢â‚¬â€ Auto NG' : ''}
                       </div>
                     );
                   })()}
@@ -4373,7 +4445,7 @@ const InstructorDashboard = () => {
                             className={`w-16 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:text-white text-sm text-center${(field.auto || field.saved) ? ' bg-white dark:bg-gray-600 cursor-not-allowed' : ' bg-white dark:bg-gray-700'}`}
                           />
                         </div>
-                        {/* Save button — only for unsaved non-auto fields */}
+                        {/* Save button Ã¢â‚¬â€ only for unsaved non-auto fields */}
                         {!field.auto && !field.saved && (
                           <button
                             onClick={() => {
@@ -4391,7 +4463,7 @@ const InstructorDashboard = () => {
                             title="Save field"
                           >Save</button>
                         )}
-                        {/* Edit button — unsave a saved field */}
+                        {/* Edit button Ã¢â‚¬â€ unsave a saved field */}
                         {!field.auto && field.saved && (
                           <button
                             onClick={() => {
@@ -4438,7 +4510,7 @@ const InstructorDashboard = () => {
                       const total = filled.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
                       return (
                         <div className="mb-2 text-xs text-gray-500 dark:text-gray-400">
-                          Total mark: <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> → Auto grade: <span className="font-semibold text-blue-600">{getGradeLetter(total)}</span>
+                          Total mark: <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> Ã¢â€ â€™ Auto grade: <span className="font-semibold text-blue-600">{getGradeLetter(total)}</span>
                         </div>
                       );
                     })()}
@@ -4465,19 +4537,18 @@ const InstructorDashboard = () => {
                   
                   <div className="flex gap-3 pt-4">
                     <button
-                      onClick={() => {
-                        console.log('Submitting grade:', {
-                          student: selectedStudentForGrading,
-                          course: selectedCourseFilter,
-                          fields: gradeFields,
-                          gradeLetter
-                        });
+                      onClick={async () => {
+                        const sid = selectedStudentForGrading._id;
+                        try {
+                          await gradeAPI.submitGrade({ studentId: sid, courseId: selectedCourseFilter, fields: gradeFields, gradeLetter });
+                          showNotification('success', 'Grade Submitted', `Grade ${gradeLetter} submitted for ${selectedStudentForGrading.name}`);
+                          setCourseGrades(prev => ({ ...prev, [sid]: { gradeLetter, fields: gradeFields } }));
+                        } catch { showNotification('error', 'Error', 'Failed to submit grade'); }
                         setSelectedStudentForGrading(null);
                         savePersistedGradeFields([]);
                         setGradeFields([{ name: '', mark: '' }]);
                         setGradeLetter('');
                         setGradeAutoPopulated(false);
-                        showNotification('success', 'Grade Submitted', 'Grade has been submitted successfully');
                       }}
                       className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 text-sm"
                     >
@@ -4591,7 +4662,7 @@ const InstructorDashboard = () => {
                     const total = filled.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
                     return (
                       <div className="mb-2 text-xs text-gray-500 dark:text-gray-400">
-                        Total mark: <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> → Auto grade: <span className="font-semibold text-blue-600">{getGradeLetter(total)}</span>
+                        Total mark: <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> Ã¢â€ â€™ Auto grade: <span className="font-semibold text-blue-600">{getGradeLetter(total)}</span>
                       </div>
                     );
                   })()}
@@ -4615,14 +4686,18 @@ const InstructorDashboard = () => {
 
                 <div className="flex gap-3 pt-2">
                   <button
-                    onClick={() => {
+                    onClick={async () => {
+                      const ids = filteredStudents.filter(s => selectedStudents.has(s._id)).map(s => s._id);
+                      try {
+                        await gradeAPI.submitBulkGrade({ studentIds: ids, courseId: selectedCourseFilter, fields: gradeFields, gradeLetter });
+                        showNotification('success', 'Grades Submitted', `Grade ${gradeLetter} submitted for ${ids.length} student${ids.length > 1 ? 's' : ''}`);
+                      } catch { showNotification('error', 'Error', 'Failed to submit grades'); }
                       setShowBulkGradeModal(false);
                       savePersistedGradeFields([]);
                       setGradeFields([{ name: '', mark: '' }]);
                       setGradeLetter('');
                       setGradeAutoPopulated(false);
                       setSelectedStudents(new Set());
-                      showNotification('success', 'Grades Submitted', `Grade submitted for ${selectedStudents.size} student${selectedStudents.size > 1 ? 's' : ''} successfully`);
                     }}
                     className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 text-sm font-medium"
                   >Submit Grade for All ({selectedStudents.size})</button>
@@ -5286,7 +5361,7 @@ const InstructorDashboard = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-3 text-sm text-gray-700 dark:text-gray-300">{record.student.systemId || '—'}</td>
+                        <td className="px-6 py-3 text-sm text-gray-700 dark:text-gray-300">{record.student.systemId || 'Ã¢â‚¬â€'}</td>
                         <td className="px-6 py-3 text-sm text-gray-700 dark:text-gray-300 font-medium">{record.attended} / {record.total}</td>
                         <td className="px-6 py-3">
                           <div className="flex items-center gap-3">

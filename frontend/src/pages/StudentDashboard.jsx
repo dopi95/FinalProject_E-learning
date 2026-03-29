@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BookOpen, Award, Calendar, TrendingUp, LogOut, User, CreditCard, FileText, Video, Download, Bell, BellRing, BellOff, Clock, CheckCircle, GraduationCap, Home, Camera, X, Eye, EyeOff, Star, Globe, Heart, Settings, MapPin, MessageCircle, Upload } from 'lucide-react';
-import { profileAPI, enrollmentAPI, paymentAPI, subscriptionAPI, notificationAPI, assignmentAPI, attendanceAPI } from '../services/api';
+import { profileAPI, enrollmentAPI, paymentAPI, subscriptionAPI, notificationAPI, assignmentAPI, attendanceAPI, gradeAPI } from '../services/api';
 import PopupNotification from '../components/PopupNotification';
 import CourseMaterials from '../components/CourseMaterials';
 import ChatInterface from '../components/ChatInterface';
@@ -873,34 +873,18 @@ const StudentDashboard = () => {
     }
   };
 
-  const fetchGrades = async () => {
-    try {
-      setGradesLoading(true);
-      const mockGrades = [
-        {
-          _id: '1',
-          course: {
-            _id: 'course1',
-            title: 'Advanced Mathematics',
-            instructor: { name: 'Dr. John Smith' }
-          },
-          enrollmentDate: '2024-01-15',
-          gradeLetter: 'A',
-          assessments: [
-            { name: 'Quiz 1', mark: 95 },
-            { name: 'Midterm Exam', mark: 88 },
-            { name: 'Assignment 1', mark: 92 }
-          ]
-        }
-      ];
-      setGrades(mockGrades);
-    } catch (error) {
-      console.error('Fetch grades error:', error);
-      showNotification('error', 'Error', 'Failed to fetch grades');
-    } finally {
-      setGradesLoading(false);
-    }
-  };
+    const fetchGrades = async () => {
+      try {
+        setGradesLoading(true);
+        const res = await gradeAPI.getMyGrades();
+        setGrades(res.data.grades || []);
+      } catch (error) {
+        console.error('Fetch grades error:', error);
+        setGrades([]);
+      } finally {
+        setGradesLoading(false);
+      }
+    };
 
   const fetchUnreadCount = async () => {
     try {
@@ -1247,7 +1231,7 @@ const StudentDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Completed</p>
-              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">3</p>
+              <p className="text-2xl lg:text-3xl font-bold mt-2 text-gray-900 dark:text-white">{gradedCourseIds.size}</p>
               <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Courses finished</p>
             </div>
             <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-xl">
@@ -1273,6 +1257,7 @@ const StudentDashboard = () => {
           
           const todaySessions = [];
           schedules.forEach(schedule => {
+             if (gradedCourseIds.has(String(schedule.course?._id || schedule.course))) return;
             schedule.sessions.forEach(session => {
               if (session.day === todayName) {
                 todaySessions.push({
@@ -1321,11 +1306,11 @@ const StudentDashboard = () => {
                             </span>
                             {session.room && (
                               <>
-                                <span>•</span>
+                                <span>â€¢</span>
                                 <span>Room: {session.room}</span>
                               </>
                             )}
-                            <span>•</span>
+                            <span>â€¢</span>
                             {(() => {
                               const now = new Date();
                               const [startHour, startMin] = session.startTime.split(':').map(Number);
@@ -1472,6 +1457,8 @@ const StudentDashboard = () => {
     </div>
   );
 
+  const gradedCourseIds = new Set((grades || []).map(g => String(g.course?._id || g.course)));
+
   const renderCourses = () => {
     const displayedCourses = showLikedOnly 
       ? (enrolledCourses || []).filter(course => course.stars?.includes(user?._id))
@@ -1562,6 +1549,7 @@ const StudentDashboard = () => {
                     }`}>
                       <td className="px-6 py-4 border-r border-gray-200 dark:border-gray-600">
                         <div className="text-sm font-semibold text-gray-900 dark:text-white truncate max-w-xs">{course.title}</div>
+                          {gradedCourseIds.has(String(course._id)) && <span className="inline-flex items-center px-2 py-0.5 bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 text-xs rounded-full font-medium mt-1">âœ“ Completed</span>}
                         <div className="text-xs text-gray-500 dark:text-gray-400">{course.category || 'General'}</div>
                       </td>
                       <td className="px-6 py-4 border-r border-gray-200 dark:border-gray-600">
@@ -1594,6 +1582,7 @@ const StudentDashboard = () => {
                 <div className="flex flex-col gap-3">
                   <div>
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{course.title}</h3>
+                      {gradedCourseIds.has(String(course._id)) && <span className="inline-flex items-center px-2 py-0.5 bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 text-xs rounded-full font-medium">âœ“ Completed</span>}
                     <p className="text-xs text-gray-500 dark:text-gray-400">{course.category || 'General'}</p>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
@@ -2042,7 +2031,7 @@ const renderPayments = () => (
                             </h3>
                             <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
                               <span>{assignment.course?.title}</span>
-                              <span>•</span>
+                              <span>â€¢</span>
                               <span>Instructor: {assignment.instructor?.name}</span>
                             </div>
                             <div className="flex items-center gap-4">
@@ -2142,7 +2131,7 @@ const renderPayments = () => (
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 sm:p-4">
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">Course & Instructor</h4>
                     <p className="text-gray-700 dark:text-gray-300 text-sm sm:text-base break-words">
-                      {selectedAssignment.course?.title} • {selectedAssignment.instructor?.name}
+                      {selectedAssignment.course?.title} â€¢ {selectedAssignment.instructor?.name}
                     </p>
                   </div>
 
@@ -2362,6 +2351,7 @@ const renderPayments = () => (
       
       const todaySessions = [];
       schedules.forEach(schedule => {
+         if (gradedCourseIds.has(String(schedule.course?._id || schedule.course))) return;
         schedule.sessions.forEach(session => {
           if (session.day === todayName) {
             todaySessions.push({
@@ -2398,8 +2388,8 @@ const renderPayments = () => (
                     <div>
                       <h4 className="font-semibold text-sm lg:text-base">{session.course?.title}</h4>
                       <div className="flex items-center gap-4 text-xs lg:text-sm text-white/80 mt-1">
-                        <span>🕐 {formatTimeWithAMPM(session.startTime)} - {formatTimeWithAMPM(session.endTime)}</span>
-                        {session.room && <span>📍 Room: {session.room}</span>}
+                        <span>ðŸ• {formatTimeWithAMPM(session.startTime)} - {formatTimeWithAMPM(session.endTime)}</span>
+                        {session.room && <span>ðŸ“ Room: {session.room}</span>}
                       </div>
                     </div>
                     <button
@@ -2480,7 +2470,7 @@ const renderPayments = () => (
           </div>
         ) : (
           <div className="space-y-4 lg:space-y-6">
-            {enrolledCourses.map((course) => {
+            {enrolledCourses.filter(course => !gradedCourseIds.has(String(course._id))).map((course) => {
               const courseSchedules = schedules.filter(s => s.course?._id === course._id);
               const hasSchedule = courseSchedules.length > 0;
               
@@ -2808,16 +2798,16 @@ const renderPayments = () => (
               </div>
               {isNG ? (
                 <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
-                  <p className="text-sm text-red-700 dark:text-red-400 font-medium">⚠️ Below 70% — you may receive an NG grade.</p>
+                  <p className="text-sm text-red-700 dark:text-red-400 font-medium">âš ï¸ Below 70% â€” you may receive an NG grade.</p>
                   <p className="text-xs text-red-600 dark:text-red-500 mt-1">Need {Math.max(0, Math.ceil(0.7 * att.total) - att.attended)} more session{Math.max(0, Math.ceil(0.7 * att.total) - att.attended) !== 1 ? 's' : ''} to reach 70%.</p>
                 </div>
               ) : att.percentage < 85 ? (
                 <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl">
-                  <p className="text-sm text-yellow-700 dark:text-yellow-400 font-medium">⚡ Keep it up! Aim for above 85%.</p>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-400 font-medium">âš¡ Keep it up! Aim for above 85%.</p>
                 </div>
               ) : (
                 <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
-                  <p className="text-sm text-green-700 dark:text-green-400 font-medium">✅ Excellent attendance!</p>
+                  <p className="text-sm text-green-700 dark:text-green-400 font-medium">âœ… Excellent attendance!</p>
                 </div>
               )}
             </div>
@@ -2931,13 +2921,13 @@ const renderPayments = () => (
               <div className="space-y-4">
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    {selectedGrade.course.title}
+                    {selectedGrade.course?.title || 'Course'}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                    Instructor: {selectedGrade.course.instructor.name}
+                    Instructor: {selectedGrade.instructor?.name || 'N/A'}
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Enrolled: {new Date(selectedGrade.enrollmentDate).toLocaleDateString()}
+                    Submitted: {new Date(selectedGrade.submittedAt).toLocaleDateString()}
                   </p>
                 </div>
                 
@@ -2956,37 +2946,26 @@ const renderPayments = () => (
                 </div>
                 
                 <div>
-                  <h5 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Assessment Breakdown</h5>
-                  <div className="space-y-3">
-                    {selectedGrade.assessments.map((assessment, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <span className="font-medium text-gray-900 dark:text-white">{assessment.name}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-gray-900 dark:text-white">{assessment.mark}%</span>
-                          <div className="w-16 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full ${
-                                assessment.mark >= 90 ? 'bg-green-500' :
-                                assessment.mark >= 80 ? 'bg-blue-500' :
-                                assessment.mark >= 70 ? 'bg-yellow-500' : 'bg-red-500'
-                              }`}
-                              style={{ width: `${assessment.mark}%` }}
-                            ></div>
+                  <h5 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Assessment Breakdown</h5>
+                    {(selectedGrade.fields || []).length === 0 ? (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">No assessment fields recorded.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {(selectedGrade.fields || []).map((f, i) => (
+                          <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                            <span className="font-medium text-gray-900 dark:text-white">{f.name}</span>
+                            <span className="text-sm font-bold text-gray-900 dark:text-white">{parseFloat(f.mark) || 0} / {parseFloat(f.max) || 100}</span>
                           </div>
-                        </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                </div>
-                
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-gray-900 dark:text-white">Overall Average</span>
-                    <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                      {Math.round(selectedGrade.assessments.reduce((sum, a) => sum + a.mark, 0) / selectedGrade.assessments.length)}%
-                    </span>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-gray-900 dark:text-white">Total Mark</span>
+                      <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{selectedGrade.totalMark || 0} / 100</span>
+                    </div>
                   </div>
-                </div>
               </div>
             </div>
           </div>
@@ -2994,7 +2973,6 @@ const renderPayments = () => (
       )}
     </div>
   );
-
   const renderProfile = () => (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
