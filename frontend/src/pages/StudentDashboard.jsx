@@ -1307,11 +1307,11 @@ const StudentDashboard = () => {
                             </span>
                             {session.room && (
                               <>
-                                <span>â€¢</span>
+                                <span>Ã¢â‚¬Â¢</span>
                                 <span>Room: {session.room}</span>
                               </>
                             )}
-                            <span>â€¢</span>
+                            <span>Ã¢â‚¬Â¢</span>
                             {(() => {
                               const now = new Date();
                               const [startHour, startMin] = session.startTime.split(':').map(Number);
@@ -2032,7 +2032,7 @@ const renderPayments = () => (
                             </h3>
                             <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
                               <span>{assignment.course?.title}</span>
-                              <span>â€¢</span>
+                              <span>Ã¢â‚¬Â¢</span>
                               <span>Instructor: {assignment.instructor?.name}</span>
                             </div>
                             <div className="flex items-center gap-4">
@@ -2132,7 +2132,7 @@ const renderPayments = () => (
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 sm:p-4">
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">Course & Instructor</h4>
                     <p className="text-gray-700 dark:text-gray-300 text-sm sm:text-base break-words">
-                      {selectedAssignment.course?.title} â€¢ {selectedAssignment.instructor?.name}
+                      {selectedAssignment.course?.title} Ã¢â‚¬Â¢ {selectedAssignment.instructor?.name}
                     </p>
                   </div>
 
@@ -2389,8 +2389,8 @@ const renderPayments = () => (
                     <div>
                       <h4 className="font-semibold text-sm lg:text-base">{session.course?.title}</h4>
                       <div className="flex items-center gap-4 text-xs lg:text-sm text-white/80 mt-1">
-                        <span>ðŸ• {formatTimeWithAMPM(session.startTime)} - {formatTimeWithAMPM(session.endTime)}</span>
-                        {session.room && <span>ðŸ“ Room: {session.room}</span>}
+                        <span>Ã°Å¸â€¢Â {formatTimeWithAMPM(session.startTime)} - {formatTimeWithAMPM(session.endTime)}</span>
+                        {session.room && <span>Ã°Å¸â€œÂ Room: {session.room}</span>}
                       </div>
                     </div>
                     <button
@@ -2799,16 +2799,16 @@ const renderPayments = () => (
               </div>
               {isNG ? (
                 <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
-                  <p className="text-sm text-red-700 dark:text-red-400 font-medium">âš ï¸ Below 70% â€” you may receive an NG grade.</p>
+                  <p className="text-sm text-red-700 dark:text-red-400 font-medium">Ã¢Å¡Â Ã¯Â¸Â Below 70% Ã¢â‚¬â€ you may receive an NG grade.</p>
                   <p className="text-xs text-red-600 dark:text-red-500 mt-1">Need {Math.max(0, Math.ceil(0.7 * att.total) - att.attended)} more session{Math.max(0, Math.ceil(0.7 * att.total) - att.attended) !== 1 ? 's' : ''} to reach 70%.</p>
                 </div>
               ) : att.percentage < 85 ? (
                 <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl">
-                  <p className="text-sm text-yellow-700 dark:text-yellow-400 font-medium">âš¡ Keep it up! Aim for above 85%.</p>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-400 font-medium">Ã¢Å¡Â¡ Keep it up! Aim for above 85%.</p>
                 </div>
               ) : (
                 <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
-                  <p className="text-sm text-green-700 dark:text-green-400 font-medium">âœ… Excellent attendance!</p>
+                  <p className="text-sm text-green-700 dark:text-green-400 font-medium">Ã¢Å“â€¦ Excellent attendance!</p>
                 </div>
               )}
             </div>
@@ -3577,7 +3577,6 @@ const renderPayments = () => (
                       Download
                     </button>
                   </div>
-                  </button>
                 </div>
               </div>
             ))}
@@ -3605,7 +3604,7 @@ const renderPayments = () => (
                         <img src="/assets/images/aaulogo.png" alt="AAU" style={{width:'52px',height:'52px',objectFit:'contain',borderRadius:'50%',background:'#fff',padding:'4px'}} onError={e => e.target.style.display='none'} />
                         <div>
                           <div style={{color:'#fff',fontSize:'20px',fontWeight:'700',letterSpacing:'2px'}}>Addis Ababa University</div>
-                          <div style={{color:'#c9a84c',fontSize:'10px',letterSpacing:'3px',textTransform:'uppercase'}}>E-Learning Platform · Center of Excellence</div>
+                          <div style={{color:'#c9a84c',fontSize:'10px',letterSpacing:'3px',textTransform:'uppercase'}}>E-Learning Platform Â· Center of Excellence</div>
                         </div>
                       </div>
                     </div>
@@ -3624,7 +3623,7 @@ const renderPayments = () => (
                       </div>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',paddingTop:'14px',borderTop:'1px solid #eee'}}>
                         <div style={{textAlign:'center',minWidth:'130px'}}><div style={{fontFamily:'Georgia,serif',fontStyle:'italic',fontSize:'16px',color:'#1a3a5c',marginBottom:'2px'}}>{g.instructor?.name||'Instructor'}</div><div style={{width:'130px',height:'1px',background:'#1a3a5c',margin:'0 auto 4px'}}></div><div style={{fontSize:'10px',fontWeight:'700',color:'#1a3a5c'}}>{g.instructor?.name||'Instructor'}</div><div style={{fontSize:'8px',color:'#888',letterSpacing:'1px',textTransform:'uppercase'}}>Course Instructor</div></div>
-                        <div style={{textAlign:'center'}}><div style={{width:'64px',height:'64px',borderRadius:'50%',border:'3px solid #c9a84c',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',margin:'0 auto 4px'}}><div style={{fontSize:'14px',color:'#c9a84c'}}>★</div><div style={{fontSize:'6px',letterSpacing:'1px',textTransform:'uppercase',color:'#c9a84c',fontWeight:'700',textAlign:'center',lineHeight:'1.4'}}>AAU<br/>CERTIFIED</div></div></div>
+                        <div style={{textAlign:'center'}}><div style={{width:'64px',height:'64px',borderRadius:'50%',border:'3px solid #c9a84c',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',margin:'0 auto 4px'}}><div style={{fontSize:'14px',color:'#c9a84c'}}>â˜…</div><div style={{fontSize:'6px',letterSpacing:'1px',textTransform:'uppercase',color:'#c9a84c',fontWeight:'700',textAlign:'center',lineHeight:'1.4'}}>AAU<br/>CERTIFIED</div></div></div>
                         <div style={{textAlign:'center',minWidth:'130px'}}><div style={{fontSize:'9px',letterSpacing:'2px',textTransform:'uppercase',color:'#888',marginBottom:'4px'}}>Date of Completion</div><div style={{fontSize:'11px',fontWeight:'700',color:'#1a3a5c',marginBottom:'6px'}}>{dStr}</div><div style={{width:'130px',height:'1px',background:'#1a3a5c',margin:'0 auto 4px'}}></div><div style={{fontSize:'10px',fontWeight:'700',color:'#1a3a5c'}}>Academic Registrar</div><div style={{fontSize:'8px',color:'#888',letterSpacing:'1px',textTransform:'uppercase'}}>Addis Ababa University</div></div>
                       </div>
                     </div>
