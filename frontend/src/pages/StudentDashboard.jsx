@@ -3364,26 +3364,219 @@ const renderPayments = () => (
     </div>
   );
 
-  const renderCertificates = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Certificates</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3].map((cert) => (
-          <div key={cert} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="h-32 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg mb-4 flex items-center justify-center">
-              <Award className="h-12 w-12 text-white" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Certificate {cert}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Completed Course {cert}</p>
-            <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-              <Download className="h-4 w-4 inline mr-2" />
-              Download
-            </button>
-          </div>
-        ))}
+  const renderCertificates = () => {
+    const eligibleGrades = (grades || []).filter(g => (g.totalMark || 0) >= 50);
+
+    const downloadCertificate = (grade) => {
+      const studentName = user?.name || 'Student';
+      const courseName = grade.course?.title || 'Course';
+      const totalMark = grade.totalMark || 0;
+      const gradeLetter = grade.gradeLetter || '';
+      const instructorName = grade.instructor?.name || 'Instructor';
+      const dateStr = new Date(grade.submittedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      const certId = 'AAU-' + String(grade._id).slice(-8).toUpperCase();
+
+      const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Certificate of Completion</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f0f0f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Lato', sans-serif; }
+  .cert { width: 900px; min-height: 640px; background: #fff; position: relative; padding: 0; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+  .border-outer { position: absolute; inset: 12px; border: 3px solid #1a3a5c; pointer-events: none; z-index: 10; }
+  .border-inner { position: absolute; inset: 18px; border: 1px solid #c9a84c; pointer-events: none; z-index: 10; }
+  .corner { position: absolute; width: 48px; height: 48px; z-index: 11; }
+  .corner svg { width: 48px; height: 48px; }
+  .corner-tl { top: 8px; left: 8px; }
+  .corner-tr { top: 8px; right: 8px; transform: scaleX(-1); }
+  .corner-bl { bottom: 8px; left: 8px; transform: scaleY(-1); }
+  .corner-br { bottom: 8px; right: 8px; transform: scale(-1); }
+  .header { background: linear-gradient(135deg, #1a3a5c 0%, #0d2137 100%); padding: 28px 60px 22px; text-align: center; }
+  .header-logo { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 8px; }
+  .logo-circle { width: 56px; height: 56px; background: #c9a84c; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #1a3a5c; font-family: 'Playfair Display', serif; }
+  .uni-name { color: #fff; font-size: 22px; font-weight: 700; letter-spacing: 2px; font-family: 'Playfair Display', serif; }
+  .uni-sub { color: #c9a84c; font-size: 11px; letter-spacing: 4px; text-transform: uppercase; margin-top: 2px; }
+  .gold-line { height: 3px; background: linear-gradient(90deg, transparent, #c9a84c, transparent); margin: 0 60px; }
+  .body { padding: 32px 70px 28px; text-align: center; }
+  .cert-title { font-size: 13px; letter-spacing: 5px; text-transform: uppercase; color: #888; margin-bottom: 10px; font-weight: 300; }
+  .cert-heading { font-family: 'Playfair Display', serif; font-size: 42px; color: #1a3a5c; margin-bottom: 6px; font-style: italic; }
+  .cert-sub { font-size: 13px; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 22px; }
+  .divider { display: flex; align-items: center; gap: 12px; margin: 0 auto 22px; max-width: 400px; }
+  .divider-line { flex: 1; height: 1px; background: #c9a84c; }
+  .divider-diamond { width: 8px; height: 8px; background: #c9a84c; transform: rotate(45deg); flex-shrink: 0; }
+  .presented-to { font-size: 13px; color: #888; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .student-name { font-family: 'Playfair Display', serif; font-size: 46px; color: #1a3a5c; border-bottom: 2px solid #c9a84c; display: inline-block; padding-bottom: 4px; margin-bottom: 18px; }
+  .completion-text { font-size: 14px; color: #555; line-height: 1.8; margin-bottom: 18px; max-width: 560px; margin-left: auto; margin-right: auto; }
+  .course-name { font-family: 'Playfair Display', serif; font-size: 22px; color: #1a3a5c; font-weight: 700; }
+  .result-row { display: flex; justify-content: center; gap: 40px; margin: 18px 0 24px; }
+  .result-box { text-align: center; background: #f8f5ee; border: 1px solid #c9a84c; border-radius: 8px; padding: 12px 28px; }
+  .result-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #888; margin-bottom: 4px; }
+  .result-value { font-family: 'Playfair Display', serif; font-size: 28px; color: #1a3a5c; font-weight: 700; }
+  .result-sub { font-size: 10px; color: #888; margin-top: 2px; }
+  .footer { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 70px 32px; margin-top: 8px; }
+  .sig-block { text-align: center; min-width: 160px; }
+  .sig-line { width: 160px; height: 1px; background: #1a3a5c; margin: 0 auto 6px; }
+  .sig-name { font-size: 13px; font-weight: 700; color: #1a3a5c; }
+  .sig-title { font-size: 10px; color: #888; letter-spacing: 1px; text-transform: uppercase; }
+  .sig-script { font-family: 'Playfair Display', serif; font-style: italic; font-size: 22px; color: #1a3a5c; margin-bottom: 2px; }
+  .seal { text-align: center; }
+  .seal-circle { width: 80px; height: 80px; border-radius: 50%; border: 3px solid #c9a84c; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto 4px; background: #fff; }
+  .seal-text { font-size: 7px; letter-spacing: 1px; text-transform: uppercase; color: #c9a84c; font-weight: 700; text-align: center; line-height: 1.4; }
+  .seal-star { font-size: 18px; color: #c9a84c; }
+  .cert-id { font-size: 9px; color: #aaa; letter-spacing: 1px; margin-top: 4px; }
+  .date-block { text-align: center; min-width: 160px; }
+  .date-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #888; margin-bottom: 4px; }
+  .date-value { font-size: 13px; font-weight: 700; color: #1a3a5c; }
+  @media print { body { background: #fff; } .cert { box-shadow: none; } }
+</style>
+</head>
+<body>
+<div class="cert">
+  <div class="border-outer"></div>
+  <div class="border-inner"></div>
+  <div class="corner corner-tl"><svg viewBox="0 0 48 48" fill="none"><path d="M4 44 L4 4 L44 4" stroke="#c9a84c" stroke-width="2" fill="none"/><circle cx="4" cy="4" r="3" fill="#c9a84c"/></svg></div>
+  <div class="corner corner-tr"><svg viewBox="0 0 48 48" fill="none"><path d="M4 44 L4 4 L44 4" stroke="#c9a84c" stroke-width="2" fill="none"/><circle cx="4" cy="4" r="3" fill="#c9a84c"/></svg></div>
+  <div class="corner corner-bl"><svg viewBox="0 0 48 48" fill="none"><path d="M4 44 L4 4 L44 4" stroke="#c9a84c" stroke-width="2" fill="none"/><circle cx="4" cy="4" r="3" fill="#c9a84c"/></svg></div>
+  <div class="corner corner-br"><svg viewBox="0 0 48 48" fill="none"><path d="M4 44 L4 4 L44 4" stroke="#c9a84c" stroke-width="2" fill="none"/><circle cx="4" cy="4" r="3" fill="#c9a84c"/></svg></div>
+
+  <div class="header">
+    <div class="header-logo">
+      <div class="logo-circle">AAU</div>
+      <div>
+        <div class="uni-name">Addis Ababa University</div>
+        <div class="uni-sub">E-Learning Platform &nbsp;&#9670;&nbsp; Center of Excellence</div>
       </div>
     </div>
-  );
+  </div>
+  <div class="gold-line"></div>
+
+  <div class="body">
+    <div class="cert-title">This is to certify that</div>
+    <div class="cert-heading">Certificate of Completion</div>
+    <div class="cert-sub">Academic Achievement Award</div>
+    <div class="divider"><div class="divider-line"></div><div class="divider-diamond"></div><div class="divider-line"></div></div>
+    <div class="presented-to">Proudly Presented To</div>
+    <div class="student-name">${studentName}</div>
+    <div class="completion-text">
+      Has successfully completed all requirements and demonstrated outstanding performance in the course
+    </div>
+    <div class="course-name">${courseName}</div>
+    <div class="result-row">
+      <div class="result-box">
+        <div class="result-label">Total Score</div>
+        <div class="result-value">${totalMark}</div>
+        <div class="result-sub">out of 100</div>
+      </div>
+      <div class="result-box">
+        <div class="result-label">Final Grade</div>
+        <div class="result-value">${gradeLetter}</div>
+        <div class="result-sub">Letter Grade</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="sig-block">
+      <div class="sig-script">${instructorName}</div>
+      <div class="sig-line"></div>
+      <div class="sig-name">${instructorName}</div>
+      <div class="sig-title">Course Instructor</div>
+    </div>
+    <div class="seal">
+      <div class="seal-circle">
+        <div class="seal-star">&#9733;</div>
+        <div class="seal-text">AAU<br/>E-LEARNING<br/>CERTIFIED</div>
+      </div>
+      <div class="cert-id">ID: ${certId}</div>
+    </div>
+    <div class="date-block">
+      <div class="date-label">Date of Completion</div>
+      <div class="date-value">${dateStr}</div>
+      <div class="sig-line" style="margin-top:8px"></div>
+      <div class="sig-name">Academic Registrar</div>
+      <div class="sig-title">Addis Ababa University</div>
+    </div>
+  </div>
+</div>
+<script>window.onload = () => window.print();</script>
+</body>
+</html>`;
+
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">My Certificates</h2>
+          <span className="text-sm text-gray-500 dark:text-gray-400">{eligibleGrades.length} certificate{eligibleGrades.length !== 1 ? 's' : ''} earned</span>
+        </div>
+
+        {eligibleGrades.length === 0 ? (
+          <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+            <Award className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Certificates Yet</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">Complete a course with a total mark of 50 or above to earn your certificate.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {eligibleGrades.map((grade) => (
+              <div key={grade._id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300">
+                {/* Certificate Preview Header */}
+                <div className="bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 p-6 text-center relative">
+                  <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'repeating-linear-gradient(45deg, #c9a84c 0, #c9a84c 1px, transparent 0, transparent 50%)', backgroundSize: '10px 10px'}}></div>
+                  <div className="relative z-10">
+                    <div className="w-14 h-14 bg-yellow-400 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+                      <Award className="h-7 w-7 text-blue-900" />
+                    </div>
+                    <p className="text-yellow-300 text-xs tracking-widest uppercase font-medium mb-1">Certificate of Completion</p>
+                    <p className="text-white font-bold text-sm">Addis Ababa University</p>
+                  </div>
+                </div>
+
+                {/* Certificate Info */}
+                <div className="p-5">
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1 line-clamp-2">{grade.course?.title || 'Course'}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Instructor: {grade.instructor?.name || 'N/A'}</p>
+
+                  <div className="flex gap-3 mb-4">
+                    <div className="flex-1 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 text-center">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Score</p>
+                      <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{grade.totalMark || 0}</p>
+                      <p className="text-xs text-gray-400">/ 100</p>
+                    </div>
+                    <div className="flex-1 bg-green-50 dark:bg-green-900/20 rounded-xl p-3 text-center">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Grade</p>
+                      <p className="text-xl font-bold text-green-700 dark:text-green-300">{grade.gradeLetter || 'N/A'}</p>
+                      <p className="text-xs text-gray-400">Letter</p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+                    Completed: {new Date(grade.submittedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+
+                  <button
+                    onClick={() => downloadCertificate(grade)}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-2.5 rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Certificate
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderExams = () => (
     <StudentExams showNotification={showNotification} />
