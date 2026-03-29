@@ -230,10 +230,9 @@ router.get('/student', auth, async (req, res) => {
 
     const Enrollment = require('../models/Enrollment');
     
-    // Get student's enrolled courses (only active enrollments)
+    // Get all student's enrolled courses regardless of status
     const enrollments = await Enrollment.find({ 
-      user: req.user.id, 
-      status: 'active' 
+      user: req.user.id
     }).populate('course');
     const courseIds = enrollments.map(e => e.course._id);
 
