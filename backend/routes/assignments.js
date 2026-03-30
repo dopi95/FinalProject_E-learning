@@ -1,33 +1,50 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const cloudinary = require('../config/cloudinary');
+const path = require('path');
+const fs = require('fs');
 const Assignment = require('../models/Assignment');
 const auth = require('../middleware/auth');
 
-// Configure multer for file uploads
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 100 * 1024 * 1024 }
+// Local storage for assignment files
+const assignmentStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, '../uploads/assignments');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, unique + path.extname(file.originalname));
+  }
 });
 
+// Local storage for submission files
+const submissionStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, '../uploads/submissions');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, unique + path.extname(file.originalname));
+  }
+});
+
+const uploadAssignment = multer({ storage: assignmentStorage, limits: { fileSize: 100 * 1024 * 1024 } });
+const uploadSubmission = multer({ storage: submissionStorage, limits: { fileSize: 100 * 1024 * 1024 } });
+
+const getBaseUrl = (req) => `${req.protocol}://${req.get('host')}`;
+
 // @route   GET /api/assignments/instructor
-// @desc    Get assignments for instructor
-// @access  Private (Instructor)
 router.get('/instructor', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'instructor') {
-      return res.status(403).json({ message: 'Access denied. Instructor role required.' });
-    }
-
+    if (req.user.role !== 'instructor') return res.status(403).json({ message: 'Access denied.' });
     const assignments = await Assignment.find({ instructor: req.user.id })
       .populate('submissions.student', 'name email')
       .sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      assignments
-    });
+    res.json({ success: true, assignments });
   } catch (error) {
     console.error('Get instructor assignments error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -35,72 +52,24 @@ router.get('/instructor', auth, async (req, res) => {
 });
 
 // @route   POST /api/assignments
-// @desc    Create new assignment
-// @access  Private (Instructor)
-router.post('/', auth, upload.single('file'), async (req, res) => {
+router.post('/', auth, uploadAssignment.single('file'), async (req, res) => {
   try {
-    if (req.user.role !== 'instructor') {
-      return res.status(403).json({ message: 'Access denied. Instructor role required.' });
-    }
-
+    if (req.user.role !== 'instructor') return res.status(403).json({ message: 'Access denied.' });
     const { title, instructions, dueDate, course, totalMarks, weightMarks } = req.body;
-
     if (!title || !instructions || !dueDate || !course || !req.file) {
-      return res.status(400).json({ 
-        message: 'Title, instructions, due date, course, and file are required' 
-      });
+      return res.status(400).json({ message: 'Title, instructions, due date, course, and file are required' });
     }
-
-    // Validate totalMarks
     const marks = parseInt(totalMarks) || 100;
-    if (marks < 1 || marks > 100) {
-      return res.status(400).json({ 
-        message: 'Total marks must be between 1 and 100' 
-      });
-    }
-
-    // Validate weightMarks
     const weight = parseInt(weightMarks) || 10;
-    if (weight < 1 || weight > 100) {
-      return res.status(400).json({ 
-        message: 'Weight marks must be between 1 and 100' 
-      });
-    }
-
-    // Upload file to cloudinary
-    const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        { resource_type: 'auto', folder: 'assignments' },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      ).end(req.file.buffer);
-    });
-
+    const fileUrl = `${getBaseUrl(req)}/uploads/assignments/${req.file.filename}`;
     const assignment = new Assignment({
-      title,
-      instructions,
-      dueDate: new Date(dueDate),
-      totalMarks: marks,
-      weightMarks: weight,
-      course,
+      title, instructions, dueDate: new Date(dueDate),
+      totalMarks: marks, weightMarks: weight, course,
       instructor: req.user.id,
-      file: {
-        fileName: req.file.originalname,
-        fileUrl: result.secure_url,
-        fileType: req.file.mimetype,
-        fileSize: req.file.size
-      }
+      file: { fileName: req.file.originalname, fileUrl, fileType: req.file.mimetype, fileSize: req.file.size }
     });
-
     await assignment.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Assignment created successfully',
-      assignment
-    });
+    res.status(201).json({ success: true, message: 'Assignment created successfully', assignment });
   } catch (error) {
     console.error('Create assignment error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -108,57 +77,30 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
 });
 
 // @route   PUT /api/assignments/:id
-// @desc    Update assignment
-// @access  Private (Instructor)
-router.put('/:id', auth, upload.single('file'), async (req, res) => {
+router.put('/:id', auth, uploadAssignment.single('file'), async (req, res) => {
   try {
-    if (req.user.role !== 'instructor') {
-      return res.status(403).json({ message: 'Access denied. Instructor role required.' });
-    }
-
-    const assignment = await Assignment.findOne({
-      _id: req.params.id,
-      instructor: req.user.id
-    });
-
-    if (!assignment) {
-      return res.status(404).json({ message: 'Assignment not found' });
-    }
-
+    if (req.user.role !== 'instructor') return res.status(403).json({ message: 'Access denied.' });
+    const assignment = await Assignment.findOne({ _id: req.params.id, instructor: req.user.id });
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
     const { title, instructions, dueDate } = req.body;
-
-    // Update fields
     if (title) assignment.title = title;
     if (instructions) assignment.instructions = instructions;
     if (dueDate) assignment.dueDate = new Date(dueDate);
-
-    // Handle file upload if provided
     if (req.file) {
-      const result = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
-          { resource_type: 'auto', folder: 'assignments' },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        ).end(req.file.buffer);
-      });
-
+      // Delete old file if local
+      if (assignment.file?.fileUrl?.includes('/uploads/')) {
+        const oldPath = path.join(__dirname, '../uploads/assignments', path.basename(assignment.file.fileUrl));
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
       assignment.file = {
         fileName: req.file.originalname,
-        fileUrl: result.secure_url,
+        fileUrl: `${getBaseUrl(req)}/uploads/assignments/${req.file.filename}`,
         fileType: req.file.mimetype,
         fileSize: req.file.size
       };
     }
-
     await assignment.save();
-
-    res.json({
-      success: true,
-      message: 'Assignment updated successfully',
-      assignment
-    });
+    res.json({ success: true, message: 'Assignment updated successfully', assignment });
   } catch (error) {
     console.error('Update assignment error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -166,53 +108,21 @@ router.put('/:id', auth, upload.single('file'), async (req, res) => {
 });
 
 // @route   POST /api/assignments/:id/send
-// @desc    Send assignment to enrolled students
-// @access  Private (Instructor)
 router.post('/:id/send', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'instructor') {
-      return res.status(403).json({ message: 'Access denied. Instructor role required.' });
-    }
-
-    const assignment = await Assignment.findOne({
-      _id: req.params.id,
-      instructor: req.user.id
-    }).populate('course');
-
-    if (!assignment) {
-      return res.status(404).json({ message: 'Assignment not found' });
-    }
-
-    if (assignment.status === 'active') {
-      return res.status(400).json({ message: 'Assignment has already been sent to students' });
-    }
-
-    // Get enrolled students for this course
+    if (req.user.role !== 'instructor') return res.status(403).json({ message: 'Access denied.' });
+    const assignment = await Assignment.findOne({ _id: req.params.id, instructor: req.user.id }).populate('course');
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+    if (assignment.status === 'active') return res.status(400).json({ message: 'Already sent' });
     const Enrollment = require('../models/Enrollment');
-    const enrollments = await Enrollment.find({ 
-      course: assignment.course._id,
-      status: 'active' // Only active enrollments
-    }).populate('user', 'name email');
-    
-    const enrolledStudents = enrollments.map(e => e.user);
-    const enrolledStudentCount = enrolledStudents.length;
-
-    if (enrolledStudentCount === 0) {
-      return res.status(400).json({ message: 'No students are enrolled in this course' });
-    }
-
-    // Update assignment status to active
+    const enrollments = await Enrollment.find({ course: assignment.course._id, status: 'active' });
+    const count = enrollments.length;
+    if (count === 0) return res.status(400).json({ message: 'No students enrolled' });
     assignment.status = 'active';
     assignment.sentAt = new Date();
-    assignment.sentToStudents = enrolledStudentCount;
+    assignment.sentToStudents = count;
     await assignment.save();
-
-    res.json({
-      success: true,
-      message: `Assignment sent to ${enrolledStudentCount} enrolled students successfully`,
-      assignment,
-      studentsCount: enrolledStudentCount
-    });
+    res.json({ success: true, message: `Assignment sent to ${count} students`, assignment, studentsCount: count });
   } catch (error) {
     console.error('Send assignment error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -220,32 +130,14 @@ router.post('/:id/send', auth, async (req, res) => {
 });
 
 // @route   GET /api/assignments/student
-// @desc    Get assignments for student
-// @access  Private (Student)
 router.get('/student', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'student') {
-      return res.status(403).json({ message: 'Access denied. Student role required.' });
-    }
-
+    if (req.user.role !== 'student') return res.status(403).json({ message: 'Access denied.' });
     const Enrollment = require('../models/Enrollment');
-    
-    // Get all student's enrolled courses regardless of status
-    const enrollments = await Enrollment.find({ 
-      user: req.user.id
-    }).populate('course');
+    const enrollments = await Enrollment.find({ user: req.user.id }).populate('course');
     const courseIds = enrollments.map(e => e.course._id);
-
-    // Get assignments for enrolled courses
-    const assignments = await Assignment.find({
-      course: { $in: courseIds },
-      status: 'active'
-    })
-    .populate('course', 'title')
-    .populate('instructor', 'name')
-    .sort({ createdAt: -1 });
-
-    // Add submission status for each assignment
+    const assignments = await Assignment.find({ course: { $in: courseIds }, status: 'active' })
+      .populate('course', 'title').populate('instructor', 'name').sort({ createdAt: -1 });
     const assignmentsWithStatus = assignments.map(assignment => {
       const submission = assignment.submissions.find(s => s.student.toString() === req.user.id);
       return {
@@ -254,11 +146,7 @@ router.get('/student', auth, async (req, res) => {
         submission: submission || null
       };
     });
-
-    res.json({
-      success: true,
-      assignments: assignmentsWithStatus
-    });
+    res.json({ success: true, assignments: assignmentsWithStatus });
   } catch (error) {
     console.error('Get student assignments error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -266,66 +154,24 @@ router.get('/student', auth, async (req, res) => {
 });
 
 // @route   POST /api/assignments/:id/submit
-// @desc    Submit assignment (student)
-// @access  Private (Student)
-router.post('/:id/submit', auth, upload.single('file'), async (req, res) => {
+router.post('/:id/submit', auth, uploadSubmission.single('file'), async (req, res) => {
   try {
-    if (req.user.role !== 'student') {
-      return res.status(403).json({ message: 'Access denied. Student role required.' });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ message: 'File is required' });
-    }
-
+    if (req.user.role !== 'student') return res.status(403).json({ message: 'Access denied.' });
+    if (!req.file) return res.status(400).json({ message: 'File is required' });
     const assignment = await Assignment.findById(req.params.id);
-    if (!assignment) {
-      return res.status(404).json({ message: 'Assignment not found' });
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+    if (assignment.status !== 'active') return res.status(400).json({ message: 'Assignment is not active' });
+    if (new Date() > assignment.dueDate) return res.status(400).json({ message: 'Deadline has passed' });
+    if (assignment.submissions.find(s => s.student.toString() === req.user.id)) {
+      return res.status(400).json({ message: 'Already submitted' });
     }
-
-    // Check if assignment is still active and not overdue
-    if (assignment.status !== 'active') {
-      return res.status(400).json({ message: 'Assignment is not active' });
-    }
-
-    if (new Date() > assignment.dueDate) {
-      return res.status(400).json({ message: 'Assignment deadline has passed' });
-    }
-
-    // Check if student already submitted
-    const existingSubmission = assignment.submissions.find(s => s.student.toString() === req.user.id);
-    if (existingSubmission) {
-      return res.status(400).json({ message: 'You have already submitted this assignment' });
-    }
-
-    // Upload file to cloudinary
-    const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        { resource_type: 'auto', folder: 'assignment-submissions' },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      ).end(req.file.buffer);
-    });
-
-    // Add submission to assignment
+    const fileUrl = `${getBaseUrl(req)}/uploads/submissions/${req.file.filename}`;
     assignment.submissions.push({
       student: req.user.id,
-      file: {
-        fileName: req.file.originalname,
-        fileUrl: result.secure_url,
-        fileType: req.file.mimetype,
-        fileSize: req.file.size
-      }
+      file: { fileName: req.file.originalname, fileUrl, fileType: req.file.mimetype, fileSize: req.file.size }
     });
-
     await assignment.save();
-
-    res.json({
-      success: true,
-      message: 'Assignment submitted successfully'
-    });
+    res.json({ success: true, message: 'Assignment submitted successfully' });
   } catch (error) {
     console.error('Submit assignment error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -333,87 +179,39 @@ router.post('/:id/submit', auth, upload.single('file'), async (req, res) => {
 });
 
 // @route   PUT /api/assignments/:assignmentId/grade/:submissionId
-// @desc    Grade assignment submission (instructor)
-// @access  Private (Instructor)
 router.put('/:assignmentId/grade/:submissionId', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'instructor') {
-      return res.status(403).json({ message: 'Access denied. Instructor role required.' });
-    }
-
+    if (req.user.role !== 'instructor') return res.status(403).json({ message: 'Access denied.' });
     const { grade, feedback } = req.body;
-
-    const assignment = await Assignment.findOne({
-      _id: req.params.assignmentId,
-      instructor: req.user.id
-    });
-
-    if (!assignment) {
-      return res.status(404).json({ message: 'Assignment not found' });
-    }
-
-    const totalMarks = assignment.totalMarks || 100;
-    
-    if (grade === undefined || grade < 0 || grade > totalMarks) {
-      return res.status(400).json({ message: `Valid grade (0-${totalMarks}) is required` });
-    }
-
+    const assignment = await Assignment.findOne({ _id: req.params.assignmentId, instructor: req.user.id });
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
     const submission = assignment.submissions.id(req.params.submissionId);
-    if (!submission) {
-      return res.status(404).json({ message: 'Submission not found' });
-    }
-
-    // Update submission with grade
+    if (!submission) return res.status(404).json({ message: 'Submission not found' });
     submission.grade = grade;
     submission.feedback = feedback || '';
     submission.gradedAt = new Date();
     submission.gradedBy = req.user.id;
-
     await assignment.save();
-
-    res.json({
-      success: true,
-      message: 'Assignment graded successfully'
-    });
+    res.json({ success: true, message: 'Graded successfully' });
   } catch (error) {
     console.error('Grade assignment error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// @route   GET /api/assignments/:assignmentId/download/:submissionId
-// @desc    Download submission file (proxied through backend)
-// @access  Private (Instructor)
+// @route   GET /api/assignments/:assignmentId/download/:submissionId (instructor)
 router.get('/:assignmentId/download/:submissionId', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'instructor') {
-      return res.status(403).json({ message: 'Access denied. Instructor role required.' });
-    }
-
-    const assignment = await Assignment.findOne({
-      _id: req.params.assignmentId,
-      instructor: req.user.id
-    });
-
-    if (!assignment) {
-      return res.status(404).json({ message: 'Assignment not found' });
-    }
-
+    if (req.user.role !== 'instructor') return res.status(403).json({ message: 'Access denied.' });
+    const assignment = await Assignment.findOne({ _id: req.params.assignmentId, instructor: req.user.id });
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
     const submission = assignment.submissions.id(req.params.submissionId);
-    if (!submission || !submission.file) {
-      return res.status(404).json({ message: 'Submission file not found' });
-    }
-
-    const axios = require('axios');
-    const fileResponse = await axios.get(submission.file.fileUrl, { responseType: 'stream' });
-
+    if (!submission?.file) return res.status(404).json({ message: 'Submission file not found' });
+    const filePath = path.join(__dirname, '../uploads/submissions', path.basename(submission.file.fileUrl));
+    if (!fs.existsSync(filePath)) return res.status(404).json({ message: 'File not found on server' });
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(submission.file.fileName)}"`);
-    res.setHeader('Content-Type', submission.file.fileType || fileResponse.headers['content-type'] || 'application/octet-stream');
-    if (fileResponse.headers['content-length']) {
-      res.setHeader('Content-Length', fileResponse.headers['content-length']);
-    }
-
-    fileResponse.data.pipe(res);
+    res.setHeader('Content-Type', submission.file.fileType || 'application/octet-stream');
+    res.sendFile(filePath);
   } catch (error) {
     console.error('Download submission error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -421,110 +219,58 @@ router.get('/:assignmentId/download/:submissionId', auth, async (req, res) => {
 });
 
 // @route   GET /api/assignments/file-info/:assignmentId
-// @desc    Get assignment file info (URL) for viewing
-// @access  Private
 router.get('/file-info/:assignmentId', auth, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.assignmentId);
-    if (!assignment || !assignment.file) {
-      return res.status(404).json({ message: 'Assignment file not found' });
-    }
-    res.json({
-      success: true,
-      file: {
-        url: assignment.file.fileUrl,
-        fileName: assignment.file.fileName,
-        fileType: assignment.file.fileType,
-        fileSize: assignment.file.fileSize
-      }
-    });
+    if (!assignment?.file) return res.status(404).json({ message: 'Assignment file not found' });
+    res.json({ success: true, file: { url: assignment.file.fileUrl, fileName: assignment.file.fileName, fileType: assignment.file.fileType, fileSize: assignment.file.fileSize } });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
 });
 
 // @route   GET /api/assignments/submission-info/:assignmentId
-// @desc    Get student's own submission file info (URL) for viewing
-// @access  Private (Student)
 router.get('/submission-info/:assignmentId', auth, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.assignmentId);
     if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
     const submission = assignment.submissions.find(s => s.student.toString() === req.user.id);
-    if (!submission || !submission.file) return res.status(404).json({ message: 'Submission not found' });
-    res.json({
-      success: true,
-      file: {
-        url: submission.file.fileUrl,
-        fileName: submission.file.fileName,
-        fileType: submission.file.fileType,
-        fileSize: submission.file.fileSize
-      }
-    });
+    if (!submission?.file) return res.status(404).json({ message: 'Submission not found' });
+    res.json({ success: true, file: { url: submission.file.fileUrl, fileName: submission.file.fileName, fileType: submission.file.fileType, fileSize: submission.file.fileSize } });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// @route   GET /api/assignments/download/:assignmentId
-// @desc    Download assignment file (proxied through backend)
-// @access  Private (Student or Instructor)
+// @route   GET /api/assignments/download/:assignmentId (student or instructor)
 router.get('/download/:assignmentId', auth, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.assignmentId);
-    if (!assignment) {
-      return res.status(404).json({ message: 'Assignment not found' });
-    }
-
-    if (!assignment.file) {
-      return res.status(404).json({ message: 'Assignment file not found' });
-    }
-
-    const axios = require('axios');
-    const fileResponse = await axios.get(assignment.file.fileUrl, { responseType: 'stream' });
-
+    if (!assignment?.file) return res.status(404).json({ message: 'Assignment file not found' });
+    const filePath = path.join(__dirname, '../uploads/assignments', path.basename(assignment.file.fileUrl));
+    if (!fs.existsSync(filePath)) return res.status(404).json({ message: 'File not found on server' });
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(assignment.file.fileName)}"`);
-    res.setHeader('Content-Type', assignment.file.fileType || fileResponse.headers['content-type'] || 'application/octet-stream');
-    if (fileResponse.headers['content-length']) {
-      res.setHeader('Content-Length', fileResponse.headers['content-length']);
-    }
-
-    fileResponse.data.pipe(res);
+    res.setHeader('Content-Type', assignment.file.fileType || 'application/octet-stream');
+    res.sendFile(filePath);
   } catch (error) {
     console.error('Download assignment error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// @route   GET /api/assignments/download-submission/:assignmentId
-// @desc    Download student's own submission file (proxied through backend)
-// @access  Private (Student)
+// @route   GET /api/assignments/download-submission/:assignmentId (student)
 router.get('/download-submission/:assignmentId', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'student') {
-      return res.status(403).json({ message: 'Access denied. Student role required.' });
-    }
-
+    if (req.user.role !== 'student') return res.status(403).json({ message: 'Access denied.' });
     const assignment = await Assignment.findById(req.params.assignmentId);
-    if (!assignment) {
-      return res.status(404).json({ message: 'Assignment not found' });
-    }
-
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
     const submission = assignment.submissions.find(s => s.student.toString() === req.user.id);
-    if (!submission || !submission.file) {
-      return res.status(404).json({ message: 'Submission file not found' });
-    }
-
-    const axios = require('axios');
-    const fileResponse = await axios.get(submission.file.fileUrl, { responseType: 'stream' });
-
+    if (!submission?.file) return res.status(404).json({ message: 'Submission file not found' });
+    const filePath = path.join(__dirname, '../uploads/submissions', path.basename(submission.file.fileUrl));
+    if (!fs.existsSync(filePath)) return res.status(404).json({ message: 'File not found on server' });
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(submission.file.fileName)}"`);
-    res.setHeader('Content-Type', submission.file.fileType || fileResponse.headers['content-type'] || 'application/octet-stream');
-    if (fileResponse.headers['content-length']) {
-      res.setHeader('Content-Length', fileResponse.headers['content-length']);
-    }
-
-    fileResponse.data.pipe(res);
+    res.setHeader('Content-Type', submission.file.fileType || 'application/octet-stream');
+    res.sendFile(filePath);
   } catch (error) {
     console.error('Download submission error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -532,23 +278,15 @@ router.get('/download-submission/:assignmentId', auth, async (req, res) => {
 });
 
 // @route   DELETE /api/assignments/:id
-// @desc    Delete assignment
-// @access  Private (Instructor)
 router.delete('/:id', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'instructor') {
-      return res.status(403).json({ message: 'Access denied. Instructor role required.' });
+    if (req.user.role !== 'instructor') return res.status(403).json({ message: 'Access denied.' });
+    const assignment = await Assignment.findOneAndDelete({ _id: req.params.id, instructor: req.user.id });
+    if (assignment?.file?.fileUrl?.includes('/uploads/')) {
+      const filePath = path.join(__dirname, '../uploads/assignments', path.basename(assignment.file.fileUrl));
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
-
-    await Assignment.findOneAndDelete({
-      _id: req.params.id,
-      instructor: req.user.id
-    });
-
-    res.json({
-      success: true,
-      message: 'Assignment deleted successfully'
-    });
+    res.json({ success: true, message: 'Assignment deleted successfully' });
   } catch (error) {
     console.error('Delete assignment error:', error);
     res.status(500).json({ message: 'Server error' });

@@ -258,37 +258,37 @@ const InstructorDashboard = () => {
   };
 
   // Handle file download - uses assignmentId/submissionId to go through backend (avoids 401 on Cloudinary)
-  const handleDownloadFile = async (fileUrl, fileName, assignmentId = null, submissionId = null) => {
+  const handleDownloadFile = async (fileUrl, fileName, assignmentId = null, submissionId = null, fileType = null) => {
     try {
       setLoading(true);
-      let response;
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:9000';
+      let url;
       if (assignmentId && submissionId) {
-        // Instructor downloading a student submission
-        response = await assignmentAPI.downloadSubmissionBlob(assignmentId, submissionId);
+        url = `${baseUrl}/api/assignments/${assignmentId}/download/${submissionId}`;
       } else if (assignmentId) {
-        // Downloading the assignment file itself
-        response = await assignmentAPI.downloadAssignmentBlob(assignmentId);
+        url = `${baseUrl}/api/assignments/download/${assignmentId}`;
       } else {
-        // Fallback: direct fetch with auth token (for non-assignment files)
-        const token = localStorage.getItem('token');
         const res = await fetch(fileUrl, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error(`Failed to download file: ${res.status}`);
-        const arrayBuffer = await res.arrayBuffer();
-        const blob = new Blob([arrayBuffer], { type: res.headers.get('content-type') || 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
+        const blob = await res.blob();
+        const objUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = fileName;
+        a.href = objUrl; a.download = fileName;
         document.body.appendChild(a); a.click();
-        document.body.removeChild(a); URL.revokeObjectURL(url);
+        document.body.removeChild(a); URL.revokeObjectURL(objUrl);
         showNotification('success', 'Downloaded', `${fileName} downloaded successfully`);
         return;
       }
-      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
+      const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!response.ok) throw new Error('Download failed');
+      const arrayBuffer = await response.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: response.headers.get('content-type') || fileType || 'application/octet-stream' });
+      const objUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = fileName;
+      a.href = objUrl; a.download = fileName;
       document.body.appendChild(a); a.click();
-      document.body.removeChild(a); URL.revokeObjectURL(url);
+      document.body.removeChild(a); URL.revokeObjectURL(objUrl);
       showNotification('success', 'Downloaded', `${fileName} downloaded successfully`);
     } catch (error) {
       console.error('Download error:', error);
@@ -3164,7 +3164,9 @@ const InstructorDashboard = () => {
                         onClick={() => handleDownloadFile(
                           selectedAssignment.file.fileUrl,
                           selectedAssignment.file.fileName,
-                          selectedAssignment._id
+                          selectedAssignment._id,
+                          null,
+                          selectedAssignment.file.fileType
                         )}
                         className="ml-auto bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
                       >
@@ -3267,7 +3269,8 @@ const InstructorDashboard = () => {
                                   submission.file.fileUrl, 
                                   submission.file.fileName,
                                   selectedAssignment._id,
-                                  submission._id
+                                  submission._id,
+                                  submission.file.fileType
                                 )}
                                 className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-lg transition-colors"
                               >

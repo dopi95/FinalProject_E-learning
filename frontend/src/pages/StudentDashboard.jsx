@@ -245,19 +245,22 @@ const StudentDashboard = () => {
   };
 
   // Handle assignment file download
-  const handleDownloadAssignmentFile = async (assignmentId, fileName) => {
+  const handleDownloadAssignmentFile = async (assignmentId, fileName, fileType) => {
     try {
       setLoading(true);
-      const response = await assignmentAPI.downloadAssignmentBlob(assignmentId);
-      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/octet-stream' });
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:9000';
+      const response = await fetch(`${baseUrl}/api/assignments/download/${assignmentId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error('Download failed');
+      const arrayBuffer = await response.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: response.headers.get('content-type') || fileType || 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      a.href = url; a.download = fileName;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
       showNotification('success', 'Downloaded', `${fileName} downloaded successfully`);
     } catch (error) {
       console.error('Download error:', error);
@@ -268,19 +271,22 @@ const StudentDashboard = () => {
   };
 
   // Handle submission file download
-  const handleDownloadSubmissionFile = async (assignmentId, fileName) => {
+  const handleDownloadSubmissionFile = async (assignmentId, fileName, fileType) => {
     try {
       setLoading(true);
-      const response = await assignmentAPI.downloadStudentSubmissionBlob(assignmentId);
-      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/octet-stream' });
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:9000';
+      const response = await fetch(`${baseUrl}/api/assignments/download-submission/${assignmentId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error('Download failed');
+      const arrayBuffer = await response.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: response.headers.get('content-type') || fileType || 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      a.href = url; a.download = fileName;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
       showNotification('success', 'Downloaded', `${fileName} downloaded successfully`);
     } catch (error) {
       console.error('Download error:', error);
@@ -1980,7 +1986,7 @@ const renderPayments = () => (
                         
                         {assignment.file && (
                           <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadAssignmentFile(assignment._id, assignment.file.fileName); }}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadAssignmentFile(assignment._id, assignment.file.fileName, assignment.file.fileType); }}
                             className="bg-green-600 hover:bg-green-700 text-white py-2.5 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
                             type="button" title="Download File"
                           >
@@ -2069,7 +2075,7 @@ const renderPayments = () => (
                           
                           {assignment.file && (
                             <button
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadAssignmentFile(assignment._id, assignment.file.fileName); }}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadAssignmentFile(assignment._id, assignment.file.fileName, assignment.file.fileType); }}
                               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                               type="button"
                             >
@@ -2144,7 +2150,7 @@ const renderPayments = () => (
                         {selectedAssignment.submission && selectedAssignment.submission.file && (
                           <div className="flex flex-wrap gap-2 mt-1">
                             <button
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadSubmissionFile(selectedAssignment._id, selectedAssignment.submission.file.fileName); }}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadSubmissionFile(selectedAssignment._id, selectedAssignment.submission.file.fileName, selectedAssignment.submission.file.fileType); }}
                               className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
                               type="button"
                             >
