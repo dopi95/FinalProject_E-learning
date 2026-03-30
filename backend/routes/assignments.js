@@ -382,7 +382,7 @@ router.put('/:assignmentId/grade/:submissionId', auth, async (req, res) => {
 });
 
 // @route   GET /api/assignments/:assignmentId/download/:submissionId
-// @desc    Download submission file
+// @desc    Download submission file (proxied through backend)
 // @access  Private (Instructor)
 router.get('/:assignmentId/download/:submissionId', auth, async (req, res) => {
   try {
@@ -404,55 +404,31 @@ router.get('/:assignmentId/download/:submissionId', auth, async (req, res) => {
       return res.status(404).json({ message: 'Submission file not found' });
     }
 
-    // Set proper headers for file download
-    const fileName = submission.file.fileName;
-    const fileType = submission.file.fileType || 'application/octet-stream';
-    
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    res.setHeader('Content-Type', fileType);
-    
-    // Return file info for frontend to handle download
-    res.json({
-      success: true,
-      file: {
-        url: submission.file.fileUrl,
-        fileName: submission.file.fileName,
-        fileType: submission.file.fileType,
-        fileSize: submission.file.fileSize
-      }
-    });
+    const axios = require('axios');
+    const fileResponse = await axios.get(submission.file.fileUrl, { responseType: 'stream' });
+
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(submission.file.fileName)}"`);
+    res.setHeader('Content-Type', submission.file.fileType || fileResponse.headers['content-type'] || 'application/octet-stream');
+    if (fileResponse.headers['content-length']) {
+      res.setHeader('Content-Length', fileResponse.headers['content-length']);
+    }
+
+    fileResponse.data.pipe(res);
   } catch (error) {
     console.error('Download submission error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// @route   GET /api/assignments/download/:assignmentId
-// @desc    Download assignment file (student)
-// @access  Private (Student)
-router.get('/download/:assignmentId', auth, async (req, res) => {
+// @route   GET /api/assignments/file-info/:assignmentId
+// @desc    Get assignment file info (URL) for viewing
+// @access  Private
+router.get('/file-info/:assignmentId', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'student') {
-      return res.status(403).json({ message: 'Access denied. Student role required.' });
-    }
-
     const assignment = await Assignment.findById(req.params.assignmentId);
-    if (!assignment) {
-      return res.status(404).json({ message: 'Assignment not found' });
-    }
-
-    if (!assignment.file) {
+    if (!assignment || !assignment.file) {
       return res.status(404).json({ message: 'Assignment file not found' });
     }
-
-    // Set proper headers for file download
-    const fileName = assignment.file.fileName;
-    const fileType = assignment.file.fileType || 'application/octet-stream';
-    
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    res.setHeader('Content-Type', fileType);
-    
-    // Return file info for frontend to handle download
     res.json({
       success: true,
       file: {
@@ -463,13 +439,65 @@ router.get('/download/:assignmentId', auth, async (req, res) => {
       }
     });
   } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/assignments/submission-info/:assignmentId
+// @desc    Get student's own submission file info (URL) for viewing
+// @access  Private (Student)
+router.get('/submission-info/:assignmentId', auth, async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.assignmentId);
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+    const submission = assignment.submissions.find(s => s.student.toString() === req.user.id);
+    if (!submission || !submission.file) return res.status(404).json({ message: 'Submission not found' });
+    res.json({
+      success: true,
+      file: {
+        url: submission.file.fileUrl,
+        fileName: submission.file.fileName,
+        fileType: submission.file.fileType,
+        fileSize: submission.file.fileSize
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/assignments/download/:assignmentId
+// @desc    Download assignment file (proxied through backend)
+// @access  Private (Student or Instructor)
+router.get('/download/:assignmentId', auth, async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.assignmentId);
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    if (!assignment.file) {
+      return res.status(404).json({ message: 'Assignment file not found' });
+    }
+
+    const axios = require('axios');
+    const fileResponse = await axios.get(assignment.file.fileUrl, { responseType: 'stream' });
+
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(assignment.file.fileName)}"`);
+    res.setHeader('Content-Type', assignment.file.fileType || fileResponse.headers['content-type'] || 'application/octet-stream');
+    if (fileResponse.headers['content-length']) {
+      res.setHeader('Content-Length', fileResponse.headers['content-length']);
+    }
+
+    fileResponse.data.pipe(res);
+  } catch (error) {
     console.error('Download assignment error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
 // @route   GET /api/assignments/download-submission/:assignmentId
-// @desc    Download student's own submission file
+// @desc    Download student's own submission file (proxied through backend)
 // @access  Private (Student)
 router.get('/download-submission/:assignmentId', auth, async (req, res) => {
   try {
@@ -482,29 +510,21 @@ router.get('/download-submission/:assignmentId', auth, async (req, res) => {
       return res.status(404).json({ message: 'Assignment not found' });
     }
 
-    // Find student's own submission
     const submission = assignment.submissions.find(s => s.student.toString() === req.user.id);
     if (!submission || !submission.file) {
       return res.status(404).json({ message: 'Submission file not found' });
     }
 
-    // Set proper headers for file download
-    const fileName = submission.file.fileName;
-    const fileType = submission.file.fileType || 'application/octet-stream';
-    
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    res.setHeader('Content-Type', fileType);
-    
-    // Return file info for frontend to handle download
-    res.json({
-      success: true,
-      file: {
-        url: submission.file.fileUrl,
-        fileName: submission.file.fileName,
-        fileType: submission.file.fileType,
-        fileSize: submission.file.fileSize
-      }
-    });
+    const axios = require('axios');
+    const fileResponse = await axios.get(submission.file.fileUrl, { responseType: 'stream' });
+
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(submission.file.fileName)}"`);
+    res.setHeader('Content-Type', submission.file.fileType || fileResponse.headers['content-type'] || 'application/octet-stream');
+    if (fileResponse.headers['content-length']) {
+      res.setHeader('Content-Length', fileResponse.headers['content-length']);
+    }
+
+    fileResponse.data.pipe(res);
   } catch (error) {
     console.error('Download submission error:', error);
     res.status(500).json({ message: 'Server error' });

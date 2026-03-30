@@ -3161,19 +3161,15 @@ const InstructorDashboard = () => {
                         </p>
                       </div>
                       <button
-                        onClick={() => {
-                          handleViewFile(
-                            selectedAssignment.file.fileUrl,
-                            selectedAssignment.file.fileName,
-                            selectedAssignment.file.fileType,
-                            selectedAssignment._id
-                          );
-                          setShowAssignmentDetail(false);
-                        }}
-                        className="ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                        onClick={() => handleDownloadFile(
+                          selectedAssignment.file.fileUrl,
+                          selectedAssignment.file.fileName,
+                          selectedAssignment._id
+                        )}
+                        className="ml-auto bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
                       >
-                        <Eye className="h-4 w-4" />
-                        View File
+                        <Download className="h-4 w-4" />
+                        Download File
                       </button>
                     </div>
                   </div>
@@ -3266,19 +3262,6 @@ const InstructorDashboard = () => {
                           </p>
                           {submission.file && (
                             <div className="mt-2 flex items-center gap-2">
-                              <button
-                                onClick={() => handleViewFile(
-                                  submission.file.fileUrl, 
-                                  submission.file.fileName, 
-                                  submission.file.fileType,
-                                  selectedAssignment._id,
-                                  submission._id
-                                )}
-                                className="inline-flex items-center gap-2 text-green-600 hover:text-green-700 text-sm bg-green-50 hover:bg-green-100 px-3 py-1 rounded-lg transition-colors"
-                              >
-                                <Eye className="h-4 w-4" />
-                                View File
-                              </button>
                               <button
                                 onClick={() => handleDownloadFile(
                                   submission.file.fileUrl, 

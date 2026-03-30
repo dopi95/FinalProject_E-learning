@@ -194,47 +194,7 @@ const StudentDashboard = () => {
       setLoading(false);
     }
   };
-      let viewUrl = url, type = 'file';
-      if (fileType?.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf')) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'pdf'; }
-      else if (fileType?.includes('word') || fileName?.toLowerCase().match(/\.docx?$/)) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
-      else if (fileType?.includes('powerpoint') || fileName?.toLowerCase().match(/\.pptx?$/)) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
-      else if (fileType?.includes('image') || fileName?.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/)) { type = 'image'; }
-      else if (fileName?.toLowerCase().match(/\.(mp4|webm|mov|avi)$/)) { type = 'video'; }
-      else if (fileName?.toLowerCase().match(/\.(txt|csv|json|xml)$/)) { type = 'text'; }
-      else { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
-      setFileViewerData({ url: viewUrl, originalUrl: url, fileName, type });
-      setShowFileViewer(true);
-    } catch (error) {
-      showNotification('error', 'View Failed', error.message || 'Failed to open file');
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  // Handle submission file view
-  const handleViewSubmissionFile = async (assignmentId, fileName, fileType) => {
-    try {
-      setLoading(true);
-      const response = await assignmentAPI.downloadStudentSubmission(assignmentId);
-      const url = response.data.file.url;
-      let viewUrl = url, type = 'file';
-      if (fileType?.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf')) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'pdf'; }
-      else if (fileType?.includes('word') || fileName?.toLowerCase().match(/\.docx?$/)) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
-      else if (fileType?.includes('powerpoint') || fileName?.toLowerCase().match(/\.pptx?$/)) { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
-      else if (fileType?.includes('image') || fileName?.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/)) { type = 'image'; }
-      else if (fileName?.toLowerCase().match(/\.(mp4|webm|mov|avi)$/)) { type = 'video'; }
-      else if (fileName?.toLowerCase().match(/\.(txt|csv|json|xml)$/)) { type = 'text'; }
-      else { viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`; type = 'office'; }
-      setFileViewerData({ url: viewUrl, originalUrl: url, fileName, type });
-      setShowFileViewer(true);
-    } catch (error) {
-      showNotification('error', 'View Failed', error.message || 'Failed to open file');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Play notification sound
   // Handle file download
   const handleDownloadFile = async (fileUrl, fileName) => {
     try {
@@ -1987,7 +1947,7 @@ const renderPayments = () => (
                             'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
                           }`}>
                             <Award className="h-4 w-4 mr-2" />
-                            Grade: {assignment.submission.grade}/{assignment.totalMarks || 100}
+                            Grade: {assignment.submission.grade}/{assignment.weightMarks || assignment.totalMarks || 100}
                           </div>
                         </div>
                       )}
@@ -2019,22 +1979,13 @@ const renderPayments = () => (
                         )}
                         
                         {assignment.file && (
-                          <>
-                            <button
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleViewAssignmentFile(assignment._id, assignment.file.fileName, assignment.file.fileType); }}
-                              className="bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
-                              type="button" title="View File"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadAssignmentFile(assignment._id, assignment.file.fileName); }}
-                              className="bg-green-600 hover:bg-green-700 text-white py-2.5 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
-                              type="button" title="Download File"
-                            >
-                              <Download className="h-4 w-4" />
-                            </button>
-                          </>
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadAssignmentFile(assignment._id, assignment.file.fileName); }}
+                            className="bg-green-600 hover:bg-green-700 text-white py-2.5 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+                            type="button" title="Download File"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
                         )}
                       </div>
                     </div>
@@ -2084,7 +2035,7 @@ const renderPayments = () => (
                                   'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
                                 }`}>
                                   <Award className="h-4 w-4" />
-                                  <span className="text-sm font-medium">Grade: {assignment.submission.grade}/{assignment.totalMarks || 100}</span>
+                                  <span className="text-sm font-medium">Grade: {assignment.submission.grade}/{assignment.weightMarks || assignment.totalMarks || 100}</span>
                                 </div>
                               )}
                             </div>
@@ -2117,24 +2068,14 @@ const renderPayments = () => (
                           )}
                           
                           {assignment.file && (
-                            <>
-                              <button
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleViewAssignmentFile(assignment._id, assignment.file.fileName, assignment.file.fileType); }}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                                type="button"
-                              >
-                                <Eye className="h-4 w-4" />
-                                View
-                              </button>
-                              <button
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadAssignmentFile(assignment._id, assignment.file.fileName); }}
-                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                                type="button"
-                              >
-                                <Download className="h-4 w-4" />
-                                Download
-                              </button>
-                            </>
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadAssignmentFile(assignment._id, assignment.file.fileName); }}
+                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                              type="button"
+                            >
+                              <Download className="h-4 w-4" />
+                              Download
+                            </button>
                           )}
                         </div>
                       </div>
@@ -2203,14 +2144,6 @@ const renderPayments = () => (
                         {selectedAssignment.submission && selectedAssignment.submission.file && (
                           <div className="flex flex-wrap gap-2 mt-1">
                             <button
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleViewSubmissionFile(selectedAssignment._id, selectedAssignment.submission.file.fileName, selectedAssignment.submission.file.fileType); }}
-                              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
-                              type="button"
-                            >
-                              <Eye className="h-4 w-4" />
-                              View Submission
-                            </button>
-                            <button
                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadSubmissionFile(selectedAssignment._id, selectedAssignment.submission.file.fileName); }}
                               className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
                               type="button"
@@ -2228,7 +2161,7 @@ const renderPayments = () => (
                               selectedAssignment.submission.grade >= 60 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
                               'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
                             }`}>
-                              Grade: {selectedAssignment.submission.grade}/100
+                              Grade: {selectedAssignment.submission.grade}/{selectedAssignment.weightMarks || selectedAssignment.totalMarks || 100}
                             </div>
                             {selectedAssignment.submission.feedback && (
                               <div className="mt-2">

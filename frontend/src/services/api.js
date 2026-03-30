@@ -570,12 +570,12 @@ export const assignmentAPI = {
     api.get(`/assignments/${assignmentId}/download/${submissionId}`),
   
   // Download assignment file as blob (student)
-  downloadAssignment: (assignmentId) => 
-    api.get(`/assignments/download/${assignmentId}`),
+  downloadAssignment: (assignmentId) =>
+    api.get(`/assignments/file-info/${assignmentId}`),
   
-  // Download student's own submission file
-  downloadStudentSubmission: (assignmentId) => 
-    api.get(`/assignments/download-submission/${assignmentId}`),
+  // Get student's own submission file info for viewing
+  downloadStudentSubmission: (assignmentId) =>
+    api.get(`/assignments/submission-info/${assignmentId}`),
 
   // Download assignment file as blob directly from backend
   downloadAssignmentBlob: (assignmentId) =>
