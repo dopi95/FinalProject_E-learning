@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aau-elearning-v5';
+const CACHE_NAME = 'aau-elearning-v6';
 const urlsToCache = [
   '/',
   '/assets/images/aaulogo.png'
