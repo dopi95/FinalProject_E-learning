@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://www.aau.edu.et/wp-content/uploads/2021/03/AAU-Logo.png" alt="Addis Ababa University Logo" width="120"/>
+  <img src="frontend/public/assets/images/aaulogo.png" alt="Addis Ababa University Logo" width="120"/>
 </p>
 
 <h1 align="center">AAU E-Learning System</h1>
@@ -7,7 +7,7 @@
 <p align="center">
   <strong>Addis Ababa University — School of Commerce</strong><br/>
   Department of Business and Information Systems (BAIS)<br/>
-  Final Year Project — 2024/2025
+  Final Year Project — 2025/2026
 </p>
 
 <p align="center">
@@ -40,7 +40,7 @@ The platform is powered by the **MERN stack** and integrates **Groq AI (LLaMA 3.
 
 > **Institution:** Addis Ababa University, School of Commerce  
 > **Program:** Bachelor of Arts in Information Systems (BAIS)  
-> **Academic Year:** 2024/2025
+> **Academic Year:** 2025/2026
 
 ---
 
@@ -254,5 +254,5 @@ This project was developed for academic purposes at **Addis Ababa University, Sc
 ---
 
 <p align="center">
-  Made with ❤️ by BAIS Students — Addis Ababa University, School of Commerce &nbsp;|&nbsp; 2024/2025
+  Made with ❤️ by BAIS Students — Addis Ababa University, School of Commerce &nbsp;|&nbsp; 2025/2026
 </p>
