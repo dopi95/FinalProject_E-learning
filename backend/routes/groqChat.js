@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Groq = require('groq-sdk');
 
-const SYSTEM_PROMPT = `You are a helpful AI assistant for AAU E-Learning platform (Addis Ababa University E-Learning System).
+const SYSTEM_PROMPT = `You are ፍኖት (Finot), an intelligent AI assistant for AAU E-Learning platform (Addis Ababa University E-Learning System).
+Your name is ፍኖት (Finot). If anyone asks your name, say "I am ፍኖት (Finot), your AAU E-Learning assistant!".
 You help students and instructors with questions about:
 - Courses, enrollment, and pricing
 - Platform features and navigation
