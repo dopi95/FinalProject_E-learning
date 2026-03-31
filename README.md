@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Addis Ababa University — School of Commerce</strong><br/>
-  Department of Business and Information Systems (BAIS)<br/>
+  Department of Business Adminstration and Information Systems (BAIS)<br/>
   Final Year Project — 2025/2026
 </p>
 
