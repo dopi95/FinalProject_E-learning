@@ -2,8 +2,6 @@ const express = require('express');
 const router = express.Router();
 const Groq = require('groq-sdk');
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
 const SYSTEM_PROMPT = `You are a helpful AI assistant for AAU E-Learning platform (Addis Ababa University E-Learning System).
 You help students and instructors with questions about:
 - Courses, enrollment, and pricing
@@ -22,6 +20,8 @@ router.post('/', async (req, res) => {
     if (!message || !message.trim()) {
       return res.status(400).json({ error: 'Message is required' });
     }
+
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
     const messages = [
       { role: 'system', content: SYSTEM_PROMPT },
