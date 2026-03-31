@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Send, Bot, MessageSquare, History, Trash2, Edit2, Plus, Clock } from 'lucide-react';
-import { chatHistoryAPI } from '../services/api';
+import { chatHistoryAPI, groqChatAPI } from '../services/api';
 
 // Add custom styles
 const chatbotStyles = `
@@ -281,34 +281,6 @@ const Chatbot = ({ showIcons = true }) => {
     }
   }, [isOpen, t, currentSessionId, isLoggedIn, showHistory]);
 
-  const generateResponse = (userMessage) => {
-    const message = userMessage.toLowerCase();
-    
-    if (message.includes('course') || message.includes('ኮርስ')) {
-      return 'We offer various courses including React Development, UI/UX Design, and Digital Marketing. You can browse all courses on our courses page. Would you like to know more about a specific course?';
-    }
-    if (message.includes('price') || message.includes('cost') || message.includes('ዋጋ')) {
-      return 'Our courses are priced competitively. React Development is 2,500 Birr, UI/UX Design is 1,800 Birr, and Digital Marketing is 3,200 Birr. All courses include lifetime access and certificates.';
-    }
-    if (message.includes('certificate') || message.includes('ሰርተፊኬት')) {
-      return 'Yes! All our courses include a certificate of completion. You\'ll receive your certificate after successfully finishing the course requirements.';
-    }
-    if (message.includes('instructor') || message.includes('አስተማሪ')) {
-      return 'Our courses are taught by experienced professionals including Dr. Sarah Johnson, Prof. Michael Chen, and Dr. Emily Rodriguez. All instructors provide direct support to students.';
-    }
-    if (message.includes('enroll') || message.includes('register') || message.includes('ይመዝገቡ')) {
-      return 'To enroll in a course, simply click the "Enroll Now" button on any course card. You can also view detailed course information before enrolling.';
-    }
-    if (message.includes('hello') || message.includes('hi') || message.includes('ሰላም')) {
-      return 'Hello! Welcome to AAU E-Learning. I\'m here to help you with any questions about our courses, enrollment, or platform features.';
-    }
-    if (message.includes('help') || message.includes('support') || message.includes('ረዳት')) {
-      return 'I\'m here to help! You can ask me about our courses, pricing, enrollment process, certificates, or any other questions about AAU E-Learning.';
-    }
-    
-    return 'Thank you for your question! For specific inquiries, please contact our support team or browse our courses to learn more. Is there anything specific about our courses I can help you with?';
-  };
-
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
 
@@ -319,32 +291,45 @@ const Chatbot = ({ showIcons = true }) => {
       timestamp: new Date()
     };
 
+    const currentInput = inputMessage;
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsTyping(true);
 
-    // Save user message if logged in
     if (isLoggedIn && currentSessionId) {
       await saveChatMessage(userMessage);
     }
 
-    // Simulate AI response delay
-    setTimeout(async () => {
+    try {
+      // Build conversation history for context
+      const history = messages
+        .filter(m => !m.animated)
+        .slice(-10)
+        .map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }));
+
+      const response = await groqChatAPI.sendMessage(currentInput, history);
       const botResponse = {
         id: Date.now() + 1,
-        text: generateResponse(inputMessage),
+        text: response.data.reply,
         sender: 'bot',
         timestamp: new Date()
       };
-      
+
       setMessages(prev => [...prev, botResponse]);
-      setIsTyping(false);
-      
-      // Save bot response if logged in
       if (isLoggedIn && currentSessionId) {
         await saveChatMessage(botResponse);
       }
-    }, 1500);
+    } catch (error) {
+      const errorResponse = {
+        id: Date.now() + 1,
+        text: 'Sorry, I am having trouble connecting. Please try again.',
+        sender: 'bot',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const handleKeyPress = (e) => {

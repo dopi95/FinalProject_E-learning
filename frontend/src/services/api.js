@@ -623,4 +623,9 @@ export const gradeAPI = {
   getCourseGrades: (courseId) => api.get(`/grades/course/${courseId}`),
 };
 
+// Groq AI Chat API
+export const groqChatAPI = {
+  sendMessage: (message, history = []) => api.post('/groq-chat', { message, history }),
+};
+
 export default api;

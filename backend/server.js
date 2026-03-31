@@ -116,6 +116,9 @@ app.use('/api/attendance', require('./routes/attendance'));
 // Grades routes
 app.use('/api/grades', require('./routes/grades'));
 
+// Groq AI Chat route
+app.use('/api/groq-chat', require('./routes/groqChat'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
