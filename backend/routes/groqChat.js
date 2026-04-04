@@ -40,7 +40,10 @@ router.post('/', async (req, res) => {
     const reply = completion.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
     res.json({ reply });
   } catch (error) {
-    console.error('Groq API error:', error.message);
+    console.error('Groq API error:', error?.message || error);
+    if (!process.env.GROQ_API_KEY) {
+      return res.status(500).json({ error: 'GROQ_API_KEY is not configured on the server.' });
+    }
     res.status(500).json({ error: 'AI service unavailable. Please try again.' });
   }
 });
