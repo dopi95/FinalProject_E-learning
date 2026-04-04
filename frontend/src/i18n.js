@@ -65,7 +65,8 @@ const resources = {
         registrationPeriod: 'Registration Period',
         start: 'Start',
         end: 'End',
-        deadlineNote: 'Note: The final deadline date is {{date}}. After this date, the course will be closed.'
+        deadlineNote: 'Note: The final deadline date is {{date}}. After this date, the course will be closed.',
+        certificateText: 'Certificate of Completion Awarded'
       },
       testimonials: {
         title: 'What Our Community Says',
@@ -345,7 +346,8 @@ const resources = {
         registrationPeriod: 'የምዝገባ ጊዜ',
         start: 'መጀመሪያ',
         end: 'መጨረሻ',
-        deadlineNote: 'ማስታወሻ: የመጨረሻ የመጨረሻ ቀን {{date}} ነው። ከዚህ ቀን በኋላ ኮርሱ ይዘጋል።'
+        deadlineNote: 'ማስታወሻ: የመጨረሻ የመጨረሻ ቀን {{date}} ነው። ከዚህ ቀን በኋላ ኮርሱ ይዘጋል።',
+        certificateText: 'የማጠናቀቂያ ሰርተፊኬት ይሰጣል'
       },
       testimonials: {
         title: 'የእኛ ማህበረሰብ ምን ይላል',
