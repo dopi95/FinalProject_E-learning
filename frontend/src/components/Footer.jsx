@@ -45,23 +45,6 @@ const Footer = () => {
             <p className="text-gray-600 dark:text-gray-300 mb-4">
               {t('footer.description')}
             </p>
-            <div className="flex space-x-4">
-              <a href="https://web.facebook.com/p/Addis-Ababa-University-100064311447035/?_rdc=1&_rdr" target="_blank" rel="noopener noreferrer">
-                <Facebook className="h-6 w-6 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors" />
-              </a>
-              <a href="https://t.me/aau_official" target="_blank" rel="noopener noreferrer">
-                <Send className="h-6 w-6 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors" />
-              </a>
-              <a href="https://www.instagram.com/aau_official_/" target="_blank" rel="noopener noreferrer">
-                <Instagram className="h-6 w-6 text-gray-600 dark:text-gray-400 hover:text-pink-500 dark:hover:text-pink-400 cursor-pointer transition-colors" />
-              </a>
-              <a href="https://www.linkedin.com/company/addis-ababa-university-official" target="_blank" rel="noopener noreferrer">
-                <Linkedin className="h-6 w-6 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors" />
-              </a>
-              <a href="https://www.youtube.com/@AddisAbabaUniversity-AAU" target="_blank" rel="noopener noreferrer">
-                <Youtube className="h-6 w-6 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 cursor-pointer transition-colors" />
-              </a>
-            </div>
           </div>
 
           <div>
@@ -107,9 +90,26 @@ const Footer = () => {
 
           <div>
             <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">{t('footer.followUs')}</h3>
-            <p className="text-gray-600 dark:text-gray-300 text-sm">
+            <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
               {t('footer.stayUpdated')}
             </p>
+            <div className="flex space-x-4">
+              <a href="https://web.facebook.com/p/Addis-Ababa-University-100064311447035/?_rdc=1&_rdr" target="_blank" rel="noopener noreferrer">
+                <Facebook className="h-6 w-6 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors" />
+              </a>
+              <a href="https://t.me/aau_official" target="_blank" rel="noopener noreferrer">
+                <Send className="h-6 w-6 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors" />
+              </a>
+              <a href="https://www.instagram.com/aau_official_/" target="_blank" rel="noopener noreferrer">
+                <Instagram className="h-6 w-6 text-gray-600 dark:text-gray-400 hover:text-pink-500 dark:hover:text-pink-400 cursor-pointer transition-colors" />
+              </a>
+              <a href="https://www.linkedin.com/company/addis-ababa-university-official" target="_blank" rel="noopener noreferrer">
+                <Linkedin className="h-6 w-6 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors" />
+              </a>
+              <a href="https://www.youtube.com/@AddisAbabaUniversity-AAU" target="_blank" rel="noopener noreferrer">
+                <Youtube className="h-6 w-6 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 cursor-pointer transition-colors" />
+              </a>
+            </div>
           </div>
         </div>
 
