@@ -423,14 +423,14 @@ const CourseDetail = () => {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                    <div className="flex items-center">
-                      <Globe className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                      <span className="break-words">{t('courses.online')}</span>
+                  <div className="flex items-center justify-center gap-4 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
+                    <div className="flex items-center gap-1">
+                      <Globe className="h-4 w-4 flex-shrink-0" />
+                      <span>Online</span>
                     </div>
-                    <div className="flex items-center">
-                      <Award className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                      <span className="break-words">{t('courses.certificateText')}</span>
+                    <div className="flex items-center gap-1">
+                      <Award className="h-4 w-4 flex-shrink-0 text-yellow-500" />
+                      <span>Certificate included</span>
                     </div>
                   </div>
 
