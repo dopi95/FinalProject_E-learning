@@ -303,19 +303,18 @@ const SuperAdminDashboard = () => {
       }
 
       setLoading(true);
-      
-      // Send only title and description as JSON (backend doesn't support video updates)
-      const updateData = {
-        title: reelForm.title,
-        description: reelForm.description
-      };
-      
+
+      const updateData = new FormData();
+      updateData.append('title', reelForm.title);
+      updateData.append('description', reelForm.description);
+      if (reelForm.video) updateData.append('video', reelForm.video);
+
       const response = await reelAPI.updateReel(editingReel._id, updateData);
-      
-      setReels(prev => prev.map(reel => 
+
+      setReels(prev => prev.map(reel =>
         reel._id === editingReel._id ? (response.data.reel || reel) : reel
       ));
-      
+
       setReelForm({ title: '', description: '', video: null });
       setShowEditReel(false);
       setEditingReel(null);
@@ -3823,7 +3822,7 @@ const SuperAdminDashboard = () => {
       {/* Edit Reel Modal - Perfect Mobile Responsive */}
       {showEditReel && editingReel && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-          <div className="bg-white dark:bg-gray-800 w-full sm:max-w-lg sm:w-full h-full sm:h-auto sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+          <div className="bg-white dark:bg-gray-800 w-full sm:max-w-lg sm:w-full max-h-[95vh] sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col">
             {/* Header - Fixed */}
             <div className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 p-4 sm:p-6 flex-shrink-0 sm:rounded-t-3xl">
               <div className="flex items-center justify-between">
@@ -3928,7 +3927,23 @@ const SuperAdminDashboard = () => {
                     <div className="flex items-start gap-2">
                       <span className="text-amber-600 text-sm">💡</span>
                       <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
-                        To change the video file, you'll need to delete this reel and upload a new one.
+                {/* Video File - Optional Replace */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    🎬 Replace Video File <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={handleReelVideoUpload}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {reelForm.video ? (
+                    <p className="text-xs text-green-600 dark:text-green-400">✅ New video selected: {reelForm.video.name}</p>
+                  ) : (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Leave empty to keep the current video.</p>
+                  )}
+                </div>
                       </p>
                     </div>
                   </div>

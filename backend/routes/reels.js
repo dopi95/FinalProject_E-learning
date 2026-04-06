@@ -184,7 +184,7 @@ router.post('/:id/view', optionalAuth, async (req, res) => {
 });
 
 // Update reel
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', auth, upload.single('video'), async (req, res) => {
   try {
     const { title, description } = req.body;
     const reel = await Reel.findById(req.params.id);
@@ -193,7 +193,6 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Reel not found' });
     }
 
-    // Check if user is admin/superadmin or the uploader
     if (req.user.role !== 'admin' && req.user.role !== 'superadmin' && reel.uploadedBy.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Not authorized to update this reel' });
     }
@@ -204,14 +203,24 @@ router.put('/:id', auth, async (req, res) => {
 
     reel.title = title;
     reel.description = description;
+
+    // If a new video file is provided, upload it to Cloudinary
+    if (req.file) {
+      const uploadResult = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { resource_type: 'video', folder: 'reels', quality: 'auto', format: 'mp4' },
+          (error, result) => { if (error) reject(error); else resolve(result); }
+        );
+        uploadStream.end(req.file.buffer);
+      });
+      reel.videoUrl = uploadResult.secure_url;
+      reel.thumbnailUrl = uploadResult.secure_url.replace('.mp4', '.jpg');
+    }
+
     await reel.save();
     await reel.populate('uploadedBy', 'name email');
 
-    res.json({
-      success: true,
-      message: 'Reel updated successfully',
-      reel
-    });
+    res.json({ success: true, message: 'Reel updated successfully', reel });
   } catch (error) {
     console.error('Update reel error:', error);
     res.status(500).json({ message: 'Failed to update reel' });
