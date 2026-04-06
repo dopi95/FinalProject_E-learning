@@ -23,14 +23,7 @@ const scrollbarHideStyle = `
   * {
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
     -webkit-overflow-scrolling: touch;
-  }
-  
-  input, textarea {
-    -webkit-user-select: text;
-    user-select: text;
   }
   
   /* Prevent horizontal scroll */
