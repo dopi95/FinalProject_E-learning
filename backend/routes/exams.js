@@ -138,11 +138,11 @@ router.post('/:id/submit', auth, async (req, res) => {
     try {
       const Notification = require('../models/Notification');
       await Notification.create({
-        user: exam.instructor._id,
+        sender: req.user._id,
+        recipients: [{ user: exam.instructor._id, read: false }],
         title: 'New Exam Submission',
         message: `${req.user.name} submitted "${exam.title}" - Score: ${score}/${exam.totalMarks} (${((score / exam.totalMarks) * 100).toFixed(1)}%)`,
-        type: 'info',
-        read: false
+        type: 'info'
       });
     } catch (notifError) {
       console.error('Notification error:', notifError);
@@ -174,11 +174,11 @@ router.patch('/:id/publish', auth, async (req, res) => {
       
       if (enrollments.length > 0) {
         const notifications = enrollments.map(enrollment => ({
-          user: enrollment.user._id,
+          sender: req.user._id,
+          recipients: [{ user: enrollment.user._id, read: false }],
           title: 'New Exam Available',
           message: `New exam "${exam.title}" is now available. Duration: ${exam.duration} min, Total Marks: ${exam.totalMarks}`,
-          type: 'info',
-          read: false
+          type: 'info'
         }));
         await Notification.insertMany(notifications);
       }

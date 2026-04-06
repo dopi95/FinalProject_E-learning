@@ -1,9 +1,12 @@
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 require('dotenv').config();
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 9000;
 
 // Middleware
@@ -18,6 +21,87 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use('/uploads', express.static(require('path').join(__dirname, 'uploads')));
+
+// Socket.io for WebRTC signaling
+const io = new Server(server, {
+  cors: {
+    origin: ['https://aau-e-learning.vercel.app', 'https://aau-elearning.vercel.app', 'http://localhost:3000', 'http://localhost:5173'],
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+// examId -> { studentId -> socketId }
+const examRooms = {};
+// socketId -> { examId, userId, role }
+const socketMeta = {};
+
+io.on('connection', (socket) => {
+  // Student joins exam room
+  socket.on('exam:join', ({ examId, userId }) => {
+    socket.join(`exam:${examId}`);
+    socketMeta[socket.id] = { examId, userId, role: 'student' };
+    if (!examRooms[examId]) examRooms[examId] = {};
+    examRooms[examId][userId] = socket.id;
+    // Notify instructors watching this exam
+    socket.to(`exam:${examId}:instructors`).emit('student:joined', { studentId: userId, studentSocketId: socket.id });
+    // If instructors are already watching, tell this student about them
+    const instrRoom = `exam:${examId}:instructors`;
+    const instrSockets = Object.entries(socketMeta)
+      .filter(([sid, meta]) => meta.examId === examId && meta.role === 'instructor')
+      .map(([sid]) => sid);
+    instrSockets.forEach(instrSocketId => {
+      socket.emit('instructor:watching', { instructorSocketId: instrSocketId });
+    });
+  });
+
+  // Instructor opens monitor for an exam
+  socket.on('instructor:watch', ({ examId, userId }) => {
+    socket.join(`exam:${examId}:instructors`);
+    socketMeta[socket.id] = { examId, userId, role: 'instructor' };
+    // Tell all students in this exam that instructor is watching
+    socket.to(`exam:${examId}`).emit('instructor:watching', { instructorSocketId: socket.id });
+    // Send list of currently connected students
+    const students = examRooms[examId] || {};
+    socket.emit('exam:students', { students: Object.entries(students).map(([sid, sockId]) => ({ studentId: sid, socketId: sockId })) });
+  });
+
+  // WebRTC signaling: student sends offer to instructor
+  socket.on('webrtc:offer', ({ targetSocketId, offer, studentId }) => {
+    io.to(targetSocketId).emit('webrtc:offer', { offer, studentId, fromSocketId: socket.id });
+  });
+
+  // Instructor requests student to send an offer (when student joins late)
+  socket.on('request:offer', ({ targetSocketId, instructorSocketId }) => {
+    io.to(targetSocketId).emit('instructor:watching', { instructorSocketId });
+  });
+
+  // WebRTC signaling: instructor sends answer to student
+  socket.on('webrtc:answer', ({ targetSocketId, answer, studentId }) => {
+    io.to(targetSocketId).emit('webrtc:answer', { answer, studentId, fromSocketId: socket.id });
+  });
+
+  // ICE candidate exchange
+  socket.on('webrtc:ice', ({ targetSocketId, candidate, studentId }) => {
+    io.to(targetSocketId).emit('webrtc:ice', { candidate, studentId, fromSocketId: socket.id });
+  });
+
+  // Student stream status update
+  socket.on('stream:status', ({ examId, studentId, camera, screen }) => {
+    socket.to(`exam:${examId}:instructors`).emit('stream:status', { studentId, camera, screen });
+  });
+
+  socket.on('disconnect', () => {
+    const meta = socketMeta[socket.id];
+    if (meta) {
+      if (meta.role === 'student' && examRooms[meta.examId]) {
+        delete examRooms[meta.examId][meta.userId];
+        io.to(`exam:${meta.examId}:instructors`).emit('student:left', { studentId: meta.userId });
+      }
+      delete socketMeta[socket.id];
+    }
+  });
+});
 
 // Connect to MongoDB
 connectDB();
@@ -119,6 +203,6 @@ app.use('/api/grades', require('./routes/grades'));
 // Groq AI Chat route
 app.use('/api/groq-chat', require('./routes/groqChat'));
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

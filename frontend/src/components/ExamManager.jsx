@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Edit, Trash2, Eye, X, CheckCircle, Clock, FileText, Users, Video, Monitor, VideoOff, MonitorOff } from 'lucide-react';
 import { examAPI } from '../services/api';
+import { io } from 'socket.io-client';
+
+const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:9000';
 
 const EMPTY_QUESTION = {
   question: '',
@@ -34,85 +37,143 @@ const ExamManager = ({ courses, showNotification }) => {
   const [controlModal, setControlModal] = useState(null);
   const [controlStudents, setControlStudents] = useState([]);
   const [controlLoading, setControlLoading] = useState(false);
+  const socketRef = useRef(null);
   const peerConnections = useRef({});
   const videoRefs = useRef({});
   const screenRefs = useRef({});
-  const [streamStatus, setStreamStatus] = useState({}); // { id: { camera: bool, screen: bool, online: bool } }
+  const streamCountRef = useRef({});
+  const [streamStatus, setStreamStatus] = useState({});
+  const instructorIdRef = useRef(null);
 
   useEffect(() => { fetchExams(); }, []);
 
-  // Poll stream status from backend every 5 seconds when monitor is open
+  // WebRTC: connect socket when monitor opens, disconnect when it closes
   useEffect(() => {
-    if (!controlModal) return;
+    if (!controlModal) {
+      // Cleanup
+      Object.values(peerConnections.current).forEach(pc => pc.close());
+      peerConnections.current = {};
+      if (socketRef.current) { socketRef.current.disconnect(); socketRef.current = null; }
+      return;
+    }
 
-    const attachStreams = (status) => {
-      Object.entries(status).forEach(([studentId, s]) => {
-        // Try to get live stream from window registry (same device)
-        const registry = window.__examStreams?.[studentId];
-        if (registry) {
-          if (registry.camera && videoRefs.current[studentId]) {
-            videoRefs.current[studentId].srcObject = registry.camera;
-          }
-          if (registry.screen && screenRefs.current[studentId]) {
-            screenRefs.current[studentId].srcObject = registry.screen;
-          }
-        }
-      });
-    };
-
-    const poll = async () => {
+    const userId = (() => {
       try {
-        const res = await examAPI.getStreamStatus(controlModal._id);
-        const status = res.data.streamStatus || {};
-        setStreamStatus(prev => {
-          const next = { ...prev };
-          Object.entries(status).forEach(([studentId, s]) => {
-            next[studentId] = { ...next[studentId], camera: !!s.camera, screen: !!s.screen, online: true };
-          });
-          return next;
-        });
-        attachStreams(status);
-      } catch {}
-    };
+        const d = localStorage.getItem('user') || sessionStorage.getItem('user');
+        return d ? JSON.parse(d)._id : null;
+      } catch { return null; }
+    })();
+    instructorIdRef.current = userId;
 
-    poll();
-    const interval = setInterval(poll, 5000);
+    const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+    socketRef.current = socket;
 
-    // Also listen for same-device broadcast
-    const channel = new BroadcastChannel('exam_stream_status');
-    channel.onmessage = (e) => {
-      const { studentId, camera, screen } = e.data || {};
-      if (!studentId) return;
-      setStreamStatus(prev => ({ ...prev, [studentId]: { ...prev[studentId], camera: !!camera, screen: !!screen, online: true } }));
-      // Attach stream immediately from registry
-      const registry = window.__examStreams?.[studentId];
-      if (registry) {
-        if (registry.camera && videoRefs.current[studentId]) videoRefs.current[studentId].srcObject = registry.camera;
-        if (registry.screen && screenRefs.current[studentId]) screenRefs.current[studentId].srcObject = registry.screen;
-      }
-    };
+    socket.on('connect', () => {
+      socket.emit('instructor:watch', { examId: controlModal._id, userId });
+    });
 
-    return () => { clearInterval(interval); channel.close(); };
-  }, [controlModal]);
+    // Receive list of already-connected students
+    socket.on('exam:students', ({ students }) => {
+      students.forEach(({ studentId, socketId }) => {
+        // Instructor sends answer after receiving offer — nothing to do here proactively
+      });
+    });
 
-  // Re-attach streams whenever streamStatus updates (handles React re-renders)
-  useEffect(() => {
-    if (!controlModal) return;
-    Object.entries(streamStatus).forEach(([studentId, s]) => {
-      const registry = window.__examStreams?.[studentId];
-      if (!registry) return;
-      if (s.camera && registry.camera && videoRefs.current[studentId]) {
-        if (videoRefs.current[studentId].srcObject !== registry.camera) {
-          videoRefs.current[studentId].srcObject = registry.camera;
-        }
-      }
-      if (s.screen && registry.screen && screenRefs.current[studentId]) {
-        if (screenRefs.current[studentId].srcObject !== registry.screen) {
-          screenRefs.current[studentId].srcObject = registry.screen;
-        }
+    // New student joined — tell them our socket ID so they send us a WebRTC offer
+    socket.on('student:joined', ({ studentId, studentSocketId }) => {
+      if (studentSocketId && socket.id) {
+        socket.emit('request:offer', { targetSocketId: studentSocketId, instructorSocketId: socket.id });
       }
     });
-  }, [streamStatus, controlModal]);
+
+    // Receive WebRTC offer from student
+    socket.on('webrtc:offer', async ({ offer, studentId, fromSocketId }) => {
+      // Create peer connection for this student
+      if (peerConnections.current[fromSocketId]) {
+        peerConnections.current[fromSocketId].close();
+      }
+
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }]
+      });
+      peerConnections.current[fromSocketId] = pc;
+      streamCountRef.current[studentId] = 0;
+      const seenStreamIds = new Set();
+
+      pc.ontrack = (e) => {
+        const stream = e.streams[0];
+        if (!stream || seenStreamIds.has(stream.id)) return;
+        seenStreamIds.add(stream.id);
+        streamCountRef.current[studentId]++;
+        const count = streamCountRef.current[studentId];
+        if (count === 1) {
+          const el = videoRefs.current[studentId];
+          if (el) {
+            el.srcObject = stream;
+            setStreamStatus(prev => ({ ...prev, [studentId]: { ...prev[studentId], camera: true } }));
+          }
+        } else {
+          const el = screenRefs.current[studentId];
+          if (el) {
+            el.srcObject = stream;
+            setStreamStatus(prev => ({ ...prev, [studentId]: { ...prev[studentId], screen: true } }));
+          }
+        }
+      };
+
+      pc.onicecandidate = (e) => {
+        if (e.candidate) {
+          socket.emit('webrtc:ice', { targetSocketId: fromSocketId, candidate: e.candidate, studentId });
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+          delete peerConnections.current[fromSocketId];
+        }
+      };
+
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.emit('webrtc:answer', { targetSocketId: fromSocketId, answer, studentId });
+    });
+
+    // ICE candidates from student
+    socket.on('webrtc:ice', async ({ candidate, fromSocketId, studentId }) => {
+      const pc = peerConnections.current[fromSocketId];
+      if (pc && pc.remoteDescription) {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {});
+      }
+    });
+
+    // Stream status updates (camera/screen on/off)
+    socket.on('stream:status', ({ studentId, camera, screen }) => {
+      setStreamStatus(prev => ({ ...prev, [studentId]: { ...prev[studentId], camera, screen } }));
+      if (!camera && videoRefs.current[studentId]) {
+        videoRefs.current[studentId].srcObject = null;
+        // Reset count so next camera-on gets routed to camera slot again
+        if (streamCountRef.current[studentId] >= 1) streamCountRef.current[studentId] = 0;
+      }
+      if (!screen && screenRefs.current[studentId]) {
+        screenRefs.current[studentId].srcObject = null;
+      }
+    });
+
+    socket.on('student:left', ({ studentId }) => {
+      setStreamStatus(prev => ({ ...prev, [studentId]: { camera: false, screen: false } }));
+      if (videoRefs.current[studentId]) videoRefs.current[studentId].srcObject = null;
+      if (screenRefs.current[studentId]) screenRefs.current[studentId].srcObject = null;
+      streamCountRef.current[studentId] = 0;
+    });
+
+    return () => {
+      Object.values(peerConnections.current).forEach(pc => pc.close());
+      peerConnections.current = {};
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [controlModal]);
 
   const fetchExams = async () => {
     try {
@@ -214,6 +275,10 @@ const ExamManager = ({ courses, showNotification }) => {
   };
 
   const openControlModal = async (exam) => {
+    // Reset stream tracking
+    streamCountRef.current = {};
+    Object.values(peerConnections.current).forEach(pc => pc.close());
+    peerConnections.current = {};
     setControlModal(exam);
     setControlLoading(true);
     try {
@@ -236,7 +301,7 @@ const ExamManager = ({ courses, showNotification }) => {
       }));
       setControlStudents(students);
       const status = {};
-      students.forEach(s => { status[s._id] = { camera: false, screen: false, online: s.submitted }; });
+      students.forEach(s => { status[s._id] = { camera: false, screen: false }; });
       setStreamStatus(status);
     } catch {
       setControlStudents([]);
@@ -408,11 +473,11 @@ const ExamManager = ({ courses, showNotification }) => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {controlStudents.map((student) => {
-                  const status = streamStatus[student._id] || { camera: false, screen: false, online: false };
+                  const status = streamStatus[student._id] || { camera: false, screen: false };
                   const initials = student.name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
                   return (
                     <div key={student._id} className={`bg-gray-800 rounded-2xl overflow-hidden border-2 transition-all duration-300 ${
-                      student.submitted ? 'border-green-600/60' : status.online ? 'border-blue-600/60' : 'border-gray-700'
+                      student.submitted ? 'border-green-600/60' : status.camera || status.screen ? 'border-blue-600/60' : 'border-gray-700'
                     }`}>
 
                       {/* Camera Feed */}
@@ -421,15 +486,14 @@ const ExamManager = ({ courses, showNotification }) => {
                           ref={el => {
                             if (el) {
                               videoRefs.current[student._id] = el;
-                              const stream = window.__examStreams?.[student._id]?.camera;
-                              if (stream && el.srcObject !== stream) el.srcObject = stream;
+                              if (el.srcObject) setStreamStatus(prev => ({ ...prev, [student._id]: { ...prev[student._id], camera: true } }));
                             }
                           }}
                           autoPlay playsInline muted
-                          className={`w-full h-full object-cover ${status.camera ? 'block' : 'hidden'}`}
+                          style={{ display: status.camera ? 'block' : 'none', width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
                         />
                         {!status.camera && (
-                          <div className="flex flex-col items-center justify-center gap-2">
+                          <div className="flex flex-col items-center justify-center gap-2 absolute inset-0">
                             {student.profileImage ? (
                               <img src={student.profileImage} alt={student.name} className="w-16 h-16 rounded-full object-cover border-2 border-gray-600" />
                             ) : (
@@ -442,8 +506,6 @@ const ExamManager = ({ courses, showNotification }) => {
                             </span>
                           </div>
                         )}
-
-                        {/* Top badges */}
                         <div className="absolute top-2 left-2 flex flex-col gap-1">
                           {student.submitted && (
                             <span className="flex items-center gap-1 px-2 py-0.5 bg-green-600/90 text-white text-xs rounded-full font-medium">
@@ -454,10 +516,9 @@ const ExamManager = ({ courses, showNotification }) => {
                         </div>
                         <div className="absolute top-2 right-2">
                           <span className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded-full font-medium ${
-                            status.camera ? 'bg-purple-600/90 text-white' : 'bg-gray-700/80 text-gray-400'
+                            status.camera ? 'bg-green-600/90 text-white' : 'bg-gray-700/80 text-gray-400'
                           }`}>
-                            {status.camera ? <Video className="h-3 w-3" /> : <VideoOff className="h-3 w-3" />}
-                            {status.camera ? 'Live' : 'Off'}
+                            {status.camera ? <><Video className="h-3 w-3" /> Live</> : <><VideoOff className="h-3 w-3" /> Off</>}
                           </span>
                         </div>
                       </div>
@@ -482,7 +543,7 @@ const ExamManager = ({ courses, showNotification }) => {
                           <span className={`text-xs font-medium ${
                             status.screen ? 'text-blue-400' : 'text-gray-500'
                           }`}>
-                            {status.screen ? '● Sharing' : 'Not Sharing'}
+                            {status.screen ? '● Live' : 'Not Sharing'}
                           </span>
                         </div>
                         <div className="relative aspect-video flex items-center justify-center">
@@ -490,12 +551,11 @@ const ExamManager = ({ courses, showNotification }) => {
                             ref={el => {
                               if (el) {
                                 screenRefs.current[student._id] = el;
-                                const stream = window.__examStreams?.[student._id]?.screen;
-                                if (stream && el.srcObject !== stream) el.srcObject = stream;
+                                if (el.srcObject) setStreamStatus(prev => ({ ...prev, [student._id]: { ...prev[student._id], screen: true } }));
                               }
                             }}
                             autoPlay playsInline muted
-                            className={`w-full h-full object-cover ${status.screen ? 'block' : 'hidden'}`}
+                            style={{ display: status.screen ? 'block' : 'none', width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
                           />
                           {!status.screen && (
                             <div className="flex flex-col items-center gap-1 text-gray-600">

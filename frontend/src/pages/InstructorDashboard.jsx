@@ -1361,7 +1361,6 @@ const InstructorDashboard = () => {
                     </h4>
                     <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">
                       <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
                       <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
                       </div>
                       {session.room && (
@@ -1369,7 +1368,7 @@ const InstructorDashboard = () => {
                           <span className="hidden sm:inline">•</span>
                           <div className="flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
-                            <span>Room {session.room}</span>
+                            <span>Room: {session.room}</span>
                           </div>
                         </>
                       )}

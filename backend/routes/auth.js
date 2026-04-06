@@ -21,7 +21,7 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, gender } = req.body;
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -39,6 +39,7 @@ router.post('/register', [
       email,
       password,
       role,
+      gender,
       otp,
       otpExpires
     });
