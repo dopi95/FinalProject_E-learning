@@ -33,10 +33,16 @@ const InstructorDashboard = () => {
   const [attendanceData, setAttendanceData] = useState([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [persistedGradeFields, setPersistedGradeFields] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('gradeFields') || '[]'); } catch { return []; }
+    try {
+      const stored = JSON.parse(localStorage.getItem('gradeFields') || '[]');
+      const cleaned = stored.filter(f => f.name?.toLowerCase().trim() !== 'yu');
+      if (cleaned.length !== stored.length) localStorage.setItem('gradeFields', JSON.stringify(cleaned));
+      return cleaned;
+    } catch { return []; }
   });
   const savePersistedGradeFields = (fields) => {
-    const saved = typeof fields === 'function' ? fields(persistedGradeFields) : fields;
+    const saved = (typeof fields === 'function' ? fields(persistedGradeFields) : fields)
+      .filter(f => f.name?.toLowerCase().trim() !== 'yu');
     setPersistedGradeFields(saved);
     try { localStorage.setItem('gradeFields', JSON.stringify(saved)); } catch {}
   };
@@ -1100,7 +1106,7 @@ const InstructorDashboard = () => {
       const merged = [
         ...fields,
         ...persistedGradeFields.filter(p => !fields.some(f => f.name === p.name))
-      ];
+      ].filter(f => f.name?.toLowerCase().trim() !== 'yu');
       if (merged.length > 0) {
         setGradeFields(merged);
         setGradeAutoPopulated(fields.length > 0);
@@ -1356,7 +1362,7 @@ const InstructorDashboard = () => {
                     <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        <span>{formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
+                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
                       </div>
                       {session.room && (
                         <>
@@ -3533,8 +3539,8 @@ const InstructorDashboard = () => {
                   <div>
                     <h4 className="font-semibold text-sm lg:text-base">{session.course?.title}</h4>
                     <div className="flex items-center gap-4 text-xs lg:text-sm text-white/80 mt-1">
-                      <span>Ã°Å¸â€¢Â {formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
-                      {session.room && <span>Ã°Å¸â€œÂ Room: {session.room}</span>}
+                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
+                      {session.room && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> Room: {session.room}</span>}
                     </div>
                   </div>
                   {session.link && (
@@ -4495,7 +4501,7 @@ const InstructorDashboard = () => {
                       const total = filled.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
                       return (
                         <div className="mb-2 text-xs text-gray-500 dark:text-gray-400">
-                          Total mark: <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> Ã¢â€ â€™ Auto grade: <span className="font-semibold text-blue-600">{getGradeLetter(total)}</span>
+                          Total mark: <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> → Auto grade: <span className="font-semibold text-blue-600">{getGradeLetter(total)}</span>
                         </div>
                       );
                     })()}
@@ -4647,7 +4653,7 @@ const InstructorDashboard = () => {
                     const total = filled.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
                     return (
                       <div className="mb-2 text-xs text-gray-500 dark:text-gray-400">
-                        Total mark: <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> Ã¢â€ â€™ Auto grade: <span className="font-semibold text-blue-600">{getGradeLetter(total)}</span>
+                        Total mark: <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> → Auto grade: <span className="font-semibold text-blue-600">{getGradeLetter(total)}</span>
                       </div>
                     );
                   })()}

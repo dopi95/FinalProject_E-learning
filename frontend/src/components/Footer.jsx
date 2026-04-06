@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Facebook, Instagram, Linkedin, Youtube, Send } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Youtube, Send, Mail, Phone, MapPin } from 'lucide-react';
 import logo from '/assets/images/aaulogo.png';
 import VideoReels from './VideoReels';
 
@@ -42,9 +42,23 @@ const Footer = () => {
                 </div>
               </div>
             </div>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
+            <p className="text-gray-600 dark:text-gray-300 mb-3">
               {t('footer.description')}
             </p>
+            <div className="space-y-2 mb-4">
+              <a href="mailto:info@aau.edu.et" className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm">
+                <Mail className="h-4 w-4 flex-shrink-0" />
+                <span>info@aau.edu.et</span>
+              </a>
+              <a href="tel:+251111239700" className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm">
+                <Phone className="h-4 w-4 flex-shrink-0" />
+                <span>+251 111 239 700</span>
+              </a>
+              <div className="flex items-start gap-2 text-gray-600 dark:text-gray-300 text-sm">
+                <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <span>Sidist Kilo, Addis Ababa, Ethiopia</span>
+              </div>
+            </div>
           </div>
 
           <div>

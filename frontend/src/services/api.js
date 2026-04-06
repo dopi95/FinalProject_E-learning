@@ -608,6 +608,8 @@ export const examAPI = {
   unpublishExam: (id) => api.patch(`/exams/${id}/unpublish`),
   submitExam: (id, data) => api.post(`/exams/${id}/submit`, data),
   getSubmission: (id) => api.get(`/exams/${id}/submission`),
+  updateStreamStatus: (id, data) => api.post(`/exams/${id}/stream-status`, data),
+  getStreamStatus: (id) => api.get(`/exams/${id}/stream-status`),
 };
 
 export const attendanceAPI = {

@@ -1,6 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Eye, X, CheckCircle, Clock, FileText, Users } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Edit, Trash2, Eye, X, CheckCircle, Clock, FileText, Users, Video, Monitor, VideoOff, MonitorOff } from 'lucide-react';
 import { examAPI } from '../services/api';
+
+const EMPTY_QUESTION = {
+  question: '',
+  type: 'mcq',
+  options: ['', '', '', ''],
+  correctAnswer: '',
+  marks: 10
+};
 
 const ExamManager = ({ courses, showNotification }) => {
   const [exams, setExams] = useState([]);
@@ -22,17 +30,89 @@ const ExamManager = ({ courses, showNotification }) => {
     showResults: false,
     questions: []
   });
-  const [currentQuestion, setCurrentQuestion] = useState({
-    question: '',
-    type: 'mcq',
-    options: ['', '', '', ''],
-    correctAnswer: '',
-    marks: 10
-  });
+  const [currentQuestion, setCurrentQuestion] = useState({ ...EMPTY_QUESTION });
+  const [controlModal, setControlModal] = useState(null);
+  const [controlStudents, setControlStudents] = useState([]);
+  const [controlLoading, setControlLoading] = useState(false);
+  const peerConnections = useRef({});
+  const videoRefs = useRef({});
+  const screenRefs = useRef({});
+  const [streamStatus, setStreamStatus] = useState({}); // { id: { camera: bool, screen: bool, online: bool } }
 
+  useEffect(() => { fetchExams(); }, []);
+
+  // Poll stream status from backend every 5 seconds when monitor is open
   useEffect(() => {
-    fetchExams();
-  }, []);
+    if (!controlModal) return;
+
+    const attachStreams = (status) => {
+      Object.entries(status).forEach(([studentId, s]) => {
+        // Try to get live stream from window registry (same device)
+        const registry = window.__examStreams?.[studentId];
+        if (registry) {
+          if (registry.camera && videoRefs.current[studentId]) {
+            videoRefs.current[studentId].srcObject = registry.camera;
+          }
+          if (registry.screen && screenRefs.current[studentId]) {
+            screenRefs.current[studentId].srcObject = registry.screen;
+          }
+        }
+      });
+    };
+
+    const poll = async () => {
+      try {
+        const res = await examAPI.getStreamStatus(controlModal._id);
+        const status = res.data.streamStatus || {};
+        setStreamStatus(prev => {
+          const next = { ...prev };
+          Object.entries(status).forEach(([studentId, s]) => {
+            next[studentId] = { ...next[studentId], camera: !!s.camera, screen: !!s.screen, online: true };
+          });
+          return next;
+        });
+        attachStreams(status);
+      } catch {}
+    };
+
+    poll();
+    const interval = setInterval(poll, 5000);
+
+    // Also listen for same-device broadcast
+    const channel = new BroadcastChannel('exam_stream_status');
+    channel.onmessage = (e) => {
+      const { studentId, camera, screen } = e.data || {};
+      if (!studentId) return;
+      setStreamStatus(prev => ({ ...prev, [studentId]: { ...prev[studentId], camera: !!camera, screen: !!screen, online: true } }));
+      // Attach stream immediately from registry
+      const registry = window.__examStreams?.[studentId];
+      if (registry) {
+        if (registry.camera && videoRefs.current[studentId]) videoRefs.current[studentId].srcObject = registry.camera;
+        if (registry.screen && screenRefs.current[studentId]) screenRefs.current[studentId].srcObject = registry.screen;
+      }
+    };
+
+    return () => { clearInterval(interval); channel.close(); };
+  }, [controlModal]);
+
+  // Re-attach streams whenever streamStatus updates (handles React re-renders)
+  useEffect(() => {
+    if (!controlModal) return;
+    Object.entries(streamStatus).forEach(([studentId, s]) => {
+      const registry = window.__examStreams?.[studentId];
+      if (!registry) return;
+      if (s.camera && registry.camera && videoRefs.current[studentId]) {
+        if (videoRefs.current[studentId].srcObject !== registry.camera) {
+          videoRefs.current[studentId].srcObject = registry.camera;
+        }
+      }
+      if (s.screen && registry.screen && screenRefs.current[studentId]) {
+        if (screenRefs.current[studentId].srcObject !== registry.screen) {
+          screenRefs.current[studentId].srcObject = registry.screen;
+        }
+      }
+    });
+  }, [streamStatus, controlModal]);
 
   const fetchExams = async () => {
     try {
@@ -47,19 +127,25 @@ const ExamManager = ({ courses, showNotification }) => {
   };
 
   const handleAddQuestion = () => {
-    if (!currentQuestion.question || !currentQuestion.correctAnswer) {
-      showNotification('error', 'Error', 'Question and correct answer are required');
+    if (!currentQuestion.question) {
+      showNotification('error', 'Error', 'Question text is required');
       return;
     }
+    let q = { ...currentQuestion };
+    if (!q.correctAnswer) {
+      showNotification('error', 'Error', 'Correct answer is required');
+      return;
+    }
+
     if (editingQuestionIndex !== null) {
-      const updatedQuestions = [...examForm.questions];
-      updatedQuestions[editingQuestionIndex] = currentQuestion;
-      setExamForm({ ...examForm, questions: updatedQuestions });
+      const updated = [...examForm.questions];
+      updated[editingQuestionIndex] = q;
+      setExamForm({ ...examForm, questions: updated });
       setEditingQuestionIndex(null);
     } else {
-      setExamForm({ ...examForm, questions: [...examForm.questions, currentQuestion] });
+      setExamForm({ ...examForm, questions: [...examForm.questions, q] });
     }
-    setCurrentQuestion({ question: '', type: 'mcq', options: ['', '', '', ''], correctAnswer: '', marks: 10 });
+    setCurrentQuestion({ ...EMPTY_QUESTION });
   };
 
   const handleSubmit = async () => {
@@ -67,7 +153,6 @@ const ExamManager = ({ courses, showNotification }) => {
       showNotification('error', 'Error', 'Title, course, and at least one question are required');
       return;
     }
-
     try {
       setLoading(true);
       if (editingExam) {
@@ -78,17 +163,7 @@ const ExamManager = ({ courses, showNotification }) => {
         showNotification('success', 'Success', 'Exam created successfully');
       }
       setShowModal(false);
-      setExamForm({
-        title: '',
-        course: '',
-        duration: '',
-        totalMarks: '',
-        startDate: '',
-        endDate: '',
-        instructions: '',
-        showResults: false,
-        questions: []
-      });
+      setExamForm({ title: '', course: '', duration: '', totalMarks: '', startDate: '', endDate: '', instructions: '', showResults: false, questions: [] });
       setEditingExam(null);
       await fetchExams();
     } catch (error) {
@@ -138,15 +213,51 @@ const ExamManager = ({ courses, showNotification }) => {
     }
   };
 
+  const openControlModal = async (exam) => {
+    setControlModal(exam);
+    setControlLoading(true);
+    try {
+      const { instructorAPI } = await import('../services/api');
+      const res = await instructorAPI.getStudents({ course: exam.course?._id || exam.course });
+      const students = (res.data.students || []).map(s => ({
+        _id: s._id,
+        name: s.name,
+        email: s.email,
+        profileImage: s.profileImage,
+        submitted: (exam.submissions || []).some(sub =>
+          (sub.student?._id || sub.student)?.toString() === s._id?.toString()
+        ),
+        score: (() => {
+          const sub = (exam.submissions || []).find(sub =>
+            (sub.student?._id || sub.student)?.toString() === s._id?.toString()
+          );
+          return sub ? sub.score : null;
+        })()
+      }));
+      setControlStudents(students);
+      const status = {};
+      students.forEach(s => { status[s._id] = { camera: false, screen: false, online: s.submitted }; });
+      setStreamStatus(status);
+    } catch {
+      setControlStudents([]);
+    } finally {
+      setControlLoading(false);
+    }
+  };
+
+  const typeLabel = (type) => {
+    if (type === 'mcq') return 'Multiple Choice';
+    if (type === 'true-false') return 'True/False';
+    if (type === 'fill-blank') return 'Fill in the Blank';
+    return type;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Exams</h2>
         <button
-          onClick={() => {
-            setShowModal(true);
-            setEditingExam(null);
-          }}
+          onClick={() => { setShowModal(true); setEditingExam(null); setExamForm({ title: '', course: '', duration: '', totalMarks: '', startDate: '', endDate: '', instructions: '', showResults: false, questions: [] }); setCurrentQuestion({ ...EMPTY_QUESTION }); }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
@@ -171,83 +282,60 @@ const ExamManager = ({ courses, showNotification }) => {
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{exam.title}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    {exam.course?.title || 'Unknown Course'}
-                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{exam.course?.title || 'Unknown Course'}</p>
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
                     <span>Duration: {exam.duration} min</span>
                     <span>Questions: {exam.questions?.length || 0}</span>
                     <span>Total Marks: {exam.totalMarks}</span>
                     <span>Submissions: {exam.submissions?.length || 0}</span>
                   </div>
-                  <div className="mt-2 text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {new Date(exam.startDate).toLocaleString()} - {new Date(exam.endDate).toLocaleString()}
-                    </span>
+                  <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    {new Date(exam.startDate).toLocaleString()} - {new Date(exam.endDate).toLocaleString()}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    exam.status === 'active' ? 'bg-green-100 text-green-800' :
-                    exam.status === 'completed' ? 'bg-gray-100 text-gray-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${exam.status === 'active' ? 'bg-green-100 text-green-800' : exam.status === 'completed' ? 'bg-gray-100 text-gray-800' : 'bg-yellow-100 text-yellow-800'}`}>
                     {exam.status}
                   </span>
+                  <button
+                    onClick={() => openControlModal(exam)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-lg transition-colors"
+                    title="Control Students"
+                  >
+                    <Users className="h-3.5 w-3.5" />
+                    Control Students
+                  </button>
                   {exam.status === 'draft' && (
-                    <button
-                      onClick={() => handlePublish(exam._id)}
-                      className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
-                      title="Publish"
-                    >
+                    <button onClick={() => handlePublish(exam._id)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg" title="Publish">
                       <CheckCircle className="h-4 w-4" />
                     </button>
                   )}
                   {exam.status === 'active' && (
-                    <button
-                      onClick={() => handleUnpublish(exam._id)}
-                      className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg"
-                      title="Unpublish"
-                    >
+                    <button onClick={() => handleUnpublish(exam._id)} className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg" title="Unpublish">
                       <X className="h-4 w-4" />
                     </button>
                   )}
                   {exam.submissions?.length > 0 && (
-                    <button
-                      onClick={() => setExpandedExam(expandedExam === exam._id ? null : exam._id)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                      title="Show Results"
-                    >
+                    <button onClick={() => setExpandedExam(expandedExam === exam._id ? null : exam._id)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Show Results">
                       <Eye className="h-4 w-4" />
                     </button>
                   )}
                   <button
                     onClick={() => {
                       setEditingExam(exam);
-                      const formattedExam = {
-                        ...exam,
-                        course: exam.course?._id || exam.course,
-                        startDate: exam.startDate ? new Date(exam.startDate).toISOString().slice(0, 16) : '',
-                        endDate: exam.endDate ? new Date(exam.endDate).toISOString().slice(0, 16) : ''
-                      };
-                      setExamForm(formattedExam);
+                      setExamForm({ ...exam, course: exam.course?._id || exam.course, startDate: exam.startDate ? new Date(exam.startDate).toISOString().slice(0, 16) : '', endDate: exam.endDate ? new Date(exam.endDate).toISOString().slice(0, 16) : '' });
                       setShowModal(true);
                     }}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                    title="Edit"
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Edit"
                   >
                     <Edit className="h-4 w-4" />
                   </button>
-                  <button
-                    onClick={() => handleDelete(exam._id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                    title="Delete"
-                  >
+                  <button onClick={() => handleDelete(exam._id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Delete">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               </div>
-              
+
               {expandedExam === exam._id && exam.submissions?.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
                   <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Student Results</h4>
@@ -255,20 +343,12 @@ const ExamManager = ({ courses, showNotification }) => {
                     {exam.submissions.map((submission, idx) => (
                       <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <div>
-                          <p className="font-medium text-gray-900 dark:text-white">
-                            {submission.student?.name || 'Loading...'}
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Submitted: {new Date(submission.submittedAt).toLocaleString()}
-                          </p>
+                          <p className="font-medium text-gray-900 dark:text-white">{submission.student?.name || 'Loading...'}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Submitted: {new Date(submission.submittedAt).toLocaleString()}</p>
                         </div>
                         <div className="text-right">
-                          <div className="text-lg font-bold text-green-600">
-                            {submission.score}/{exam.totalMarks}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {((submission.score / exam.totalMarks) * 100).toFixed(1)}%
-                          </div>
+                          <div className="text-lg font-bold text-green-600">{submission.score}/{exam.totalMarks}</div>
+                          <div className="text-sm text-gray-500">{((submission.score / exam.totalMarks) * 100).toFixed(1)}%</div>
                         </div>
                       </div>
                     ))}
@@ -280,41 +360,191 @@ const ExamManager = ({ courses, showNotification }) => {
         </div>
       )}
 
+      {/* Control Students Modal */}
+      {controlModal && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 bg-gray-900 border-b border-gray-700 flex-shrink-0">
+            <div>
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
+                {controlModal.title} — Live Monitor
+              </h3>
+              <p className="text-sm text-gray-400 mt-0.5">{controlModal.course?.title}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Stats */}
+              {[
+                { label: 'Students', value: controlStudents.length, color: 'text-blue-400' },
+                { label: 'Submitted', value: controlStudents.filter(s => s.submitted).length, color: 'text-green-400' },
+                { label: 'Pending', value: controlStudents.filter(s => !s.submitted).length, color: 'text-yellow-400' },
+              ].map((stat, i) => (
+                <div key={i} className="text-center px-3 py-1 bg-gray-800 rounded-lg border border-gray-700">
+                  <div className={`text-lg font-bold ${stat.color}`}>{stat.value}</div>
+                  <div className="text-xs text-gray-500">{stat.label}</div>
+                </div>
+              ))}
+              <button
+                onClick={() => { setControlModal(null); setControlStudents([]); setStreamStatus({}); }}
+                className="ml-2 p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto p-4 bg-gray-950">
+            {controlLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500"></div>
+              </div>
+            ) : controlStudents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+                <Users className="h-16 w-16 mb-4 opacity-20" />
+                <p className="text-lg font-medium text-gray-400">No students enrolled</p>
+                <p className="text-sm mt-1">Students will appear here once they enroll in this course</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {controlStudents.map((student) => {
+                  const status = streamStatus[student._id] || { camera: false, screen: false, online: false };
+                  const initials = student.name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+                  return (
+                    <div key={student._id} className={`bg-gray-800 rounded-2xl overflow-hidden border-2 transition-all duration-300 ${
+                      student.submitted ? 'border-green-600/60' : status.online ? 'border-blue-600/60' : 'border-gray-700'
+                    }`}>
+
+                      {/* Camera Feed */}
+                      <div className="relative bg-gray-900 aspect-video flex items-center justify-center">
+                        <video
+                          ref={el => {
+                            if (el) {
+                              videoRefs.current[student._id] = el;
+                              const stream = window.__examStreams?.[student._id]?.camera;
+                              if (stream && el.srcObject !== stream) el.srcObject = stream;
+                            }
+                          }}
+                          autoPlay playsInline muted
+                          className={`w-full h-full object-cover ${status.camera ? 'block' : 'hidden'}`}
+                        />
+                        {!status.camera && (
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            {student.profileImage ? (
+                              <img src={student.profileImage} alt={student.name} className="w-16 h-16 rounded-full object-cover border-2 border-gray-600" />
+                            ) : (
+                              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                                <span className="text-xl font-bold text-white">{initials}</span>
+                              </div>
+                            )}
+                            <span className="text-xs text-gray-500 flex items-center gap-1">
+                              <VideoOff className="h-3 w-3" /> Camera Off
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Top badges */}
+                        <div className="absolute top-2 left-2 flex flex-col gap-1">
+                          {student.submitted && (
+                            <span className="flex items-center gap-1 px-2 py-0.5 bg-green-600/90 text-white text-xs rounded-full font-medium">
+                              <CheckCircle className="h-3 w-3" />
+                              Submitted {student.score !== null ? `· ${student.score}/${controlModal.totalMarks}` : ''}
+                            </span>
+                          )}
+                        </div>
+                        <div className="absolute top-2 right-2">
+                          <span className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded-full font-medium ${
+                            status.camera ? 'bg-purple-600/90 text-white' : 'bg-gray-700/80 text-gray-400'
+                          }`}>
+                            {status.camera ? <Video className="h-3 w-3" /> : <VideoOff className="h-3 w-3" />}
+                            {status.camera ? 'Live' : 'Off'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Student name bar */}
+                      <div className="px-3 py-2 bg-gray-800 flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">{student.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{student.email}</p>
+                        </div>
+                        <span className={`ml-2 flex-shrink-0 w-2.5 h-2.5 rounded-full ${
+                          student.submitted ? 'bg-green-400' : 'bg-gray-600'
+                        }`} title={student.submitted ? 'Submitted' : 'Not submitted'} />
+                      </div>
+
+                      {/* Screen Share */}
+                      <div className="mx-3 mb-3 rounded-xl overflow-hidden border border-gray-700 bg-gray-900">
+                        <div className="flex items-center justify-between px-2.5 py-1.5 bg-gray-700/80">
+                          <span className="text-xs text-gray-300 flex items-center gap-1.5">
+                            <Monitor className="h-3 w-3" /> Screen Share
+                          </span>
+                          <span className={`text-xs font-medium ${
+                            status.screen ? 'text-blue-400' : 'text-gray-500'
+                          }`}>
+                            {status.screen ? '● Sharing' : 'Not Sharing'}
+                          </span>
+                        </div>
+                        <div className="relative aspect-video flex items-center justify-center">
+                          <video
+                            ref={el => {
+                              if (el) {
+                                screenRefs.current[student._id] = el;
+                                const stream = window.__examStreams?.[student._id]?.screen;
+                                if (stream && el.srcObject !== stream) el.srcObject = stream;
+                              }
+                            }}
+                            autoPlay playsInline muted
+                            className={`w-full h-full object-cover ${status.screen ? 'block' : 'hidden'}`}
+                          />
+                          {!status.screen && (
+                            <div className="flex flex-col items-center gap-1 text-gray-600">
+                              <MonitorOff className="h-8 w-8" />
+                              <span className="text-xs">No screen shared</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-3 bg-gray-900 border-t border-gray-700 flex items-center justify-between flex-shrink-0">
+            <p className="text-xs text-gray-500">Live camera & screen feeds appear when students enable them during the exam. Submitted students are highlighted in green.</p>
+            <button
+              onClick={() => { setControlModal(null); setControlStudents([]); setStreamStatus({}); }}
+              className="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              Close Monitor
+            </button>
+          </div>
+        </div>
+      )}
+
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {editingExam ? 'Edit Exam' : 'Create Exam'}
-                </h3>
-                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
-                  <X className="h-6 w-6" />
-                </button>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{editingExam ? 'Edit Exam' : 'Create Exam'}</h3>
+                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X className="h-6 w-6" /></button>
               </div>
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Title *</label>
-                    <input
-                      type="text"
-                      value={examForm.title}
-                      onChange={(e) => setExamForm({ ...examForm, title: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700"
-                    />
+                    <input type="text" value={examForm.title} onChange={(e) => setExamForm({ ...examForm, title: e.target.value })} className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Course *</label>
-                    <select
-                      value={examForm.course}
-                      onChange={(e) => setExamForm({ ...examForm, course: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700"
-                    >
+                    <select value={examForm.course} onChange={(e) => setExamForm({ ...examForm, course: e.target.value })} className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700">
                       <option value="">Select Course</option>
-                      {courses.map((course) => (
-                        <option key={course._id} value={course._id}>{course.title}</option>
-                      ))}
+                      {courses.map((course) => (<option key={course._id} value={course._id}>{course.title}</option>))}
                     </select>
                   </div>
                 </div>
@@ -322,271 +552,118 @@ const ExamManager = ({ courses, showNotification }) => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Duration (minutes) *</label>
-                    <input
-                      type="text"
-                      value={examForm.duration}
-                      onChange={(e) => setExamForm({ ...examForm, duration: e.target.value })}
-                      placeholder="e.g., 60"
-                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700"
-                    />
+                    <input type="text" value={examForm.duration} onChange={(e) => setExamForm({ ...examForm, duration: e.target.value })} placeholder="e.g., 60" className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Total Marks *</label>
-                    <input
-                      type="text"
-                      value={examForm.totalMarks}
-                      onChange={(e) => setExamForm({ ...examForm, totalMarks: e.target.value })}
-                      placeholder="e.g., 100"
-                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700"
-                    />
+                    <input type="text" value={examForm.totalMarks} onChange={(e) => setExamForm({ ...examForm, totalMarks: e.target.value })} placeholder="e.g., 100" className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Start Date & Time *</label>
-                    <input
-                      type="datetime-local"
-                      value={examForm.startDate}
-                      onChange={(e) => setExamForm({ ...examForm, startDate: e.target.value })}
-                      min={new Date().toISOString().slice(0, 16)}
-                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700"
-                    />
+                    <input type="datetime-local" value={examForm.startDate} onChange={(e) => setExamForm({ ...examForm, startDate: e.target.value })} min={new Date().toISOString().slice(0, 16)} className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">End Date & Time *</label>
-                    <input
-                      type="datetime-local"
-                      value={examForm.endDate}
-                      onChange={(e) => setExamForm({ ...examForm, endDate: e.target.value })}
-                      min={examForm.startDate || new Date().toISOString().slice(0, 16)}
-                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700"
-                    />
+                    <input type="datetime-local" value={examForm.endDate} onChange={(e) => setExamForm({ ...examForm, endDate: e.target.value })} min={examForm.startDate || new Date().toISOString().slice(0, 16)} className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700" />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Instructions</label>
-                  <textarea
-                    value={examForm.instructions}
-                    onChange={(e) => setExamForm({ ...examForm, instructions: e.target.value })}
-                    rows="3"
-                    className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700"
-                  />
+                  <textarea value={examForm.instructions} onChange={(e) => setExamForm({ ...examForm, instructions: e.target.value })} rows="3" className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700" />
                 </div>
 
                 <div>
                   <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={examForm.showResults}
-                      onChange={(e) => setExamForm({ ...examForm, showResults: e.target.checked })}
-                      className="rounded"
-                    />
+                    <input type="checkbox" checked={examForm.showResults} onChange={(e) => setExamForm({ ...examForm, showResults: e.target.checked })} className="rounded" />
                     <span className="text-sm font-medium">Show results to students after submission</span>
                   </label>
                 </div>
 
                 <div className="border-t pt-4">
                   <h4 className="font-semibold mb-4">Questions ({examForm.questions.length})</h4>
-                  
+
                   {examForm.questions.map((q, idx) => (
                     <div key={idx} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-3 border-l-4 border-blue-500">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <p className="font-medium text-gray-900 dark:text-white mb-2">Q{idx + 1}: {q.question}</p>
                           <div className="flex flex-wrap gap-2 text-xs">
-                            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded">
-                              {q.type === 'mcq' ? 'Multiple Choice' : q.type === 'true-false' ? 'True/False' : 'Short Answer'}
-                            </span>
-                            <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded">
-                              {q.marks} marks
-                            </span>
+                            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded">{typeLabel(q.type)}</span>
+                            <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded">{q.marks} marks</span>
                           </div>
-                          {q.type === 'mcq' && q.options.some(opt => opt) && (
+                          {q.type === 'mcq' && q.options?.some(opt => opt) && (
                             <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                               <p className="font-medium mb-1">Options:</p>
-                              <ul className="list-disc list-inside space-y-1">
-                                {q.options.filter(opt => opt).map((opt, i) => (
-                                  <li key={i}>{opt}</li>
-                                ))}
-                              </ul>
+                              <ul className="list-disc list-inside space-y-1">{q.options.filter(opt => opt).map((opt, i) => <li key={i}>{opt}</li>)}</ul>
                             </div>
                           )}
-                          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                            <span className="font-medium">Correct Answer:</span> {q.correctAnswer}
-                          </p>
+                          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400"><span className="font-medium">Correct Answer:</span> {q.correctAnswer}</p>
                         </div>
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingQuestionIndex(idx);
-                              setCurrentQuestion(q);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
-                            title="Edit"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => setExamForm({ ...examForm, questions: examForm.questions.filter((_, i) => i !== idx) })}
-                            className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                            title="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <button onClick={() => { setEditingQuestionIndex(idx); setCurrentQuestion({ ...EMPTY_QUESTION, ...q }); }} className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded" title="Edit"><Edit className="h-4 w-4" /></button>
+                          <button onClick={() => setExamForm({ ...examForm, questions: examForm.questions.filter((_, i) => i !== idx) })} className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded" title="Delete"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </div>
                     </div>
                   ))}
 
+                  {/* Add/Edit Question Form */}
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg space-y-3">
                     <h5 className="font-medium">{editingQuestionIndex !== null ? 'Edit Question' : 'Add Question'}</h5>
-                    <input
-                      type="text"
-                      placeholder="Question"
-                      value={currentQuestion.question}
-                      onChange={(e) => setCurrentQuestion({ ...currentQuestion, question: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700"
-                    />
+                    <input type="text" placeholder="Question" value={currentQuestion.question} onChange={(e) => setCurrentQuestion({ ...currentQuestion, question: e.target.value })} className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700" />
+
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-medium mb-1">Question Type</label>
-                        <select
-                          value={currentQuestion.type}
-                          onChange={(e) => setCurrentQuestion({ ...currentQuestion, type: e.target.value })}
-                          className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700"
-                        >
+                        <select value={currentQuestion.type} onChange={(e) => setCurrentQuestion({ ...currentQuestion, type: e.target.value, correctAnswer: '', options: ['', '', '', ''] })} className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700">
                           <option value="mcq">Multiple Choice</option>
                           <option value="true-false">True/False</option>
-                          <option value="short-answer">Short Answer</option>
+                          <option value="fill-blank">Fill in the Blank</option>
                         </select>
                       </div>
                       <div>
                         <label className="block text-xs font-medium mb-1">Marks</label>
-                        <input
-                          type="number"
-                          min="1"
-                          placeholder="Marks"
-                          value={currentQuestion.marks}
-                          onChange={(e) => setCurrentQuestion({ ...currentQuestion, marks: parseInt(e.target.value) || 10 })}
-                          className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700"
-                        />
+                        <input type="number" min="1" value={currentQuestion.marks} onChange={(e) => setCurrentQuestion({ ...currentQuestion, marks: parseInt(e.target.value) || 10 })} className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700" />
                       </div>
                     </div>
+
+                    {/* MCQ options */}
                     {currentQuestion.type === 'mcq' && (
                       <div className="space-y-2">
                         {currentQuestion.options.map((opt, idx) => (
-                          <input
-                            key={idx}
-                            type="text"
-                            placeholder={`Option ${idx + 1}`}
-                            value={opt}
-                            onChange={(e) => {
-                              const newOpts = [...currentQuestion.options];
-                              newOpts[idx] = e.target.value;
-                              setCurrentQuestion({ ...currentQuestion, options: newOpts });
-                            }}
-                            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700"
-                          />
+                          <input key={idx} type="text" placeholder={`Option ${idx + 1}`} value={opt} onChange={(e) => { const o = [...currentQuestion.options]; o[idx] = e.target.value; setCurrentQuestion({ ...currentQuestion, options: o }); }} className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700" />
                         ))}
                       </div>
                     )}
-                    <input
-                      type="text"
-                      placeholder="Correct Answer"
-                      value={currentQuestion.correctAnswer}
-                      onChange={(e) => setCurrentQuestion({ ...currentQuestion, correctAnswer: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700"
-                    />
-                    <button
-                      onClick={handleAddQuestion}
-                      className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
-                    >
+
+                    {/* Fill in the blank hint */}
+                    {currentQuestion.type === 'fill-blank' && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-lg">
+                        Write the question with <strong>___</strong> where the blank should be. e.g. "The capital of Ethiopia is ___".
+                      </p>
+                    )}
+
+                    <input type="text" placeholder={currentQuestion.type === 'fill-blank' ? 'Correct answer for the blank' : 'Correct Answer'} value={currentQuestion.correctAnswer} onChange={(e) => setCurrentQuestion({ ...currentQuestion, correctAnswer: e.target.value })} className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700" />
+
+                    <button onClick={handleAddQuestion} className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
                       {editingQuestionIndex !== null ? 'Update Question' : 'Add Question'}
                     </button>
                     {editingQuestionIndex !== null && (
-                      <button
-                        onClick={() => {
-                          setEditingQuestionIndex(null);
-                          setCurrentQuestion({ question: '', type: 'mcq', options: ['', '', '', ''], correctAnswer: '', marks: 10 });
-                        }}
-                        className="w-full bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600"
-                      >
-                        Cancel Edit
-                      </button>
+                      <button onClick={() => { setEditingQuestionIndex(null); setCurrentQuestion({ ...EMPTY_QUESTION }); }} className="w-full bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600">Cancel Edit</button>
                     )}
                   </div>
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={handleSubmit}
-                    disabled={loading}
-                    className="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:opacity-50"
-                  >
+                  <button onClick={handleSubmit} disabled={loading} className="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:opacity-50">
                     {loading ? 'Saving...' : editingExam ? 'Update Exam' : 'Create Exam'}
                   </button>
-                  <button
-                    onClick={() => setShowModal(false)}
-                    className="px-6 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600"
-                  >
-                    Cancel
-                  </button>
+                  <button onClick={() => setShowModal(false)} className="px-6 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600">Cancel</button>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showSubmissions && selectedExam && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  Submissions - {selectedExam.title}
-                </h3>
-                <button onClick={() => setShowSubmissions(false)} className="text-gray-400 hover:text-gray-600">
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {selectedExam.submissions?.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No submissions yet</p>
-                  </div>
-                ) : (
-                  selectedExam.submissions?.map((submission, idx) => (
-                    <div key={idx} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h4 className="font-semibold text-gray-900 dark:text-white">
-                            {submission.student?.name || 'Unknown Student'}
-                          </h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {submission.student?.email}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-green-600">
-                            {submission.score}/{selectedExam.totalMarks}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {((submission.score / selectedExam.totalMarks) * 100).toFixed(1)}%
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <p>Submitted: {new Date(submission.submittedAt).toLocaleString()}</p>
-                        <p>Time Taken: {submission.timeTaken} minutes</p>
-                      </div>
-                    </div>
-                  ))
-                )}
               </div>
             </div>
           </div>

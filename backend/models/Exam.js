@@ -13,10 +13,11 @@ const examSchema = new mongoose.Schema({
   showResults: { type: Boolean, default: false },
   questions: [{
     question: { type: String, required: true },
-    type: { type: String, enum: ['mcq', 'true-false', 'short-answer'], required: true },
-    options: [String], // for mcq
+    type: { type: String, enum: ['mcq', 'true-false', 'fill-blank', 'matching'], required: true },
+    options: [String],
     correctAnswer: { type: String, required: true },
-    marks: { type: Number, required: true }
+    marks: { type: Number, required: true },
+    matchingPairs: [{ left: String, right: String }]
   }],
   submissions: [{
     student: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -25,7 +26,8 @@ const examSchema = new mongoose.Schema({
     submittedAt: { type: Date, default: Date.now },
     timeTaken: Number // in minutes
   }],
-  status: { type: String, enum: ['draft', 'active', 'completed'], default: 'draft' }
+  status: { type: String, enum: ['draft', 'active', 'completed'], default: 'draft' },
+  streamStatus: { type: mongoose.Schema.Types.Mixed, default: {} }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Exam', examSchema);

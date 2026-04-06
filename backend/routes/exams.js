@@ -218,6 +218,40 @@ router.patch('/:id/unpublish', auth, async (req, res) => {
   }
 });
 
+// Update student stream status (camera/screen) during exam
+router.post('/:id/stream-status', auth, async (req, res) => {
+  try {
+    const { camera, screen } = req.body;
+    const exam = await Exam.findById(req.params.id);
+    if (!exam) return res.status(404).json({ message: 'Exam not found' });
+    const sub = exam.submissions.find(s => s.student.toString() === req.user._id.toString());
+    if (sub) {
+      sub.camera = !!camera;
+      sub.screen = !!screen;
+    } else {
+      // Student hasn't submitted yet — store in a separate map on the exam
+      if (!exam.streamStatus) exam.streamStatus = {};
+      exam.streamStatus[req.user._id.toString()] = { camera: !!camera, screen: !!screen, updatedAt: new Date() };
+      exam.markModified('streamStatus');
+    }
+    await exam.save();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get stream status for all students in an exam (instructor)
+router.get('/:id/stream-status', auth, async (req, res) => {
+  try {
+    const exam = await Exam.findById(req.params.id).lean();
+    if (!exam) return res.status(404).json({ message: 'Exam not found' });
+    res.json({ streamStatus: exam.streamStatus || {} });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get student's exam submission
 router.get('/:id/submission', auth, async (req, res) => {
   try {
