@@ -30,7 +30,8 @@ const SuperAdminDashboard = () => {
     instructor: '',
     image: null,
     startDate: '',
-    endDate: ''
+    endDate: '',
+    totalHours: ''
   });
 
   const [showCourseDetail, setShowCourseDetail] = useState(false);
@@ -561,7 +562,7 @@ const SuperAdminDashboard = () => {
       setLoading(true);
       const response = await courseAPI.createCourse(courseForm);
       setCourses(prev => [response.data.course, ...prev]);
-      setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null, startDate: '', endDate: '' });
+      setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null, startDate: '', endDate: '', totalHours: '' });
       setShowAddCourse(false);
       showNotification('success', 'Course Added!', 'Course has been successfully created');
       // Refresh recent activities
@@ -584,7 +585,8 @@ const SuperAdminDashboard = () => {
       instructor: course.instructor._id,
       image: null,
       startDate: course.startDate ? new Date(course.startDate).toISOString().split('T')[0] : '',
-      endDate: course.endDate ? new Date(course.endDate).toISOString().split('T')[0] : ''
+      endDate: course.endDate ? new Date(course.endDate).toISOString().split('T')[0] : '',
+      totalHours: course.totalHours || ''
     });
     setShowEditCourse(true);
   };
@@ -596,7 +598,7 @@ const SuperAdminDashboard = () => {
       setCourses(prev => prev.map(course => 
         course._id === editingCourse._id ? response.data.course : course
       ));
-      setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null, startDate: '', endDate: '' });
+      setCourseForm({ title: '', description: '', about: '', price: '', category: '', instructor: '', image: null, startDate: '', endDate: '', totalHours: '' });
       setShowEditCourse(false);
       setEditingCourse(null);
       showNotification('success', 'Course Updated!', 'Course has been successfully updated');
@@ -2160,6 +2162,7 @@ const SuperAdminDashboard = () => {
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-2/5">Course</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/6">Instructor</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-16">Price</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-16">Hours</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-20">Status</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-16">Likes</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-20">Actions</th>
@@ -2182,6 +2185,9 @@ const SuperAdminDashboard = () => {
                   </td>
                   <td className="px-3 py-4">
                     <span className="text-sm font-medium text-gray-900 dark:text-white">{course.price}</span>
+                  </td>
+                  <td className="px-3 py-4">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{course.totalHours ? `${course.totalHours}h` : '—'}</span>
                   </td>
                   <td className="px-3 py-4">
                     {(() => {
@@ -2420,6 +2426,18 @@ const SuperAdminDashboard = () => {
                     onChange={(e) => handleCourseFormChange('price', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                     placeholder="Course price"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Total Hours</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={courseForm.totalHours}
+                    onChange={(e) => handleCourseFormChange('totalHours', e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    placeholder="e.g. 40"
                   />
                 </div>
                 

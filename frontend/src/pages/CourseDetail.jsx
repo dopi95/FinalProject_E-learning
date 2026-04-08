@@ -405,6 +405,12 @@ const CourseDetail = () => {
                       <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2 sm:mr-3 mt-0.5 flex-shrink-0" />
                       <span className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm break-words">{t('courses.lifetimeAccess')}</span>
                     </div>
+                    {course.totalHours && (
+                      <div className="flex items-start">
+                        <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2 sm:mr-3 mt-0.5 flex-shrink-0" />
+                        <span className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm break-words">{course.totalHours} hours of content</span>
+                      </div>
+                    )}
                     <div className="flex items-start">
                       <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2 sm:mr-3 mt-0.5 flex-shrink-0" />
                       <span className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm break-words">{t('courses.certificate')}</span>

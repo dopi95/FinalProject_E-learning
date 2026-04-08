@@ -1576,6 +1576,7 @@ const StudentDashboard = () => {
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{course.title}</h3>
                       {gradedCourseIds.has(String(course._id)) && <span className="inline-flex items-center px-2 py-0.5 bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 text-xs rounded-full font-medium"><svg className="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Completed</span>}
                     <p className="text-xs text-gray-500 dark:text-gray-400">{course.category || 'General'}</p>
+                    {course.totalHours && <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">{course.totalHours}h total</p>}
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
                     <div>
