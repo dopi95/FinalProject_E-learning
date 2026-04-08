@@ -261,17 +261,7 @@ const Header = () => {
                 </div>
               )}
 
-              {/* Show subscription for non-logged in users */}
-              {!user && (
-                <div className="relative">
-                  <button
-                    onClick={() => setShowLoginModal(true)}
-                    className="relative p-3 rounded-xl text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 group"
-                  >
-                    <BellOff className="h-5 w-5 transform group-hover:scale-110 transition-transform duration-300" />
-                  </button>
-                </div>
-              )}
+              {/* Show subscription for non-logged in users - HIDDEN */}
 
               {/* Theme Toggle - Desktop Only */}
               <button
