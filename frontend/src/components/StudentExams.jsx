@@ -60,8 +60,14 @@ const StudentExams = ({ showNotification }) => {
     emitStreamStatus(false, !!screenStreamRef.current);
   };
 
+  const isMobileDevice = () => /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
   const startScreenShare = async () => {
     setScreenError('');
+    if (isMobileDevice() || !navigator.mediaDevices?.getDisplayMedia) {
+      setScreenError('Screen sharing is not supported on mobile devices. Only camera is required on mobile.');
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
       screenStreamRef.current = stream;
@@ -591,8 +597,8 @@ const StudentExams = ({ showNotification }) => {
                 </button>
               </div>
 
-              {/* Screen share preview */}
-              <div>
+              {/* Screen share preview - hidden on mobile */}
+              <div className={/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ? 'hidden' : ''}>
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Screen Share</p>
                 <div className="w-full aspect-video bg-gray-900 rounded-xl overflow-hidden relative flex items-center justify-center">
                   {screenStream ? (
@@ -619,6 +625,13 @@ const StudentExams = ({ showNotification }) => {
                   {screenStream ? <><MonitorOff className="h-4 w-4" /> Stop Sharing</> : <><Monitor className="h-4 w-4" /> Share Screen</>}
                 </button>
               </div>
+              {/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700">
+                  <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
+                    📱 Screen sharing is not available on mobile. Only camera verification is required.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
