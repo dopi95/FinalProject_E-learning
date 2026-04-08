@@ -35,6 +35,10 @@ const StudentExams = ({ showNotification }) => {
   const screenStreamRef = useRef(null);
   const examIdRef = useRef(null);
   const userIdRef = useRef(null);
+  const [tabWarning, setTabWarning] = useState(false);
+  const [tabCountdown, setTabCountdown] = useState(10);
+  const tabTimerRef = useRef(null);
+  const tabCountRef = useRef(0);
 
   const PAGE_SIZE = 1;
 
@@ -65,7 +69,7 @@ const StudentExams = ({ showNotification }) => {
   const startScreenShare = async () => {
     setScreenError('');
     if (isMobileDevice() || !navigator.mediaDevices?.getDisplayMedia) {
-      setScreenError('Screen sharing is not supported on mobile devices. Only camera is required on mobile.');
+      setScreenError('Screen sharing is not available on mobile browsers. Your camera is sufficient for mobile verification.');
       return;
     }
     try {
@@ -221,6 +225,93 @@ const StudentExams = ({ showNotification }) => {
   useEffect(() => {
     if (!activeExam) { stopCamera(); stopScreenShare(); }
   }, [activeExam]);
+
+  // Block navigation away + tab switch detection during active exam
+  useEffect(() => {
+    if (!examStarted) return;
+
+    // 1. Block page unload / navigation (new tab, close, refresh, address bar)
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = 'You are in an active exam. Leaving will cancel your exam!';
+      return e.returnValue;
+    };
+
+    // 2. Detect tab switch / app switch (visibility hidden)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        startTabWarning();
+      } else {
+        cancelTabWarning();
+      }
+    };
+
+    // 3. Detect window blur (switching to another app/window)
+    const handleBlur = () => startTabWarning();
+    const handleFocus = () => cancelTabWarning();
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+      cancelTabWarning();
+    };
+  }, [examStarted]);
+
+  const startTabWarning = () => {
+    if (tabTimerRef.current) return; // already counting
+    tabCountRef.current = 10;
+    setTabCountdown(10);
+    setTabWarning(true);
+
+    tabTimerRef.current = setInterval(() => {
+      tabCountRef.current -= 1;
+      setTabCountdown(tabCountRef.current);
+      if (tabCountRef.current <= 0) {
+        clearInterval(tabTimerRef.current);
+        tabTimerRef.current = null;
+        setTabWarning(false);
+        // Auto-cancel exam for this student
+        autoDisqualify();
+      }
+    }, 1000);
+  };
+
+  const cancelTabWarning = () => {
+    if (tabTimerRef.current) {
+      clearInterval(tabTimerRef.current);
+      tabTimerRef.current = null;
+    }
+    setTabWarning(false);
+    setTabCountdown(10);
+  };
+
+  const autoDisqualify = async () => {
+    if (!activeExam) return;
+    try {
+      // Submit with current answers (partial) to mark as done
+      const answerArray = Object.entries(answers).map(([questionIndex, answer]) => ({
+        questionIndex: parseInt(questionIndex),
+        answer
+      }));
+      const session = JSON.parse(localStorage.getItem('examSession') || 'null');
+      const timeTaken = session ? Math.floor((Date.now() - session.startedAt) / 1000 / 60) : 0;
+      await examAPI.submitExam(activeExam._id, { answers: answerArray, timeTaken, disqualified: true });
+    } catch (e) {
+      console.error('Auto-disqualify error:', e);
+    } finally {
+      clearExamSession();
+      setActiveExam(null);
+      setExamStarted(false);
+      fetchExams();
+    }
+  };
 
   const toggleFlag = (idx) => {
     setFlagged(prev => {
@@ -555,8 +646,8 @@ const StudentExams = ({ showNotification }) => {
                   <span><strong>Turn on your camera</strong> before starting the exam. Your camera must be visible throughout the exam for identity verification.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">7</span>
-                  <span><strong>Share your screen</strong> so the proctor can monitor your activity during the exam.</span>
+                  <span className="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">8</span>
+                  <span><strong className="text-red-600">Do not switch tabs or navigate away</strong> during the exam. If you leave this page (except to the instructions), the system will give you only <strong>10 seconds</strong> to return. After that, you will be automatically marked as a <strong className="text-red-600">cheater</strong> and your exam will <strong>not be submitted</strong>.</span>
                 </li>
               </ul>
             </div>
@@ -678,6 +769,27 @@ const StudentExams = ({ showNotification }) => {
         style={{ userSelect: examStarted ? 'none' : 'auto' }}
         onCopy={(e) => examStarted && e.preventDefault()}
       >
+        {/* Tab-switch warning overlay */}
+        {tabWarning && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 text-center border-4 border-red-500">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h2 className="text-2xl font-bold text-red-600 mb-2">Warning!</h2>
+              <p className="text-gray-700 dark:text-gray-300 mb-4 text-base">
+                You have left the exam page. Return immediately or your exam will be <strong>automatically cancelled</strong>.
+              </p>
+              <div className="text-6xl font-bold text-red-600 mb-4 tabular-nums">{tabCountdown}</div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">seconds remaining to return</p>
+              <button
+                onClick={() => { cancelTabWarning(); window.focus(); }}
+                className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors text-lg"
+              >
+                Return to Exam
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Fixed Header */}
         <div ref={examHeaderRef} className="bg-white dark:bg-gray-800 shadow-lg flex-shrink-0 z-10">
 
