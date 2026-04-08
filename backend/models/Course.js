@@ -53,10 +53,6 @@ const courseSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
-  },
-  totalHours: {
-    type: Number,
-    default: null
   }
 }, {
   timestamps: true
