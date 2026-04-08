@@ -661,15 +661,15 @@ const StudentExams = ({ showNotification }) => {
 
     return (
       <div
-        className="fixed inset-0 lg:left-64 flex flex-col bg-gray-50 dark:bg-gray-900"
-        style={{ top: (headerHeight || 180) + 8, userSelect: examStarted ? 'none' : 'auto' }}
+        className="fixed inset-0 lg:left-64 flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden"
+        style={{ userSelect: examStarted ? 'none' : 'auto' }}
         onCopy={(e) => examStarted && e.preventDefault()}
       >
         {/* Fixed Header */}
-        <div ref={examHeaderRef} className="bg-white dark:bg-gray-800 shadow-lg fixed top-0 left-0 lg:left-64 right-0 z-30">
+        <div ref={examHeaderRef} className="bg-white dark:bg-gray-800 shadow-lg flex-shrink-0 z-10">
 
           {/* Row 1: Title + Timer */}
-          <div className="flex items-center justify-between pl-14 pr-3 sm:pl-5 sm:pr-5 pt-3 pb-1 gap-2">
+          <div className="flex items-center justify-between pl-14 pr-3 sm:pl-5 sm:pr-5 pt-2 pb-1 gap-2">
             {/* Exam title */}
             <div className="min-w-0 flex-1">
               <h2 className="text-sm sm:text-base lg:text-xl font-bold text-gray-900 dark:text-white truncate leading-tight">{activeExam.title}</h2>
@@ -705,11 +705,11 @@ const StudentExams = ({ showNotification }) => {
 
           {/* Row 2: Camera + Screen previews */}
           {examStarted && (cameraStream || screenStream || localStorage.getItem('examCameraActive') === 'true' || localStorage.getItem('examScreenActive') === 'true') && (
-            <div className="flex items-center gap-2 pl-14 pr-3 sm:pl-5 sm:pr-5 pb-2">
+            <div className="flex items-center gap-2 pl-14 pr-3 sm:pl-5 sm:pr-5 pb-1">
               {/* Camera - same size as screen share */}
               {cameraStream ? (
                 <div className="relative rounded-lg overflow-hidden border-2 border-green-400 bg-gray-900"
-                  style={{ width: 'clamp(100px, 22vw, 220px)', aspectRatio: '16/9' }}>
+                  style={{ width: 'clamp(80px, 14vw, 160px)', aspectRatio: '16/9' }}>
                   <video ref={examVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
                   <div className="absolute bottom-1 left-1 flex items-center gap-1 bg-green-500/90 text-white text-xs px-1.5 py-0.5 rounded-full">
                     <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
@@ -719,7 +719,7 @@ const StudentExams = ({ showNotification }) => {
               ) : localStorage.getItem('examCameraActive') === 'true' ? (
                 <button onClick={startCamera}
                   className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-orange-400 bg-orange-50 dark:bg-orange-900/20 text-orange-600 text-xs font-medium gap-1 hover:bg-orange-100 transition-colors"
-                  style={{ width: 'clamp(100px, 22vw, 220px)', aspectRatio: '16/9' }}
+                  style={{ width: 'clamp(80px, 14vw, 160px)', aspectRatio: '16/9' }}
                 >
                   <Camera className="h-4 w-4" /> Reconnect
                 </button>
@@ -747,7 +747,7 @@ const StudentExams = ({ showNotification }) => {
           )}
 
           {/* Row 3: Progress bar + answered count */}
-          <div className="pl-14 pr-3 sm:pl-5 sm:pr-5 pb-2">
+          <div className="pl-14 pr-3 sm:pl-5 sm:pr-5 pb-1.5">
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
               <span>Q {currentPage + 1} of {totalQuestions}</span>
               <div className="flex items-center gap-3">
@@ -791,19 +791,19 @@ const StudentExams = ({ showNotification }) => {
 
         {/* Dynamic spacer - no longer needed, using fixed positioning */}
 
-        {/* Question - fills all available space */}
-        <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-3">
-          <div className="max-w-3xl mx-auto">
+        {/* Question area - no scroll, fills remaining space */}
+        <div className="flex-1 min-h-0 flex flex-col px-3 sm:px-6 py-2">
+          <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col min-h-0">
           {pageQuestions.map((question, pageIdx) => {
             const idx = pageStart + pageIdx;
             const isCorrect = viewMode && question.correctAnswer.trim().toLowerCase() === answers[idx]?.trim().toLowerCase();
             return (
-              <div key={idx} className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg flex flex-col ${
+              <div key={idx} className={`flex-1 min-h-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg flex flex-col ${
                 viewMode ? (isCorrect ? 'border-2 border-green-500' : 'border-2 border-red-500')
                 : flagged.has(idx) ? 'border-2 border-orange-400' : 'border border-gray-200 dark:border-gray-700'
               }`}>
                 {/* Question text */}
-                <div className="flex items-start justify-between px-4 sm:px-6 pt-3 sm:pt-4 pb-2 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+                <div className="flex items-start justify-between px-4 sm:px-6 pt-3 pb-2 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
                   <h3 className="font-semibold text-sm sm:text-base flex-1 leading-snug">
                     <span className="text-blue-600 font-bold mr-1">Q{idx + 1}.</span>
                     {question.question}
@@ -824,13 +824,13 @@ const StudentExams = ({ showNotification }) => {
                   )}
                 </div>
 
-                {/* Options - flex-1 so they fill remaining space */}
-                <div className="px-4 sm:px-6 py-2 sm:py-3 flex flex-col gap-1.5 sm:gap-2">
+                {/* Options - fill remaining space evenly */}
+                <div className="px-4 sm:px-6 py-2 flex-1 min-h-0 flex flex-col justify-evenly">
 
                 {question.type === 'mcq' && (
-                  <div className="flex flex-col gap-2 sm:gap-3">
+                  <div className="flex flex-col flex-1 justify-evenly">
                     {question.options.map((option, optIdx) => (
-                      <label key={optIdx} className={`flex items-center px-3 sm:px-4 py-2 sm:py-2.5 border-2 rounded-xl cursor-pointer transition-all ${
+                      <label key={optIdx} className={`flex items-center px-3 sm:px-4 py-2 border-2 rounded-xl cursor-pointer transition-all ${
                         answers[idx] === option
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                           : 'border-gray-200 dark:border-gray-600 hover:border-blue-300 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -853,9 +853,9 @@ const StudentExams = ({ showNotification }) => {
                 )}
 
                 {question.type === 'true-false' && (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4 flex-1 content-center">
                     {['True', 'False'].map((option) => (
-                      <label key={option} className={`flex items-center justify-center px-4 py-4 sm:py-6 border-2 rounded-xl cursor-pointer transition-all text-base sm:text-lg font-semibold ${
+                      <label key={option} className={`flex items-center justify-center px-4 py-3 sm:py-4 border-2 rounded-xl cursor-pointer transition-all text-base sm:text-lg font-semibold ${
                         answers[idx] === option
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
                           : 'border-gray-200 dark:border-gray-600 hover:border-blue-300 text-gray-700 dark:text-gray-300'
@@ -873,7 +873,7 @@ const StudentExams = ({ showNotification }) => {
 
 
                 {question.type === 'fill-blank' && (
-                  <div className="">
+                  <div className="flex-1 flex flex-col justify-center">
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 italic">{question.question}</p>
                     <input
                       type="text"
@@ -891,7 +891,7 @@ const StudentExams = ({ showNotification }) => {
                   const pairs = question.matchingPairs || question.correctAnswer?.split('|').map(p => { const [left, right] = p.split(':'); return { left, right }; }) || [];
                   const savedAnswers = answers[idx] ? JSON.parse(answers[idx]) : {};
                   return (
-                    <div className="space-y-2 sm:space-y-3">
+                    <div className="flex-1 flex flex-col justify-evenly">
                       <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 px-1">
                         <span>Left</span><span>Match with</span>
                       </div>
