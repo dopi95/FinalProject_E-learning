@@ -198,8 +198,8 @@ const Chatbot = ({ showIcons = true }) => {
 
     try {
       const history = messages
-        .filter(m => !m.animated)
-        .slice(-10)
+        .filter(m => !m.animated && m.sender !== 'bot' || (m.sender === 'bot' && !m.text.includes('IT department')))
+        .slice(-6)
         .map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }));
 
       const response = await groqChatAPI.sendMessage(currentInput, history);
