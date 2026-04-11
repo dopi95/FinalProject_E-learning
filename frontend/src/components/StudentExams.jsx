@@ -35,6 +35,8 @@ const StudentExams = ({ showNotification }) => {
   const screenStreamRef = useRef(null);
   const examIdRef = useRef(null);
   const userIdRef = useRef(null);
+  const socketMeta_ref = useRef(null);
+  const connectedInstructors = useRef(new Set());
   const [tabWarning, setTabWarning] = useState(false);
   const [tabCountdown, setTabCountdown] = useState(10);
   const tabTimerRef = useRef(null);
@@ -51,6 +53,10 @@ const StudentExams = ({ showNotification }) => {
       localStorage.setItem('examCameraActive', 'true');
       if (videoRef.current) videoRef.current.srcObject = stream;
       emitStreamStatus(true, !!screenStreamRef.current);
+      // Re-send offers to all connected instructors with new stream
+      setTimeout(() => {
+        connectedInstructors.current.forEach(instrSocketId => sendOffer(instrSocketId));
+      }, 300);
     } catch {
       setCameraError('Camera access denied. Please allow camera access and try again.');
     }
@@ -80,6 +86,10 @@ const StudentExams = ({ showNotification }) => {
       if (screenRef.current) screenRef.current.srcObject = stream;
       if (examScreenRef.current) examScreenRef.current.srcObject = stream;
       emitStreamStatus(!!cameraStreamRef.current, true);
+      // Re-send offers to all connected instructors with new stream
+      setTimeout(() => {
+        connectedInstructors.current.forEach(instrSocketId => sendOffer(instrSocketId));
+      }, 300);
       stream.getVideoTracks()[0].onended = () => {
         screenStreamRef.current = null;
         setScreenStream(null);
@@ -122,12 +132,14 @@ const StudentExams = ({ showNotification }) => {
   const createPeerConnection = (instructorSocketId) => {
     if (peerConnections.current[instructorSocketId]) {
       peerConnections.current[instructorSocketId].close();
+      delete peerConnections.current[instructorSocketId];
     }
 
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
       ]
     });
     peerConnections.current[instructorSocketId] = pc;
@@ -139,7 +151,7 @@ const StudentExams = ({ showNotification }) => {
         pc.addTrack(track, cameraStreamRef.current)
       );
     }
-    // Add screen stream tracks (separate stream so instructor can distinguish)
+    // Add screen stream tracks as a separate stream
     if (screenStreamRef.current) {
       screenStreamRef.current.getTracks().forEach(track =>
         pc.addTrack(track, screenStreamRef.current)
@@ -166,6 +178,8 @@ const StudentExams = ({ showNotification }) => {
   };
 
   const sendOffer = async (instructorSocketId) => {
+    // Only send offer if we have at least one stream
+    if (!cameraStreamRef.current && !screenStreamRef.current) return;
     const pc = createPeerConnection(instructorSocketId);
     try {
       const offer = await pc.createOffer();
@@ -178,6 +192,16 @@ const StudentExams = ({ showNotification }) => {
     } catch (err) {
       console.error('WebRTC offer error:', err);
     }
+  };
+
+  // Re-send offers to all connected instructors (called when a new stream starts)
+  const renegotiateAll = () => {
+    if (!socketRef.current) return;
+    const meta = socketMeta_ref.current;
+    if (!meta) return;
+    Object.keys(peerConnections.current).forEach(instrSocketId => {
+      sendOffer(instrSocketId);
+    });
   };
 
   // Measure header height dynamically so spacer always matches
@@ -381,31 +405,47 @@ const StudentExams = ({ showNotification }) => {
     userIdRef.current = userId;
     examIdRef.current = activeExam._id;
 
+    // Cleanup previous socket
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+    Object.values(peerConnections.current).forEach(pc => pc.close());
+    peerConnections.current = {};
+    pendingCandidates.current = {};
+    connectedInstructors.current = new Set();
+
     const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
     socketRef.current = socket;
 
     socket.on('connect', () => {
       socket.emit('exam:join', { examId: activeExam._id, userId });
-      // Send current stream status once connected (only if exam is running)
-      if (examStarted) {
-        emitStreamStatus(!!cameraStreamRef.current, !!screenStreamRef.current);
-      }
+      // Emit current stream status
+      emitStreamStatus(!!cameraStreamRef.current, !!screenStreamRef.current);
     });
 
     socket.on('instructor:watching', ({ instructorSocketId }) => {
-      sendOffer(instructorSocketId);
+      connectedInstructors.current.add(instructorSocketId);
+      // Send offer only if we have streams
+      if (cameraStreamRef.current || screenStreamRef.current) {
+        sendOffer(instructorSocketId);
+      }
+      // Always emit stream status so instructor sees camera/screen indicators
+      emitStreamStatus(!!cameraStreamRef.current, !!screenStreamRef.current);
     });
 
     socket.on('webrtc:answer', async ({ answer, fromSocketId }) => {
       const pc = peerConnections.current[fromSocketId];
       if (!pc) return;
       try {
-        await pc.setRemoteDescription(new RTCSessionDescription(answer));
-        const pending = pendingCandidates.current[fromSocketId] || [];
-        for (const c of pending) {
-          await pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {});
+        if (pc.signalingState === 'have-local-offer') {
+          await pc.setRemoteDescription(new RTCSessionDescription(answer));
+          const pending = pendingCandidates.current[fromSocketId] || [];
+          for (const c of pending) {
+            await pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {});
+          }
+          pendingCandidates.current[fromSocketId] = [];
         }
-        pendingCandidates.current[fromSocketId] = [];
       } catch (err) {
         console.error('setRemoteDescription error:', err);
       }
@@ -426,6 +466,7 @@ const StudentExams = ({ showNotification }) => {
       Object.values(peerConnections.current).forEach(pc => pc.close());
       peerConnections.current = {};
       pendingCandidates.current = {};
+      connectedInstructors.current = new Set();
       socket.disconnect();
       socketRef.current = null;
     };

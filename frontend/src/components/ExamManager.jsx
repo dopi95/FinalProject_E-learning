@@ -88,36 +88,48 @@ const ExamManager = ({ courses, showNotification }) => {
 
     // Receive WebRTC offer from student
     socket.on('webrtc:offer', async ({ offer, studentId, fromSocketId }) => {
-      // Create peer connection for this student
+      // Close existing connection for this student
       if (peerConnections.current[fromSocketId]) {
         peerConnections.current[fromSocketId].close();
+        delete peerConnections.current[fromSocketId];
       }
 
       const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }]
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' }
+        ]
       });
       peerConnections.current[fromSocketId] = pc;
-      streamCountRef.current[studentId] = 0;
-      const seenStreamIds = new Set();
+
+      // Track streams: first stream = camera, second stream = screen
+      const receivedStreams = [];
 
       pc.ontrack = (e) => {
         const stream = e.streams[0];
-        if (!stream || seenStreamIds.has(stream.id)) return;
-        seenStreamIds.add(stream.id);
-        streamCountRef.current[studentId]++;
-        const count = streamCountRef.current[studentId];
-        if (count === 1) {
+        if (!stream) return;
+        // Check if we already have this stream
+        if (receivedStreams.find(s => s.id === stream.id)) return;
+        receivedStreams.push(stream);
+
+        const idx = receivedStreams.length; // 1 = camera, 2 = screen
+        if (idx === 1) {
+          // First stream = camera
           const el = videoRefs.current[studentId];
           if (el) {
             el.srcObject = stream;
-            setStreamStatus(prev => ({ ...prev, [studentId]: { ...prev[studentId], camera: true } }));
+            el.play().catch(() => {});
           }
-        } else {
+          setStreamStatus(prev => ({ ...prev, [studentId]: { ...prev[studentId], camera: true } }));
+        } else if (idx === 2) {
+          // Second stream = screen share
           const el = screenRefs.current[studentId];
           if (el) {
             el.srcObject = stream;
-            setStreamStatus(prev => ({ ...prev, [studentId]: { ...prev[studentId], screen: true } }));
+            el.play().catch(() => {});
           }
+          setStreamStatus(prev => ({ ...prev, [studentId]: { ...prev[studentId], screen: true } }));
         }
       };
 
@@ -133,10 +145,14 @@ const ExamManager = ({ courses, showNotification }) => {
         }
       };
 
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      socket.emit('webrtc:answer', { targetSocketId: fromSocketId, answer, studentId });
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit('webrtc:answer', { targetSocketId: fromSocketId, answer, studentId });
+      } catch (err) {
+        console.error('WebRTC answer error:', err);
+      }
     });
 
     // ICE candidates from student
@@ -149,11 +165,9 @@ const ExamManager = ({ courses, showNotification }) => {
 
     // Stream status updates (camera/screen on/off)
     socket.on('stream:status', ({ studentId, camera, screen }) => {
-      setStreamStatus(prev => ({ ...prev, [studentId]: { ...prev[studentId], camera, screen } }));
+      setStreamStatus(prev => ({ ...prev, [studentId]: { camera, screen } }));
       if (!camera && videoRefs.current[studentId]) {
         videoRefs.current[studentId].srcObject = null;
-        // Reset count so next camera-on gets routed to camera slot again
-        if (streamCountRef.current[studentId] >= 1) streamCountRef.current[studentId] = 0;
       }
       if (!screen && screenRefs.current[studentId]) {
         screenRefs.current[studentId].srcObject = null;
@@ -164,7 +178,6 @@ const ExamManager = ({ courses, showNotification }) => {
       setStreamStatus(prev => ({ ...prev, [studentId]: { camera: false, screen: false } }));
       if (videoRefs.current[studentId]) videoRefs.current[studentId].srcObject = null;
       if (screenRefs.current[studentId]) screenRefs.current[studentId].srcObject = null;
-      streamCountRef.current[studentId] = 0;
     });
 
     return () => {
@@ -483,12 +496,7 @@ const ExamManager = ({ courses, showNotification }) => {
                       {/* Camera Feed */}
                       <div className="relative bg-gray-900 aspect-video flex items-center justify-center">
                         <video
-                          ref={el => {
-                            if (el) {
-                              videoRefs.current[student._id] = el;
-                              if (el.srcObject) setStreamStatus(prev => ({ ...prev, [student._id]: { ...prev[student._id], camera: true } }));
-                            }
-                          }}
+                          ref={el => { if (el) videoRefs.current[student._id] = el; }}
                           autoPlay playsInline muted
                           style={{ display: status.camera ? 'block' : 'none', width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
                         />
@@ -548,12 +556,7 @@ const ExamManager = ({ courses, showNotification }) => {
                         </div>
                         <div className="relative aspect-video flex items-center justify-center">
                           <video
-                            ref={el => {
-                              if (el) {
-                                screenRefs.current[student._id] = el;
-                                if (el.srcObject) setStreamStatus(prev => ({ ...prev, [student._id]: { ...prev[student._id], screen: true } }));
-                              }
-                            }}
+                            ref={el => { if (el) screenRefs.current[student._id] = el; }}
                             autoPlay playsInline muted
                             style={{ display: status.screen ? 'block' : 'none', width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
                           />

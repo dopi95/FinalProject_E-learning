@@ -59,11 +59,15 @@ io.on('connection', (socket) => {
   socket.on('instructor:watch', ({ examId, userId }) => {
     socket.join(`exam:${examId}:instructors`);
     socketMeta[socket.id] = { examId, userId, role: 'instructor' };
-    // Tell all students in this exam that instructor is watching
+    // Tell ALL students in this exam that instructor is watching — triggers them to send offers
     socket.to(`exam:${examId}`).emit('instructor:watching', { instructorSocketId: socket.id });
-    // Send list of currently connected students
+    // Send list of currently connected students to instructor
     const students = examRooms[examId] || {};
     socket.emit('exam:students', { students: Object.entries(students).map(([sid, sockId]) => ({ studentId: sid, socketId: sockId })) });
+    // Also directly notify each student socket so they send offers immediately
+    Object.entries(students).forEach(([studentId, studentSocketId]) => {
+      io.to(studentSocketId).emit('instructor:watching', { instructorSocketId: socket.id });
+    });
   });
 
   // WebRTC signaling: student sends offer to instructor
