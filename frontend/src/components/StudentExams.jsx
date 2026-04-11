@@ -368,6 +368,8 @@ const StudentExams = ({ showNotification }) => {
     examAPI.getStudentExams().then(res => {
       const exam = (res.data.exams || []).find(e => e._id === session.examId);
       if (!exam) { localStorage.removeItem('examSession'); return; }
+      // If exam end time has passed, clear session — exam is closed
+      if (new Date() > new Date(exam.endDate)) { clearExamSession(); return; }
       const savedAnswers = JSON.parse(localStorage.getItem('examAnswers') || '{}');
       setActiveExam(exam);
       setAnswers(savedAnswers);
@@ -482,6 +484,11 @@ const StudentExams = ({ showNotification }) => {
     if (examStarted && timeLeft > 0) {
       const timer = setInterval(() => {
         setTimeLeft(prev => {
+          // Also force-submit if exam end time has passed
+          if (activeExam && new Date() >= new Date(activeExam.endDate)) {
+            handleSubmit();
+            return 0;
+          }
           if (prev <= 1) {
             handleSubmit();
             return 0;
@@ -509,14 +516,20 @@ const StudentExams = ({ showNotification }) => {
     const now = new Date();
     const start = new Date(exam.startDate);
     const end = new Date(exam.endDate);
-    
+    const examExpiry = new Date(start.getTime() + parseInt(exam.duration) * 60 * 1000);
+    const effectiveEnd = examExpiry < end ? examExpiry : end;
+
     if (now < start) return 'not-started';
-    if (now > end) return 'closed';
+    if (now > effectiveEnd) return 'closed';
     return 'active';
   };
 
   const startExam = (exam) => {
     const status = getExamStatus(exam);
+    if (status === 'closed') {
+      showNotification('error', 'Exam Closed', 'This exam has ended and is no longer available.');
+      return;
+    }
     if (status !== 'active') {
       showNotification('error', 'Error', 'Exam is not available');
       return;
@@ -1288,7 +1301,8 @@ const StudentExams = ({ showNotification }) => {
                         </span>
                         {(() => {
                           const minutesLate = Math.floor((new Date() - new Date(exam.startDate)) / (1000 * 60));
-                          return minutesLate > 15 ? (
+                          const withinDuration = minutesLate < parseInt(exam.duration);
+                          return (minutesLate > 15 && withinDuration) ? (
                             <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold flex items-center gap-1">
                               ⚠️ {minutesLate}m Late
                             </span>
