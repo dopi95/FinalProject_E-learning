@@ -731,14 +731,7 @@ const SuperAdminDashboard = () => {
       const response = await usersAPI.getUsers(params);
       const fetchedUsers = response.data.users || [];
       
-      // Filter to show only real registered users (exclude any test/demo data)
-      let realUsers = fetchedUsers.filter(user => 
-        user.email && 
-        user.name && 
-        user.createdAt && 
-        !user.email.includes('test') && 
-        !user.email.includes('demo')
-      );
+      let realUsers = fetchedUsers.filter(user => user.email && user.name && user.createdAt);
       
       // Apply gender filter on frontend if not handled by backend
       if (selectedGenderFilter !== 'all') {
