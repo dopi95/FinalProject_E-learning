@@ -39,6 +39,7 @@ const StudentExams = ({ showNotification }) => {
   const connectedInstructors = useRef(new Set());
   const [tabWarning, setTabWarning] = useState(false);
   const [tabCountdown, setTabCountdown] = useState(10);
+  const [showLateModal, setShowLateModal] = useState(false);
   const tabTimerRef = useRef(null);
   const tabCountRef = useRef(0);
 
@@ -520,18 +521,7 @@ const StudentExams = ({ showNotification }) => {
       showNotification('error', 'Error', 'Exam is not available');
       return;
     }
-
-    // Check if student is joining late (more than 15 minutes after start)
-    const now = new Date();
-    const start = new Date(exam.startDate);
-    const minutesLate = Math.floor((now - start) / (1000 * 60));
-    if (minutesLate > 15) {
-      const confirmed = window.confirm(
-        `⚠️ You are ${minutesLate} minute${minutesLate !== 1 ? 's' : ''} late!\n\nThe exam started at ${start.toLocaleTimeString()}.\nLate submissions may be penalized.\n\nDo you still want to continue?`
-      );
-      if (!confirmed) return;
-    }
-
+    // Always show instructions page — late check happens on "Start Exam" click
     setActiveExam(exam);
     setShowInstructions(true);
     setExamStarted(false);
@@ -540,6 +530,14 @@ const StudentExams = ({ showNotification }) => {
   };
 
   const beginExam = () => {
+    // Block if more than 15 minutes late
+    const now = new Date();
+    const start = new Date(activeExam.startDate);
+    const minutesLate = Math.floor((now - start) / (1000 * 60));
+    if (minutesLate > 15) {
+      setShowLateModal(true);
+      return;
+    }
     const totalSeconds = parseInt(activeExam.duration) * 60;
     localStorage.setItem('examSession', JSON.stringify({
       examId: activeExam._id,
@@ -627,14 +625,70 @@ const StudentExams = ({ showNotification }) => {
   };
 
   if (activeExam && showInstructions) {
+    const minutesLate = Math.floor((new Date() - new Date(activeExam.startDate)) / (1000 * 60));
+    const isLate = minutesLate > 15;
+
     return (
       <div className="max-w-4xl mx-auto">
+
+        {/* Late Modal */}
+        {showLateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
+              {/* Red top bar */}
+              <div className="bg-gradient-to-r from-red-500 to-rose-600 p-6 text-center">
+                <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="text-5xl">⏰</span>
+                </div>
+                <h2 className="text-2xl font-bold text-white">You Are Too Late!</h2>
+                <p className="text-red-100 text-sm mt-1">Exam entry period has closed</p>
+              </div>
+              {/* Body */}
+              <div className="p-6 text-center">
+                <p className="text-gray-700 dark:text-gray-300 text-base mb-2">
+                  The exam started <strong className="text-red-600">{minutesLate} minutes ago</strong>.
+                </p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
+                  Students are only allowed to start the exam within <strong>15 minutes</strong> of the scheduled start time. You are no longer permitted to take this exam.
+                </p>
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-2xl p-4 mb-6">
+                  <p className="text-red-700 dark:text-red-300 text-sm font-medium">📋 Exam: {activeExam.title}</p>
+                  <p className="text-red-600 dark:text-red-400 text-xs mt-1">Started at: {new Date(activeExam.startDate).toLocaleTimeString()}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowLateModal(false);
+                    setActiveExam(null);
+                    setShowInstructions(false);
+                    stopCamera();
+                    stopScreenShare();
+                  }}
+                  className="w-full py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-rose-700 transition-all shadow-lg"
+                >
+                  Back to My Exams
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
             <h2 className="text-2xl font-bold mb-1">{activeExam.title}</h2>
             <p className="text-blue-100 text-sm">{activeExam.course?.title}</p>
           </div>
+
+          {/* Late warning banner */}
+          {isLate && (
+            <div className="bg-red-50 dark:bg-red-900/20 border-b-2 border-red-300 dark:border-red-700 px-6 py-3 flex items-center gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <p className="text-red-700 dark:text-red-300 font-semibold text-sm">You are {minutesLate} minutes late — you cannot start this exam.</p>
+                <p className="text-red-500 dark:text-red-400 text-xs">Entry is only allowed within 15 minutes of the start time.</p>
+              </div>
+            </div>
+          )}
 
           {/* Exam Info */}
           <div className="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700 border-b border-gray-200 dark:border-gray-700">
@@ -689,6 +743,10 @@ const StudentExams = ({ showNotification }) => {
                 <li className="flex items-start gap-2">
                   <span className="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">8</span>
                   <span><strong className="text-red-600">Do not switch tabs or navigate away</strong> during the exam. If you leave this page (except to the instructions), the system will give you only <strong>10 seconds</strong> to return. After that, you will be automatically marked as a <strong className="text-red-600">cheater</strong> and your exam will <strong>not be submitted</strong>.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">9</span>
+                  <span><strong className="text-red-600">Late entry is strictly not allowed.</strong> If you arrive more than <strong>15 minutes</strong> after the exam has started, you will <strong className="text-red-600">not be permitted</strong> to take the exam. Make sure you start on time.</span>
                 </li>
               </ul>
             </div>
@@ -786,9 +844,14 @@ const StudentExams = ({ showNotification }) => {
             )}
             <button
               onClick={examStarted ? () => setShowInstructions(false) : beginExam}
-              className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 font-semibold transition-all shadow-lg"
+              disabled={isLate && !examStarted}
+              className={`flex-1 py-3 rounded-xl font-semibold transition-all shadow-lg ${
+                isLate && !examStarted
+                  ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700'
+              }`}
             >
-              {examStarted ? 'Resume Exam' : 'Start Exam'}
+              {examStarted ? 'Resume Exam' : isLate ? '⏰ Entry Closed' : 'Start Exam'}
             </button>
           </div>
         </div>
