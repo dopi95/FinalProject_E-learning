@@ -220,6 +220,8 @@ const renderInline = (text) => {
 
 const Chatbot = ({ showIcons = true }) => {
   const { t } = useTranslation();
+  const currentPath = window.location.pathname;
+  const isReelsView = currentPath === '/reels-view' || currentPath === '/reels';
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -385,7 +387,7 @@ const Chatbot = ({ showIcons = true }) => {
 
   return (
     <>
-      {!isMobileMenuOpen && showIcons && (
+      {!isMobileMenuOpen && showIcons && !isReelsView && (
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={`fixed bottom-6 right-6 z-[99999] w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 group overflow-hidden ${isOpen ? '' : 'animate-bounce'}`}
@@ -398,7 +400,7 @@ const Chatbot = ({ showIcons = true }) => {
         </button>
       )}
 
-      {!isMobileMenuOpen && showIcons && (
+      {!isMobileMenuOpen && showIcons && !isReelsView && (
         <div
           className={`fixed z-[9999] transition-all duration-300 transform ${isOpen ? 'scale-100 opacity-100 pointer-events-auto' : 'scale-0 opacity-0 pointer-events-none'}`}
           style={{ bottom: '5.5rem', right: '1.5rem', width: '380px', maxWidth: 'calc(100vw - 2rem)', transformOrigin: 'bottom right' }}
