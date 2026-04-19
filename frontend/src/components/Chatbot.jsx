@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Send, Bot, MessageSquare, History, Trash2, Edit2, Plus, Clock } from 'lucide-react';
+import { X, Send, Bot, MessageSquare, History, Trash2, Edit2, Plus, Clock, MapPin, ExternalLink, Globe } from 'lucide-react';
 import { chatHistoryAPI, groqChatAPI } from '../services/api';
 
 const chatbotStyles = `
@@ -57,8 +57,69 @@ if (typeof document !== 'undefined') {
 
 const WELCOME_MESSAGE = "Hello! I'm ፍኖት (Finot), your AAU E-Learning AI Assistant. Feel free to ask me about courses, enrollment, pricing, or anything else!";
 
+// Map card component
+const MapCard = ({ data }) => (
+  <a href={data.map} target="_blank" rel="noopener noreferrer"
+    className="flex items-start gap-3 mt-2 p-3 bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-700 rounded-2xl hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg transition-all duration-200 group">
+    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md group-hover:scale-110 transition-transform">
+      <MapPin className="h-5 w-5 text-white" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-0.5">📍 Campus Location</p>
+      <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{data.name}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{data.address}</p>
+      <div className="flex items-center gap-1 mt-1.5 text-xs text-blue-600 dark:text-blue-400 font-medium">
+        <ExternalLink className="h-3 w-3" />
+        <span>Open in Google Maps</span>
+      </div>
+    </div>
+  </a>
+);
+
+// Website card component
+const WebsiteCard = ({ data }) => (
+  <a href={data.url} target="_blank" rel="noopener noreferrer"
+    className="flex items-start gap-3 mt-2 p-3 bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-green-700 rounded-2xl hover:border-green-400 dark:hover:border-green-500 hover:shadow-lg transition-all duration-200 group">
+    <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md group-hover:scale-110 transition-transform">
+      <Globe className="h-5 w-5 text-white" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-0.5">🌐 Official Website</p>
+      <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{data.label}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{data.description}</p>
+      <div className="flex items-center gap-1 mt-1.5 text-xs text-green-600 dark:text-green-400 font-medium">
+        <ExternalLink className="h-3 w-3" />
+        <span>Visit aau.edu.et</span>
+      </div>
+    </div>
+  </a>
+);
+
 // Renders bot markdown responses with styled lists, bold, headers, etc.
 const BotMessage = ({ text }) => {
+  // Handle special card types
+  if (text.startsWith('MAP_CARD:')) {
+    try {
+      const data = JSON.parse(text.slice('MAP_CARD:'.length));
+      return (
+        <div className="space-y-1">
+          <p className="text-sm">Here is the address of the <strong>{data.name}</strong>:</p>
+          <MapCard data={data} />
+        </div>
+      );
+    } catch {}
+  }
+  if (text.startsWith('WEBSITE_CARD:')) {
+    try {
+      const data = JSON.parse(text.slice('WEBSITE_CARD:'.length));
+      return (
+        <div className="space-y-1">
+          <p className="text-sm">Here is the official AAU website:</p>
+          <WebsiteCard data={data} />
+        </div>
+      );
+    } catch {}
+  }
   const lines = text.split('\n');
   const elements = [];
   let i = 0;

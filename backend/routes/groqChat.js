@@ -43,6 +43,86 @@ Development Team:
 3. Eyob Kiros — Frontend Developer
 4. Elyas Yenealem — Backend Developer, QA Tester & AI Integration`;
 
+// AAU Campus map links
+const AAU_CAMPUSES = {
+  main: {
+    name: 'Main Campus (6 Kilo)',
+    address: '6 Kilo, Addis Ababa, Ethiopia',
+    map: 'https://maps.app.goo.gl/nBkQLg6tEPB1rfGo6'
+  },
+  commerce: {
+    name: 'School of Commerce Campus',
+    address: 'Mexico Square Area, Addis Ababa, Ethiopia',
+    map: 'https://maps.app.goo.gl/nBkQLg6tEPB1rfGo6'
+  },
+  technology: {
+    name: 'Addis Ababa Institute of Technology (AAiT)',
+    address: 'King George VI St, Addis Ababa, Ethiopia',
+    map: 'https://maps.app.goo.gl/nBkQLg6tEPB1rfGo6'
+  },
+  medical: {
+    name: 'College of Health Sciences (Black Lion)',
+    address: 'Lideta, Addis Ababa, Ethiopia',
+    map: 'https://maps.app.goo.gl/nBkQLg6tEPB1rfGo6'
+  },
+  business: {
+    name: 'College of Business & Economics',
+    address: 'Arat Kilo, Addis Ababa, Ethiopia',
+    map: 'https://maps.app.goo.gl/nBkQLg6tEPB1rfGo6'
+  }
+};
+
+const AAU_WEBSITE = 'https://www.aau.edu.et';
+
+const ADDRESS_KEYWORDS = [
+  'address', 'location', 'where is', 'where are', 'how to get', 'how do i get',
+  'directions', 'map', 'campus location', 'find the campus', 'find aau',
+  'where is aau', 'aau location', 'aau address', 'main campus', 'campus address'
+];
+
+const WEBSITE_KEYWORDS = [
+  'website', 'official website', 'aau website', 'aau.edu', 'official site',
+  'web site', 'homepage', 'home page', 'aau portal', 'official page'
+];
+
+const CAMPUS_KEYWORDS = {
+  commerce: ['commerce', 'school of commerce', 'bais', 'business administration'],
+  technology: ['technology', 'aait', 'engineering', 'institute of technology'],
+  medical: ['medical', 'health', 'black lion', 'health sciences', 'medicine'],
+  business: ['business', 'economics', 'college of business']
+};
+
+const isAddressQuestion = (msg) => {
+  const lower = msg.toLowerCase();
+  return ADDRESS_KEYWORDS.some(kw => lower.includes(kw));
+};
+
+const isWebsiteQuestion = (msg) => {
+  const lower = msg.toLowerCase();
+  return WEBSITE_KEYWORDS.some(kw => lower.includes(kw));
+};
+
+const getSpecificCampus = (msg) => {
+  const lower = msg.toLowerCase();
+  for (const [key, keywords] of Object.entries(CAMPUS_KEYWORDS)) {
+    if (keywords.some(kw => lower.includes(kw))) return key;
+  }
+  return null;
+};
+
+const buildAddressReply = (msg) => {
+  const specificCampus = getSpecificCampus(msg);
+  if (specificCampus) {
+    const campus = AAU_CAMPUSES[specificCampus];
+    return `MAP_CARD:${JSON.stringify({ name: campus.name, address: campus.address, map: campus.map })}`;
+  }
+  return `MAP_CARD:${JSON.stringify(AAU_CAMPUSES.main)}`;
+};
+
+const buildWebsiteReply = () => {
+  return `WEBSITE_CARD:${JSON.stringify({ url: AAU_WEBSITE, label: 'AAU Official Website', description: 'Visit the official Addis Ababa University website for admissions, academics, research, and more.' })}`;
+};
+
 const DEVELOPER_KEYWORDS = [
   'who develop', 'who built', 'who created', 'who made', 'who designed',
   'who build', 'who wrote', 'who coded', 'who programmed', 'who worked on',
@@ -79,6 +159,16 @@ router.post('/', async (req, res) => {
     if (isDeveloperQuestion(message)) {
       console.log('[GroqChat] INTERCEPTED as developer question — returning hardcoded answer');
       return res.json({ reply: DEVELOPER_ANSWER });
+    }
+
+    // Intercept website questions
+    if (isWebsiteQuestion(message)) {
+      return res.json({ reply: buildWebsiteReply() });
+    }
+
+    // Intercept address/map questions
+    if (isAddressQuestion(message)) {
+      return res.json({ reply: buildAddressReply(message) });
     }
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
