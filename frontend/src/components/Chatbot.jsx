@@ -57,6 +57,106 @@ if (typeof document !== 'undefined') {
 
 const WELCOME_MESSAGE = "Hello! I'm ፍኖት (Finot), your AAU E-Learning AI Assistant. Feel free to ask me about courses, enrollment, pricing, or anything else!";
 
+// Renders bot markdown responses with styled lists, bold, headers, etc.
+const BotMessage = ({ text }) => {
+  const lines = text.split('\n');
+  const elements = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Skip empty lines (add spacing)
+    if (!line.trim()) { elements.push(<div key={i} className="h-1" />); i++; continue; }
+
+    // ### Heading
+    if (line.startsWith('### ')) {
+      elements.push(<p key={i} className="font-bold text-blue-700 dark:text-blue-300 text-sm mt-2 mb-1">{line.slice(4)}</p>);
+      i++; continue;
+    }
+    // ## Heading
+    if (line.startsWith('## ')) {
+      elements.push(<p key={i} className="font-bold text-blue-700 dark:text-blue-300 text-base mt-2 mb-1">{line.slice(3)}</p>);
+      i++; continue;
+    }
+    // # Heading
+    if (line.startsWith('# ')) {
+      elements.push(<p key={i} className="font-bold text-blue-700 dark:text-blue-300 text-base mt-2 mb-1">{line.slice(2)}</p>);
+      i++; continue;
+    }
+
+    // Bullet list: lines starting with - or *
+    if (/^[-*] /.test(line)) {
+      const items = [];
+      while (i < lines.length && /^[-*] /.test(lines[i])) {
+        items.push(lines[i].slice(2));
+        i++;
+      }
+      elements.push(
+        <ul key={`ul-${i}`} className="my-1.5 space-y-1 pl-1">
+          {items.map((item, idx) => (
+            <li key={idx} className="flex items-start gap-2 text-sm">
+              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400 flex-shrink-0" />
+              <span>{renderInline(item)}</span>
+            </li>
+          ))}
+        </ul>
+      );
+      continue;
+    }
+
+    // Numbered list: lines starting with 1. 2. etc.
+    if (/^\d+\.\s/.test(line)) {
+      const items = [];
+      let num = 1;
+      while (i < lines.length && /^\d+\.\s/.test(lines[i])) {
+        items.push(lines[i].replace(/^\d+\.\s/, ''));
+        i++;
+      }
+      elements.push(
+        <ol key={`ol-${i}`} className="my-1.5 space-y-1 pl-1">
+          {items.map((item, idx) => (
+            <li key={idx} className="flex items-start gap-2 text-sm">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold flex items-center justify-center mt-0.5">{idx + 1}</span>
+              <span>{renderInline(item)}</span>
+            </li>
+          ))}
+        </ol>
+      );
+      continue;
+    }
+
+    // Horizontal rule
+    if (/^---+$/.test(line.trim())) {
+      elements.push(<hr key={i} className="my-2 border-gray-300 dark:border-gray-600" />);
+      i++; continue;
+    }
+
+    // Normal paragraph
+    elements.push(<p key={i} className="text-sm leading-relaxed">{renderInline(line)}</p>);
+    i++;
+  }
+
+  return <div className="space-y-0.5">{elements}</div>;
+};
+
+// Renders inline markdown: **bold**, *italic*, `code`
+const renderInline = (text) => {
+  const parts = [];
+  const regex = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  let last = 0, match;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) parts.push(text.slice(last, match.index));
+    const val = match[0];
+    if (val.startsWith('`')) parts.push(<code key={match.index} className="px-1 py-0.5 bg-gray-200 dark:bg-gray-600 rounded text-xs font-mono">{val.slice(1, -1)}</code>);
+    else if (val.startsWith('**')) parts.push(<strong key={match.index} className="font-semibold">{val.slice(2, -2)}</strong>);
+    else parts.push(<em key={match.index} className="italic">{val.slice(1, -1)}</em>);
+    last = match.index + val.length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts.length ? parts : text;
+};
+
 const Chatbot = ({ showIcons = true }) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
@@ -374,7 +474,7 @@ const Chatbot = ({ showIcons = true }) => {
                 {!showCharacter && messages.map((message, index) => (
                   <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`} style={{ animationDelay: `${index * 0.1}s` }}>
                     <div className={`max-w-[85%] sm:max-w-xs px-4 py-3 rounded-2xl text-sm shadow-sm ${message.sender === 'user' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white ml-auto' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600'}`}>
-                      <p className="text-sm">{message.text}</p>
+                      {message.sender === 'bot' ? <BotMessage text={message.text} /> : <p className="text-sm">{message.text}</p>}
                     </div>
                   </div>
                 ))}
