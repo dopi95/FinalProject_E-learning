@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import { X, Send, Bot, MessageSquare, History, Trash2, Edit2, Plus, Clock, MapPin, ExternalLink, Globe } from 'lucide-react';
 import { chatHistoryAPI, groqChatAPI } from '../services/api';
 
@@ -220,8 +221,8 @@ const renderInline = (text) => {
 
 const Chatbot = ({ showIcons = true }) => {
   const { t } = useTranslation();
-  const currentPath = window.location.pathname;
-  const isReelsView = currentPath === '/reels-view' || currentPath === '/reels';
+  const location = useLocation();
+  const isReelsView = location.pathname === '/reels-view' || location.pathname === '/reels';
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
