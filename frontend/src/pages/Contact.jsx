@@ -5,8 +5,8 @@ import Footer from '../components/Footer';
 import { Mail, Phone, MapPin, Send, CheckCircle, X, Clock, ExternalLink } from 'lucide-react';
 import { contactAPI } from '../services/api';
 
-const AAU_MAP_URL = 'https://www.google.com/maps/place/Addis+Ababa+University+Main+Campus/@9.0404,38.7634,17z';
-const AAU_EMBED_URL = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3940.5!2d38.7634!3d9.0404!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x164b85cef5ab402d%3A0x8467b6b037a24d49!2sAddis%20Ababa%20University!5e0!3m2!1sen!2set!4v1700000000000!5m2!1sen!2set';
+const AAU_MAP_URL = 'https://maps.app.goo.gl/nBkQLg6tEPB1rfGo6';
+const AAU_EMBED_URL = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3940.458085422249!2d38.76123!3d9.04836!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x164b85cef5ab402d%3A0x8467b6b037a24d49!2sAddis%20Ababa%20University!5e0!3m2!1sen!2set!4v1700000000000!5m2!1sen!2set';
 
 const Contact = () => {
   const { t } = useTranslation();
@@ -42,10 +42,6 @@ const Contact = () => {
           <div className="absolute bottom-0 right-10 w-96 h-96 bg-purple-300 rounded-full blur-3xl" />
         </div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium px-4 py-2 rounded-full mb-6">
-            <MapPin className="h-4 w-4" />
-            Addis Ababa University — School of Commerce
-          </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
             {t('contact.title')}
           </h1>
@@ -85,7 +81,7 @@ const Contact = () => {
                 bg: 'bg-purple-50 dark:bg-purple-900/20',
                 border: 'border-purple-100 dark:border-purple-800',
                 label: t('contact.address'),
-                value: 'King George VI St, Addis Ababa',
+                value: '6 Kilo, Addis Ababa',
                 href: AAU_MAP_URL
               },
               {

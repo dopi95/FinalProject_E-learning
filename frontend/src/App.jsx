@@ -82,7 +82,7 @@ const AppContent = () => {
         <Route path="/receipt" element={<PublicReceipt />} />
         <Route path="/leave-review" element={<LeaveReview />} />
       </Routes>
-      {isHomePage && <Chatbot showIcons={showIcons} />}
+      {isHomePage && !isReelsPage && <Chatbot showIcons={showIcons} />}
       <PWAInstallButton />
     </div>
   );
