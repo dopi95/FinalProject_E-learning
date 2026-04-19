@@ -54,10 +54,10 @@ const Footer = () => {
                 <Phone className="h-4 w-4 flex-shrink-0" />
                 <span>+251 111 239 700</span>
               </a>
-              <div className="flex items-start gap-2 text-gray-600 dark:text-gray-300 text-sm">
+              <a href="https://maps.app.goo.gl/nBkQLg6tEPB1rfGo6" target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm">
                 <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                <span>Sidist Kilo, Addis Ababa, Ethiopia</span>
-              </div>
+                <span>6 Kilo, Addis Ababa, Ethiopia</span>
+              </a>
             </div>
           </div>
 
