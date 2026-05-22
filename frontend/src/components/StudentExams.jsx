@@ -666,7 +666,7 @@ const StudentExams = ({ showNotification }) => {
                 </p>
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-2xl p-4 mb-6">
                   <p className="text-red-700 dark:text-red-300 text-sm font-medium">📋 Exam: {activeExam.title}</p>
-                  <p className="text-red-600 dark:text-red-400 text-xs mt-1">Started at: {new Date(activeExam.startDate).toLocaleTimeString()}</p>
+                  <p className="text-red-600 dark:text-red-400 text-xs mt-1">Started at: {new Date(activeExam.startDate).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
                 </div>
                 <button
                   onClick={() => {
@@ -1263,8 +1263,8 @@ const StudentExams = ({ showNotification }) => {
                       <span>{exam.totalMarks} marks</span>
                     </div>
                     <div className="mt-2 text-sm">
-                      <p>Start: {new Date(exam.startDate).toLocaleString()}</p>
-                      <p>End: {new Date(exam.endDate).toLocaleString()}</p>
+                      <p>Start: {new Date(exam.startDate).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</p>
+                      <p>End: {new Date(exam.endDate).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</p>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
