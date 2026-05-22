@@ -148,6 +148,9 @@ export const contactAPI = {
   
   // Reply to contact
   replyContact: (id, replyData) => api.post(`/contact/${id}/reply`, replyData),
+
+  // Mark contact as seen
+  markSeen: (id) => api.patch(`/contact/${id}/seen`),
 };
 
 // Review API functions

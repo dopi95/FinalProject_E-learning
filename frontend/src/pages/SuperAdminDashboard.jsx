@@ -1173,6 +1173,7 @@ const SuperAdminDashboard = () => {
       setShowReplyModal(false);
       setReplyMessage('');
       setSelectedContact(null);
+      setShowContactDetail(false);
       showNotification('success', 'Reply Sent!', 'Your reply has been sent successfully');
     } catch (error) {
       showNotification('error', 'Error', error.response?.data?.message || 'Failed to send reply');
@@ -5800,12 +5801,13 @@ const SuperAdminDashboard = () => {
                     <div className="text-sm text-gray-900 dark:text-white max-w-xs truncate">{contact.subject}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
+                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${
                       contact.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                      contact.status === 'seen' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
                       contact.status === 'replied' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
                       'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
                     }`}>
-                      {contact.status}
+                      {contact.status === 'pending' ? 'Pending' : contact.status === 'seen' ? 'Seen' : contact.status === 'replied' ? 'Replied' : contact.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
@@ -5814,21 +5816,24 @@ const SuperAdminDashboard = () => {
                   <td className="px-6 py-4">
                     <div className="flex space-x-2">
                       <button 
-                        onClick={() => {
+                        onClick={async () => {
                           setSelectedContact(contact);
                           setShowContactDetail(true);
+                          if (contact.status === 'pending') {
+                            try {
+                              await contactAPI.markSeen(contact._id);
+                              setContacts(prev => prev.map(c => c._id === contact._id ? { ...c, status: 'seen' } : c));
+                            } catch {}
+                          }
                         }}
                         className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                         title="View Details"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      {contact.status === 'pending' && (
+                      {contact.status !== 'replied' && (
                         <button 
-                          onClick={() => {
-                            setSelectedContact(contact);
-                            setShowReplyModal(true);
-                          }}
+                          onClick={() => { setSelectedContact(contact); setShowReplyModal(true); }}
                           className="text-green-600 hover:text-green-800 p-1.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
                           title="Reply"
                         >
@@ -5837,10 +5842,7 @@ const SuperAdminDashboard = () => {
                       )}
                       {contact.status === 'replied' && (
                         <button 
-                          onClick={() => {
-                            setSelectedContact(contact);
-                            setShowReplyModal(true);
-                          }}
+                          onClick={() => { setSelectedContact(contact); setShowReplyModal(true); }}
                           className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                           title="Reply again"
                         >
@@ -5879,10 +5881,11 @@ const SuperAdminDashboard = () => {
                     </p>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       contact.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                      contact.status === 'seen' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
                       contact.status === 'replied' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
                       'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
                     }`}>
-                      {contact.status}
+                      {contact.status === 'pending' ? 'Pending' : contact.status === 'seen' ? 'Seen' : contact.status === 'replied' ? 'Replied' : contact.status}
                     </span>
                   </div>
                   <div className="text-right">
@@ -5996,10 +5999,7 @@ const SuperAdminDashboard = () => {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Reply to {selectedContact.name}</h3>
                 <button
-                  onClick={() => {
-                    setShowReplyModal(false);
-                    setReplyMessage('');
-                  }}
+                  onClick={() => { setShowReplyModal(false); setReplyMessage(''); setSelectedContact(null); }}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   <X className="h-6 w-6" />
@@ -6038,10 +6038,7 @@ const SuperAdminDashboard = () => {
                   {loading ? 'Sending...' : 'Send Reply'}
                 </button>
                 <button
-                  onClick={() => {
-                    setShowReplyModal(false);
-                    setReplyMessage('');
-                  }}
+                  onClick={() => { setShowReplyModal(false); setReplyMessage(''); setSelectedContact(null); }}
                   className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600"
                 >
                   Cancel

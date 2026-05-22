@@ -48,6 +48,25 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// Mark contact as seen
+router.patch('/:id/seen', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const contact = await Contact.findById(req.params.id);
+    if (!contact) return res.status(404).json({ message: 'Contact message not found' });
+    // Only update to seen if still pending
+    if (contact.status === 'pending') {
+      contact.status = 'seen';
+      await contact.save();
+    }
+    res.json({ contact });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Reply to contact message
 router.post('/:id/reply', auth, async (req, res) => {
   try {
