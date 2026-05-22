@@ -2580,11 +2580,13 @@ const renderPayments = () => (
                       <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white truncate">{course.title}</h3>
                       <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">Instructor: {course.instructor?.name || 'Instructor'}</p>
                     </div>
-                    {!hasSchedule && (
-                      <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 text-xs rounded-full font-medium">
-                        Not Assigned
-                      </span>
-                    )}
+                    <span className={`px-3 py-1 text-xs rounded-full font-medium ${
+                      hasSchedule
+                        ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300'
+                        : 'bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300'
+                    }`}>
+                      {hasSchedule ? `${courseSchedules[0].sessions.length} Schedule${courseSchedules[0].sessions.length !== 1 ? 's' : ''}` : 'Not Assigned'}
+                    </span>
                   </div>
                   
                   {!hasSchedule ? (
