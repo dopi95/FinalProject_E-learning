@@ -368,7 +368,8 @@ const ExamManager = ({ courses, showNotification }) => {
                     <span>Submissions: {exam.submissions?.length || 0}</span>
                   </div>
                   <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    {new Date(exam.startDate).toLocaleString()} - {new Date(exam.endDate).toLocaleString()}
+                    <p>Start: {new Date(exam.startDate).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</p>
+                    <p>End: {new Date(exam.endDate).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
