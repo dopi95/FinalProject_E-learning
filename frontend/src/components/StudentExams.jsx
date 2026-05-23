@@ -513,7 +513,9 @@ const StudentExams = ({ showNotification }) => {
   };
 
   const getExamStatus = (exam) => {
-    const now = new Date();
+    // Use offset-adjusted "now" to match how dates are stored (local time as UTC)
+    const offset = new Date().getTimezoneOffset() * 60000;
+    const now = new Date(Date.now() - offset);
     const start = new Date(exam.startDate);
     const end = new Date(exam.endDate);
     const examExpiry = new Date(start.getTime() + parseInt(exam.duration) * 60 * 1000);
@@ -543,8 +545,8 @@ const StudentExams = ({ showNotification }) => {
   };
 
   const beginExam = () => {
-    // Block if more than 15 minutes late
-    const now = new Date();
+    const offset = new Date().getTimezoneOffset() * 60000;
+    const now = new Date(Date.now() - offset);
     const start = new Date(activeExam.startDate);
     const minutesLate = Math.floor((now - start) / (1000 * 60));
     if (minutesLate > 15) {
@@ -646,7 +648,8 @@ const StudentExams = ({ showNotification }) => {
   };
 
   if (activeExam && showInstructions) {
-    const minutesLate = Math.floor((new Date() - new Date(activeExam.startDate)) / (1000 * 60));
+    const offset = new Date().getTimezoneOffset() * 60000;
+    const minutesLate = Math.floor((new Date(Date.now() - offset) - new Date(activeExam.startDate)) / (1000 * 60));
     const isLate = minutesLate > 15;
 
     return (
@@ -1308,7 +1311,8 @@ const StudentExams = ({ showNotification }) => {
                           Active
                         </span>
                         {(() => {
-                          const minutesLate = Math.floor((new Date() - new Date(exam.startDate)) / (1000 * 60));
+                          const offset = new Date().getTimezoneOffset() * 60000;
+                          const minutesLate = Math.floor((new Date(Date.now() - offset) - new Date(exam.startDate)) / (1000 * 60));
                           const withinDuration = minutesLate < parseInt(exam.duration);
                           return (minutesLate > 15 && withinDuration) ? (
                             <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold flex items-center gap-1">
