@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, BellRing, BellOff, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe, Heart, MapPin, Edit, MessageCircle, Plus, Download, Edit3, Trash2 } from 'lucide-react';
 import { profileAPI, courseAPI, instructorAPI, subscriptionAPI, notificationAPI, scheduleAPI, scheduleUpdateRequestAPI, materialAPI, assignmentAPI, examAPI, attendanceAPI, gradeAPI } from '../services/api';
 import ExamManager from '../components/ExamManager';
@@ -3672,7 +3672,7 @@ const InstructorDashboard = () => {
                                             }}
                                             className="px-1 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
                                           >
-                                            Ãƒâ€”
+                                            Remove Link
                                           </button>
                                         </>
                                       ) : (
@@ -3750,7 +3750,7 @@ const InstructorDashboard = () => {
                                     }}
                                     className="px-1 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
                                   >
-                                    Ãƒâ€”
+                                    Remove Link
                                   </button>
                                 </div>
                               ) : (
