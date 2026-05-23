@@ -46,8 +46,9 @@ router.post('/register', [
 
     await user.save();
 
-    // Don't send OTP automatically - user will request it manually
-    console.log(`\n📧 User registered: ${email}. OTP will be sent when requested.\n`);
+    // Send OTP email immediately after registration
+    await emailService.sendOTPEmail(email, otp, name);
+    console.log(`\n📧 OTP sent to ${email}: ${otp}\n`);
 
     res.status(201).json({
       message: 'User registered successfully. Please verify your email.',
