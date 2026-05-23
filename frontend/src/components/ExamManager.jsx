@@ -230,10 +230,10 @@ const ExamManager = ({ courses, showNotification }) => {
     try {
       setLoading(true);
       if (editingExam) {
-        await examAPI.updateExam(editingExam._id, examForm);
+        await examAPI.updateExam(editingExam._id, { ...examForm, startDate: localToUTC(examForm.startDate), endDate: localToUTC(examForm.endDate) });
         showNotification('success', 'Success', 'Exam updated successfully');
       } else {
-        await examAPI.createExam(examForm);
+        await examAPI.createExam({ ...examForm, startDate: localToUTC(examForm.startDate), endDate: localToUTC(examForm.endDate) });
         showNotification('success', 'Success', 'Exam created successfully');
       }
       setShowModal(false);
@@ -323,6 +323,28 @@ const ExamManager = ({ courses, showNotification }) => {
     }
   };
 
+  const localToUTC = (localStr) => {
+    if (!localStr) return '';
+    const d = new Date(localStr);
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString();
+  };
+
+  const utcToLocal = (utcStr) => {
+    if (!utcStr) return '';
+    const d = new Date(utcStr);
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() + offset).toISOString().slice(0, 16);
+  };
+
+  const displayUTC = (utcStr) => {
+    if (!utcStr) return '';
+    const d = new Date(utcStr);
+    const offset = d.getTimezoneOffset() * 60000;
+    const local = new Date(d.getTime() + offset);
+    return local.toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+
   const typeLabel = (type) => {
     if (type === 'mcq') return 'Multiple Choice';
     if (type === 'true-false') return 'True/False';
@@ -368,8 +390,8 @@ const ExamManager = ({ courses, showNotification }) => {
                     <span>Submissions: {exam.submissions?.length || 0}</span>
                   </div>
                   <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    <p>Start: {new Date(exam.startDate).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</p>
-                    <p>End: {new Date(exam.endDate).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</p>
+                    <p>Start: {displayUTC(exam.startDate)}</p>
+                    <p>End: {displayUTC(exam.endDate)}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -402,7 +424,7 @@ const ExamManager = ({ courses, showNotification }) => {
                   <button
                     onClick={() => {
                       setEditingExam(exam);
-                      setExamForm({ ...exam, course: exam.course?._id || exam.course, startDate: exam.startDate ? new Date(exam.startDate).toISOString().slice(0, 16) : '', endDate: exam.endDate ? new Date(exam.endDate).toISOString().slice(0, 16) : '' });
+                      setExamForm({ ...exam, course: exam.course?._id || exam.course, startDate: exam.startDate ? utcToLocal(exam.startDate) : '', endDate: exam.endDate ? utcToLocal(exam.endDate) : '' });
                       setShowModal(true);
                     }}
                     className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Edit"
