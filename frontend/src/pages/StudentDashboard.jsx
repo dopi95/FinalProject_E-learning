@@ -1053,6 +1053,7 @@ const StudentDashboard = () => {
     if (!/[A-Z]/.test(newPassword)) { showNotification('error', '', 'Password must contain at least one uppercase letter.'); return; }
     if (!/[a-z]/.test(newPassword)) { showNotification('error', '', 'Password must contain at least one lowercase letter.'); return; }
     if (!/[0-9]/.test(newPassword)) { showNotification('error', '', 'Password must contain at least one number.'); return; }
+    if (!/[^A-Za-z0-9]/.test(newPassword)) { showNotification('error', '', 'Password must contain at least one special character.'); return; }
     if (newPassword !== confirmPassword) { showNotification('error', '', 'Passwords do not match.'); return; }
     try {
       setLoading(true);

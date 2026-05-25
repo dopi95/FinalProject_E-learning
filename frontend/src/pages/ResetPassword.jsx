@@ -58,6 +58,10 @@ const ResetPassword = () => {
       showNotification('error', '', 'Password must contain at least one number.');
       return false;
     }
+    if (!/[^A-Za-z0-9]/.test(newPassword)) {
+      showNotification('error', '', 'Password must contain at least one special character.');
+      return false;
+    }
     if (newPassword !== confirmPassword) {
       showNotification('error', '', t('forgotPassword.passwordMismatch'));
       return false;
@@ -212,6 +216,9 @@ const ResetPassword = () => {
                   </li>
                   <li className={/[0-9]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
                     {/[0-9]/.test(newPassword) ? '✓' : '✗'} At least one number
+                  </li>
+                  <li className={/[^A-Za-z0-9]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
+                    {/[^A-Za-z0-9]/.test(newPassword) ? '✓' : '✗'} At least one special character
                   </li>
                 </ul>
               )}

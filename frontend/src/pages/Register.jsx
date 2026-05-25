@@ -72,6 +72,10 @@ const Register = () => {
       showNotification('error', '', 'Password must contain at least one number.');
       return;
     }
+    if (!/[^A-Za-z0-9]/.test(formData.password)) {
+      showNotification('error', '', 'Password must contain at least one special character.');
+      return;
+    }
 
     setLoading(true);
 
@@ -382,6 +386,9 @@ const Register = () => {
                     </li>
                     <li className={/[0-9]/.test(formData.password) ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
                       {/[0-9]/.test(formData.password) ? '✓' : '✗'} At least one number
+                    </li>
+                    <li className={/[^A-Za-z0-9]/.test(formData.password) ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
+                      {/[^A-Za-z0-9]/.test(formData.password) ? '✓' : '✗'} At least one special character
                     </li>
                   </ul>
                 </div>
