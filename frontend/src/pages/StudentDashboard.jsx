@@ -1047,6 +1047,13 @@ const StudentDashboard = () => {
   };
 
   const handlePasswordChange = async () => {
+    const { newPassword, confirmPassword, currentPassword } = passwordForm;
+    if (!currentPassword) { showNotification('error', '', 'Current password is required.'); return; }
+    if (newPassword.length < 8) { showNotification('error', '', 'Password must be at least 8 characters.'); return; }
+    if (!/[A-Z]/.test(newPassword)) { showNotification('error', '', 'Password must contain at least one uppercase letter.'); return; }
+    if (!/[a-z]/.test(newPassword)) { showNotification('error', '', 'Password must contain at least one lowercase letter.'); return; }
+    if (!/[0-9]/.test(newPassword)) { showNotification('error', '', 'Password must contain at least one number.'); return; }
+    if (newPassword !== confirmPassword) { showNotification('error', '', 'Passwords do not match.'); return; }
     try {
       setLoading(true);
       await profileAPI.changePassword(passwordForm);

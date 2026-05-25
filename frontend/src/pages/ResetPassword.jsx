@@ -42,8 +42,20 @@ const ResetPassword = () => {
   };
 
   const validatePassword = () => {
-    if (newPassword.length < 6) {
-      showNotification('error', '', t('forgotPassword.passwordTooShort'));
+    if (newPassword.length < 8) {
+      showNotification('error', '', 'Password must be at least 8 characters.');
+      return false;
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      showNotification('error', '', 'Password must contain at least one uppercase letter.');
+      return false;
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      showNotification('error', '', 'Password must contain at least one lowercase letter.');
+      return false;
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      showNotification('error', '', 'Password must contain at least one number.');
       return false;
     }
     if (newPassword !== confirmPassword) {
@@ -187,7 +199,22 @@ const ResetPassword = () => {
             </div>
 
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              <p>{t('forgotPassword.passwordRequirements')}</p>
+              {newPassword && (
+                <ul className="space-y-1">
+                  <li className={newPassword.length >= 8 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
+                    {newPassword.length >= 8 ? '✓' : '✗'} At least 8 characters
+                  </li>
+                  <li className={/[A-Z]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
+                    {/[A-Z]/.test(newPassword) ? '✓' : '✗'} At least one uppercase letter
+                  </li>
+                  <li className={/[a-z]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
+                    {/[a-z]/.test(newPassword) ? '✓' : '✗'} At least one lowercase letter
+                  </li>
+                  <li className={/[0-9]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
+                    {/[0-9]/.test(newPassword) ? '✓' : '✗'} At least one number
+                  </li>
+                </ul>
+              )}
             </div>
 
             <button

@@ -56,8 +56,20 @@ const Register = () => {
       return;
     }
 
-    if (formData.password.length < 6) {
-      showNotification('error', '', t('register.passwordTooShort'));
+    if (formData.password.length < 8) {
+      showNotification('error', '', 'Password must be at least 8 characters.');
+      return;
+    }
+    if (!/[A-Z]/.test(formData.password)) {
+      showNotification('error', '', 'Password must contain at least one uppercase letter.');
+      return;
+    }
+    if (!/[a-z]/.test(formData.password)) {
+      showNotification('error', '', 'Password must contain at least one lowercase letter.');
+      return;
+    }
+    if (!/[0-9]/.test(formData.password)) {
+      showNotification('error', '', 'Password must contain at least one number.');
       return;
     }
 
@@ -358,6 +370,20 @@ const Register = () => {
                       {getStrengthText(passwordStrength(formData.password))}
                     </span>
                   </div>
+                  <ul className="mt-2 text-xs space-y-1">
+                    <li className={formData.password.length >= 8 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
+                      {formData.password.length >= 8 ? '✓' : '✗'} At least 8 characters
+                    </li>
+                    <li className={/[A-Z]/.test(formData.password) ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
+                      {/[A-Z]/.test(formData.password) ? '✓' : '✗'} At least one uppercase letter
+                    </li>
+                    <li className={/[a-z]/.test(formData.password) ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
+                      {/[a-z]/.test(formData.password) ? '✓' : '✗'} At least one lowercase letter
+                    </li>
+                    <li className={/[0-9]/.test(formData.password) ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
+                      {/[0-9]/.test(formData.password) ? '✓' : '✗'} At least one number
+                    </li>
+                  </ul>
                 </div>
               )}
             </div>
