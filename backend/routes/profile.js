@@ -186,6 +186,11 @@ router.put('/change-password', auth, [
     const { currentPassword, newPassword } = req.body;
     const user = await User.findById(req.user._id);
 
+    // Google-only users have no password
+    if (!user.password) {
+      return res.status(400).json({ message: 'Password change is not available for Google accounts. Please set a password first.' });
+    }
+
     // Verify current password
     const isCurrentPasswordValid = await user.comparePassword(currentPassword);
     if (!isCurrentPasswordValid) {

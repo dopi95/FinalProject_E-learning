@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, ArrowLeft, Check, Mail, Loader, User, BookOpen } from 'lucide-react';
 import axios from 'axios';
+import { GoogleLogin } from '@react-oauth/google';
 import Notification from '../components/Notification';
 import logo from '/assets/images/aaulogo.png';
 
@@ -31,6 +32,30 @@ const Register = () => {
     message: ''
   });
   const [otpLoading, setOtpLoading] = useState(false);
+
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleCredential = async (credentialResponse) => {
+    setGoogleLoading(true);
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/google`, {
+        credential: credentialResponse.credential,
+        role: formData.role
+      });
+      showNotification('success', '', 'Google sign-up successful!');
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      setTimeout(() => {
+        const role = response.data.user.role;
+        if (role === 'instructor') navigate('/instructor-dashboard');
+        else navigate('/student-dashboard');
+      }, 1500);
+    } catch (error) {
+      showNotification('error', '', error.response?.data?.message || 'Google sign-up failed');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const showNotification = (type, title, message) => {
     setNotification({ isVisible: true, type, title, message });
@@ -463,6 +488,32 @@ const Register = () => {
               )}
             </button>
           </form>
+
+          <div className="mt-6">
+            <div className="relative flex items-center">
+              <div className="flex-grow border-t border-gray-300 dark:border-gray-600" />
+              <span className="mx-4 text-sm text-gray-500 dark:text-gray-400">or</span>
+              <div className="flex-grow border-t border-gray-300 dark:border-gray-600" />
+            </div>
+            <div className="mt-4 flex justify-center">
+              {googleLoading ? (
+                <div className="flex items-center justify-center w-full py-2 text-gray-500 dark:text-gray-400">
+                  <Loader className="animate-spin h-5 w-5 mr-2" />
+                  Signing up with Google...
+                </div>
+              ) : (
+                <GoogleLogin
+                  onSuccess={handleGoogleCredential}
+                  onError={() => showNotification('error', '', 'Google sign-up failed')}
+                  text="continue_with"
+                  shape="rectangular"
+                  theme="outline"
+                  size="large"
+                  width="400"
+                />
+              )}
+            </div>
+          </div>
 
           <div className="mt-6 text-center">
             <p className="text-gray-600 dark:text-gray-400">

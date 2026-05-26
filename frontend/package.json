@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-oauth/google": "^0.13.5",
     "axios": "^1.5.0",
     "html2pdf.js": "^0.12.1",
     "i18next": "^25.7.3",

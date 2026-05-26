@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, ArrowLeft, Loader, Mail } from 'lucide-react';
 import axios from 'axios';
+import { GoogleLogin } from '@react-oauth/google';
 import Notification from '../components/Notification';
 import logo from '/assets/images/aaulogo.png';
 
@@ -26,6 +27,57 @@ const Login = () => {
     title: '',
     message: ''
   });
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [pendingGoogleCredential, setPendingGoogleCredential] = useState(null);
+  const [showRolePicker, setShowRolePicker] = useState(false);
+  const [googleRole, setGoogleRole] = useState('student');
+
+  const completeGoogleLogin = async (credential, role) => {
+    setGoogleLoading(true);
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/google`, {
+        credential,
+        role
+      });
+      clearLoginAttempts();
+      showNotification('success', '', 'Google sign-in successful!');
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      setTimeout(() => {
+        const r = response.data.user.role;
+        if (r === 'superadmin') navigate('/super-admin-dashboard');
+        else if (r === 'admin') navigate('/admin-dashboard');
+        else if (r === 'instructor') navigate('/instructor-dashboard');
+        else navigate('/student-dashboard');
+      }, 1500);
+    } catch (error) {
+      showNotification('error', '', error.response?.data?.message || 'Google sign-in failed');
+    } finally {
+      setGoogleLoading(false);
+      setShowRolePicker(false);
+    }
+  };
+
+  const handleGoogleCredential = async (credentialResponse) => {
+    // Decode JWT payload to check if user exists
+    const payload = JSON.parse(atob(credentialResponse.credential.split('.')[1]));
+    const email = payload.email;
+    try {
+      const check = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/check-email?email=${encodeURIComponent(email)}`);
+      if (check.data.exists) {
+        // Existing user — log in directly with their saved role
+        await completeGoogleLogin(credentialResponse.credential, null);
+      } else {
+        // New user — ask for role first
+        setPendingGoogleCredential(credentialResponse.credential);
+        setShowRolePicker(true);
+      }
+    } catch {
+      // If check fails, just proceed (backend will handle)
+      await completeGoogleLogin(credentialResponse.credential, 'student');
+    }
+  };
+
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockTimeLeft, setBlockTimeLeft] = useState(0);
@@ -347,6 +399,32 @@ const Login = () => {
             </button>
           </form>
 
+          <div className={`mt-6 transform transition-all duration-700 delay-900 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'}`}>
+            <div className="relative flex items-center">
+              <div className="flex-grow border-t border-gray-300 dark:border-gray-600" />
+              <span className="mx-4 text-sm text-gray-500 dark:text-gray-400">or</span>
+              <div className="flex-grow border-t border-gray-300 dark:border-gray-600" />
+            </div>
+            <div className="mt-4 flex justify-center">
+              {googleLoading ? (
+                <div className="flex items-center justify-center w-full py-2 text-gray-500 dark:text-gray-400">
+                  <Loader className="animate-spin h-5 w-5 mr-2" />
+                  Signing in with Google...
+                </div>
+              ) : (
+                <GoogleLogin
+                  onSuccess={handleGoogleCredential}
+                  onError={() => showNotification('error', '', 'Google sign-in failed')}
+                  text="continue_with"
+                  shape="rectangular"
+                  theme="outline"
+                  size="large"
+                  width="400"
+                />
+              )}
+            </div>
+          </div>
+
           <div className={`mt-6 text-center transform transition-all duration-700 delay-1000 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'}`}>
             <p className="text-gray-600 dark:text-gray-400">
               {t('login.noAccount')}{' '}
@@ -366,6 +444,52 @@ const Login = () => {
         onClose={hideNotification}
         autoClose={true}
       />
+
+      {showRolePicker && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-sm w-full border border-gray-100 dark:border-gray-700">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 text-center">Join as</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">How will you use the platform?</p>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <button
+                onClick={() => setGoogleRole('student')}
+                className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                  googleRole === 'student'
+                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                    : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-blue-300'
+                }`}
+              >
+                <span className="text-2xl">🎓</span>
+                <span className="font-medium text-sm">Student</span>
+              </button>
+              <button
+                onClick={() => setGoogleRole('instructor')}
+                className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                  googleRole === 'instructor'
+                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                    : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-blue-300'
+                }`}
+              >
+                <span className="text-2xl">📚</span>
+                <span className="font-medium text-sm">Instructor</span>
+              </button>
+            </div>
+            <button
+              onClick={() => completeGoogleLogin(pendingGoogleCredential, googleRole)}
+              disabled={googleLoading}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center"
+            >
+              {googleLoading ? <><Loader className="animate-spin h-4 w-4 mr-2" /> Please wait...</> : 'Continue'}
+            </button>
+            <button
+              onClick={() => setShowRolePicker(false)}
+              className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

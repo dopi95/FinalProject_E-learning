@@ -5,6 +5,9 @@ const emailService = require('../utils/emailService');
 const { generateOTP, generateToken } = require('../utils/helpers');
 const { logAdminActivity } = require('../utils/adminActivityLogger');
 const auth = require('../middleware/auth');
+const { OAuth2Client } = require('google-auth-library');
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const router = express.Router();
 
@@ -379,6 +382,83 @@ router.post('/resend-password-otp', [
   } catch (error) {
     console.error('Resend password OTP error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Check if email exists (for Google OAuth role picker)
+router.get('/check-email', async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+    const user = await User.findOne({ email: email.toLowerCase() });
+    res.json({ exists: !!user });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Google OAuth
+router.post('/google', async (req, res) => {
+  try {
+    const { credential, role } = req.body;
+    if (!credential) return res.status(400).json({ message: 'Google credential is required' });
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = payload;
+
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+    if (!user) {
+      // New user — register with Google
+      user = new User({
+        name,
+        email,
+        googleId,
+        role: role || 'student',
+        isVerified: true,
+        profileImage: picture
+      });
+      await user.save();
+    } else if (!user.googleId) {
+      // Existing email user — link Google account
+      user.googleId = googleId;
+      if (!user.profileImage) user.profileImage = picture;
+      user.isVerified = true;
+      await user.save();
+    }
+
+    const token = generateToken(user._id);
+    res.json({
+      message: 'Google login successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isVerified: user.isVerified,
+        profileImage: user.profileImage,
+        phone: user.phone,
+        dateOfBirth: user.dateOfBirth,
+        address: user.address,
+        city: user.city,
+        studentId: user.studentId,
+        systemId: user.systemId,
+        program: user.program,
+        fieldOfStudy: user.fieldOfStudy,
+        yearOfStudy: user.yearOfStudy,
+        institution: user.institution,
+        bio: user.bio,
+        gender: user.gender
+      }
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(401).json({ message: 'Invalid Google credential' });
   }
 });
 

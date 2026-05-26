@@ -3126,7 +3126,7 @@ const renderPayments = () => (
             <div className="relative">
               <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-2xl lg:text-4xl font-bold overflow-hidden">
                 {profileImage ? (
-                  <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                  <img src={profileImage} alt="Profile" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 ) : (
                   user ? getInitials(user.name) : 'EY'
                 )}
@@ -3804,7 +3804,7 @@ const renderPayments = () => (
           >
             <div className="w-8 h-8 lg:w-10 lg:h-10 bg-white/20 rounded-full flex items-center justify-center mr-2 overflow-hidden">
               {profileImage ? (
-                <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                <img src={profileImage} alt="Profile" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
               ) : (
                 <span className="text-white font-bold text-xs lg:text-sm">{user ? getInitials(user.name) : 'EY'}</span>
               )}

@@ -27,7 +27,21 @@ import PaymentSuccess from './pages/PaymentSuccess.jsx';
 import BulkPaymentPage from './pages/BulkPaymentPage.jsx';
 import PublicReceipt from './pages/PublicReceipt.jsx';
 import LeaveReview from './pages/LeaveReview.jsx';
+import { Navigate } from 'react-router-dom';
 import './i18n';
+
+const ProfileRedirect = () => {
+  try {
+    const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
+    const user = raw ? JSON.parse(raw) : null;
+    if (!user) return <Navigate to="/login" replace />;
+    if (user.role === 'instructor') return <Navigate to="/instructor-dashboard?tab=profile" replace />;
+    if (user.role === 'superadmin' || user.role === 'admin') return <Navigate to="/super-admin-dashboard" replace />;
+    return <Navigate to="/student-dashboard?tab=profile" replace />;
+  } catch {
+    return <Navigate to="/login" replace />;
+  }
+};
 
 const AppContent = () => {
   const location = useLocation();
@@ -81,6 +95,7 @@ const AppContent = () => {
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/receipt" element={<PublicReceipt />} />
         <Route path="/leave-review" element={<LeaveReview />} />
+        <Route path="/profile" element={<ProfileRedirect />} />
       </Routes>
       {isHomePage && !isReelsPage && <Chatbot showIcons={showIcons} />}
       <PWAInstallButton />

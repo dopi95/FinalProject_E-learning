@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GraduationCap, BookOpen, Users, Calendar, LogOut, FileText, Video, BarChart3, Settings, Upload, Clock, CheckCircle, Bell, BellRing, BellOff, Home, User, Camera, X, Eye, EyeOff, Star, Search, Globe, Heart, MapPin, Edit, MessageCircle, Plus, Download, Edit3, Trash2 } from 'lucide-react';
 import { profileAPI, courseAPI, instructorAPI, subscriptionAPI, notificationAPI, scheduleAPI, scheduleUpdateRequestAPI, materialAPI, assignmentAPI, examAPI, attendanceAPI, gradeAPI } from '../services/api';
 import ExamManager from '../components/ExamManager';
@@ -1111,7 +1111,7 @@ const InstructorDashboard = () => {
         setGradeFields(merged);
         setGradeAutoPopulated(fields.length > 0);
         const total = merged.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
-        // Check attendance Ã¢â‚¬â€ auto NG if below 70%
+        // Check attendance â€” auto NG if below 70%
         const attRecord = attendanceData.find(a => a.student._id === selectedStudentForGrading._id || a.student._id?.toString() === selectedStudentForGrading._id?.toString());
         if (attRecord && attRecord.percentage < 70) {
           setGradeLetter('NG');
@@ -1365,7 +1365,7 @@ const InstructorDashboard = () => {
                       </div>
                       {session.room && (
                         <>
-                          <span className="hidden sm:inline">•</span>
+                          <span className="hidden sm:inline">�</span>
                           <div className="flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
                             <span>Room: {session.room}</span>
@@ -1374,7 +1374,7 @@ const InstructorDashboard = () => {
                       )}
                       {session.link && (
                         <>
-                          <span className="hidden sm:inline">•</span>
+                          <span className="hidden sm:inline">�</span>
                           <div className="flex items-center gap-1">
                             <Globe className="h-3 w-3" />
                             <span>Online</span>
@@ -2738,7 +2738,7 @@ const InstructorDashboard = () => {
                           <div className="text-xs text-gray-500">
                             {gradedCount} graded
                             {assignment.sentToStudents > 0 && (
-                              <span className="ml-2">• Sent to {assignment.sentToStudents} students</span>
+                              <span className="ml-2">� Sent to {assignment.sentToStudents} students</span>
                             )}
                           </div>
                         </td>
@@ -3215,7 +3215,7 @@ const InstructorDashboard = () => {
                     )}
                     {selectedAssignment.status === 'active' && (
                       <span className="text-sm text-green-600 dark:text-green-400 font-medium">
-                        ✓ Sent to Students
+                        ? Sent to Students
                       </span>
                     )}
                   </div>
@@ -3423,7 +3423,7 @@ const InstructorDashboard = () => {
               </span>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Mathematics Course</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{10 + quiz} Questions • {20 + quiz} min</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{10 + quiz} Questions � {20 + quiz} min</p>
             <div className="flex justify-between text-sm mb-4">
               <span className="text-gray-600 dark:text-gray-400">Attempts: {25 + quiz}</span>
               <span className="text-gray-600 dark:text-gray-400">Avg: {80 + quiz}%</span>
@@ -3973,7 +3973,7 @@ const InstructorDashboard = () => {
                     {selectedSessionForLink.course.title}
                   </p>
                   <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                    {selectedSessionForLink.day.charAt(0).toUpperCase() + selectedSessionForLink.day.slice(1)} • {formatTime(selectedSessionForLink.startTime)}
+                    {selectedSessionForLink.day.charAt(0).toUpperCase() + selectedSessionForLink.day.slice(1)} � {formatTime(selectedSessionForLink.startTime)}
                   </p>
                 </div>
                 
@@ -4160,7 +4160,7 @@ const InstructorDashboard = () => {
                     }
                       setCourseGrades(prev => { const next = {...prev}; selectedList.forEach(s => { next[String(s._id)] = { gradeLetter: '?', fields: [] }; }); return next; });
                     if (successCount > 0) showNotification('success', 'Grades Submitted', `Grades submitted for ${successCount} student${successCount > 1 ? 's' : ''}`);
-                    else showNotification('error', 'Error', 'No grades to submit Ã¢â‚¬â€ students may have no assessed work yet');
+                    else showNotification('error', 'Error', 'No grades to submit â€” students may have no assessed work yet');
                     setSelectedStudents(new Set());
                   }}
                   className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-medium"
@@ -4194,7 +4194,7 @@ const InstructorDashboard = () => {
                   <div className="flex items-start gap-3 mb-3">
                     <div className="h-12 w-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {student.profileImage ? (
-                        <img src={student.profileImage} alt={student.name} className="w-full h-full object-cover" />
+                        <img src={student.profileImage} alt={student.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                           {student.name?.charAt(0)?.toUpperCase() || 'S'}
@@ -4287,7 +4287,7 @@ const InstructorDashboard = () => {
                           <div className="flex items-center">
                             <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-3 overflow-hidden flex-shrink-0">
                               {student.profileImage ? (
-                                <img src={student.profileImage} alt={student.name} className="w-full h-full object-cover" />
+                                <img src={student.profileImage} alt={student.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                               ) : (
                                 <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                                   {student.name?.charAt(0)?.toUpperCase() || 'S'}
@@ -4365,7 +4365,7 @@ const InstructorDashboard = () => {
                 <div className="text-center">
                   <div className="h-16 w-16 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mx-auto mb-3">
                     {selectedStudentForGrading.profileImage ? (
-                      <img src={selectedStudentForGrading.profileImage} alt={selectedStudentForGrading.name} className="w-full h-full object-cover" />
+                      <img src={selectedStudentForGrading.profileImage} alt={selectedStudentForGrading.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-lg font-bold text-gray-600 dark:text-gray-300">
                         {selectedStudentForGrading.name?.charAt(0)?.toUpperCase() || 'S'}
@@ -4383,7 +4383,7 @@ const InstructorDashboard = () => {
                     if (!att) return null;
                     return (
                       <div className={`mt-1 px-2 py-1 rounded-lg text-xs font-medium inline-block ${att.percentage < 70 ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' : 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'}`}>
-                        Attendance: {att.percentage}% {att.percentage < 70 ? 'Ã¢â‚¬â€ Auto NG' : ''}
+                        Attendance: {att.percentage}% {att.percentage < 70 ? 'â€” Auto NG' : ''}
                       </div>
                     );
                   })()}
@@ -4435,7 +4435,7 @@ const InstructorDashboard = () => {
                             className={`w-16 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:text-white text-sm text-center${(field.auto || field.saved) ? ' bg-white dark:bg-gray-600 cursor-not-allowed' : ' bg-white dark:bg-gray-700'}`}
                           />
                         </div>
-                        {/* Save button Ã¢â‚¬â€ only for unsaved non-auto fields */}
+                        {/* Save button â€” only for unsaved non-auto fields */}
                         {!field.auto && !field.saved && (
                           <button
                             onClick={() => {
@@ -4453,7 +4453,7 @@ const InstructorDashboard = () => {
                             title="Save field"
                           >Save</button>
                         )}
-                        {/* Edit button Ã¢â‚¬â€ unsave a saved field */}
+                        {/* Edit button â€” unsave a saved field */}
                         {!field.auto && field.saved && (
                           <button
                             onClick={() => {
@@ -4500,7 +4500,7 @@ const InstructorDashboard = () => {
                       const total = filled.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
                       return (
                         <div className="mb-2 text-xs text-gray-500 dark:text-gray-400">
-                          Total mark: <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> → Auto grade: <span className="font-semibold text-blue-600">{getGradeLetter(total)}</span>
+                          Total mark: <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> ? Auto grade: <span className="font-semibold text-blue-600">{getGradeLetter(total)}</span>
                         </div>
                       );
                     })()}
@@ -4652,7 +4652,7 @@ const InstructorDashboard = () => {
                     const total = filled.reduce((s, f) => s + parseFloat(f.mark || 0), 0);
                     return (
                       <div className="mb-2 text-xs text-gray-500 dark:text-gray-400">
-                        Total mark: <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> → Auto grade: <span className="font-semibold text-blue-600">{getGradeLetter(total)}</span>
+                        Total mark: <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> ? Auto grade: <span className="font-semibold text-blue-600">{getGradeLetter(total)}</span>
                       </div>
                     );
                   })()}
@@ -4721,7 +4721,7 @@ const InstructorDashboard = () => {
                 <div className="text-center">
                   <div className="h-16 w-16 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mx-auto mb-3">
                     {selectedStudentCourse.student.profileImage ? (
-                      <img src={selectedStudentCourse.student.profileImage} alt={selectedStudentCourse.student.name} className="w-full h-full object-cover" />
+                      <img src={selectedStudentCourse.student.profileImage} alt={selectedStudentCourse.student.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-lg font-bold text-gray-600 dark:text-gray-300">
                         {selectedStudentCourse.student.name?.charAt(0)?.toUpperCase() || 'S'}
@@ -4815,7 +4815,7 @@ const InstructorDashboard = () => {
             <div className="relative">
               <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-2xl lg:text-4xl font-bold overflow-hidden">
                 {profileImage ? (
-                  <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                  <img src={profileImage} alt="Profile" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 ) : (
                   user ? getInitials(user.name) : 'IN'
                 )}
@@ -5293,7 +5293,7 @@ const InstructorDashboard = () => {
                   <div key={record.student._id} className="p-4 flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {record.student.profileImage
-                        ? <img src={record.student.profileImage} alt={record.student.name} className="w-full h-full object-cover" />
+                        ? <img src={record.student.profileImage} alt={record.student.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                         : <span className="text-sm font-bold text-gray-600 dark:text-gray-300">{record.student.name?.charAt(0)?.toUpperCase()}</span>}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -5342,7 +5342,7 @@ const InstructorDashboard = () => {
                           <div className="flex items-center gap-3">
                             <div className="h-9 w-9 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
                               {record.student.profileImage
-                                ? <img src={record.student.profileImage} alt={record.student.name} className="w-full h-full object-cover" />
+                                ? <img src={record.student.profileImage} alt={record.student.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                                 : <span className="text-sm font-bold text-gray-600 dark:text-gray-300">{record.student.name?.charAt(0)?.toUpperCase()}</span>}
                             </div>
                             <div>
@@ -5351,7 +5351,7 @@ const InstructorDashboard = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-3 text-sm text-gray-700 dark:text-gray-300">{record.student.systemId || 'Ã¢â‚¬â€'}</td>
+                        <td className="px-6 py-3 text-sm text-gray-700 dark:text-gray-300">{record.student.systemId || 'â€”'}</td>
                         <td className="px-6 py-3 text-sm text-gray-700 dark:text-gray-300 font-medium">{record.attended} / {record.total}</td>
                         <td className="px-6 py-3">
                           <div className="flex items-center gap-3">
@@ -5600,7 +5600,7 @@ const InstructorDashboard = () => {
           >
             <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white/20 rounded-full flex items-center justify-center mr-2 lg:mr-3 overflow-hidden">
               {profileImage ? (
-                <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                <img src={profileImage} alt="Profile" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
               ) : (
                 <span className="text-white font-bold text-sm lg:text-lg">{user ? getInitials(user.name) : 'IN'}</span>
               )}

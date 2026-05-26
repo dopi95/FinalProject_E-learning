@@ -297,9 +297,19 @@ const Header = () => {
               {/* My Account/Login Button - Desktop Only */}
               <Link
                 to={getDashboardRoute()}
-                className="hidden lg:flex items-center space-x-2 px-6 py-3 text-blue-600 dark:text-blue-400 font-medium rounded-xl hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-300 group"
+                className="hidden lg:flex items-center space-x-2 px-4 py-2 text-blue-600 dark:text-blue-400 font-medium rounded-xl hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-300 group"
               >
-                {user && <User className="h-4 w-4" />}
+                {user ? (
+                  user.profileImage ? (
+                    <img src={user.profileImage} alt={user.name} referrerPolicy="no-referrer" className="h-8 w-8 rounded-full object-cover border-2 border-blue-200 dark:border-blue-700" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+                      {user.name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+                    </div>
+                  )
+                ) : (
+                  <User className="h-4 w-4" />
+                )}
                 <span className="group-hover:scale-105 transition-transform inline-block">
                   {user ? 'My Account' : t('nav.login')}
                 </span>
