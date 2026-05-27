@@ -252,3 +252,17 @@
     transform: translateY(0);
   }
 }
+
+/* Google OAuth button — fully responsive */
+.google-btn-wrapper > div,
+.google-btn-wrapper iframe,
+.google-btn-wrapper > div > div {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Force the inner Google button container to stretch */
+[data-testid="google-login-button"],
+div[style*="width"] > iframe {
+  width: 100% !important;
+}

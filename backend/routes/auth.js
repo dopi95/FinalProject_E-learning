@@ -462,6 +462,62 @@ router.post('/google', async (req, res) => {
   }
 });
 
+// Google OAuth via access token (useGoogleLogin flow)
+router.post('/google-token', async (req, res) => {
+  try {
+    const { googleId, email, name, picture, role } = req.body;
+    if (!googleId || !email) return res.status(400).json({ message: 'Google user info is required' });
+
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+    if (!user) {
+      user = new User({
+        name,
+        email,
+        googleId,
+        role: role || 'student',
+        isVerified: true,
+        profileImage: picture
+      });
+      await user.save();
+    } else if (!user.googleId) {
+      user.googleId = googleId;
+      if (!user.profileImage) user.profileImage = picture;
+      user.isVerified = true;
+      await user.save();
+    }
+
+    const token = generateToken(user._id);
+    res.json({
+      message: 'Google login successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isVerified: user.isVerified,
+        profileImage: user.profileImage,
+        phone: user.phone,
+        dateOfBirth: user.dateOfBirth,
+        address: user.address,
+        city: user.city,
+        studentId: user.studentId,
+        systemId: user.systemId,
+        program: user.program,
+        fieldOfStudy: user.fieldOfStudy,
+        yearOfStudy: user.yearOfStudy,
+        institution: user.institution,
+        bio: user.bio,
+        gender: user.gender
+      }
+    });
+  } catch (error) {
+    console.error('Google token auth error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get current user
 router.get('/me', auth, async (req, res) => {
   res.json({ user: req.user });
