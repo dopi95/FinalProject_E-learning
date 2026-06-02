@@ -339,10 +339,7 @@ const ExamManager = ({ courses, showNotification }) => {
 
   const displayUTC = (utcStr) => {
     if (!utcStr) return '';
-    const d = new Date(utcStr);
-    const offset = d.getTimezoneOffset() * 60000;
-    const local = new Date(d.getTime() + offset);
-    return local.toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+    return new Date(utcStr).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
   const typeLabel = (type) => {
