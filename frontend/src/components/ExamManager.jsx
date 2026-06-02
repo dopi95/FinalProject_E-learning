@@ -517,12 +517,12 @@ const ExamManager = ({ courses, showNotification }) => {
                     }`}>
 
                       {/* Camera Feed */}
-                      <div className="relative bg-gray-900 aspect-video flex items-center justify-center">
+                      <div className="relative bg-gray-900 aspect-video overflow-hidden">
+                        {/* Always rendered so browser can decode the stream */}
                         <video
                           ref={el => {
                             if (!el) return;
                             videoRefs.current[student._id] = el;
-                            // Attach any stream that arrived before this element mounted
                             const pending = pendingStreams.current[student._id];
                             if (pending?.camera && el.srcObject !== pending.camera) {
                               el.srcObject = pending.camera;
@@ -530,10 +530,12 @@ const ExamManager = ({ courses, showNotification }) => {
                             }
                           }}
                           autoPlay playsInline muted
-                          style={{ display: status.camera ? 'block' : 'none', width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          style={{ opacity: status.camera ? 1 : 0 }}
                         />
+                        {/* Placeholder shown when camera is off */}
                         {!status.camera && (
-                          <div className="flex flex-col items-center justify-center gap-2 absolute inset-0">
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
                             {student.profileImage ? (
                               <img src={student.profileImage} alt={student.name} className="w-16 h-16 rounded-full object-cover border-2 border-gray-600" />
                             ) : (
@@ -546,7 +548,7 @@ const ExamManager = ({ courses, showNotification }) => {
                             </span>
                           </div>
                         )}
-                        <div className="absolute top-2 left-2 flex flex-col gap-1">
+                        <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
                           {student.submitted && (
                             <span className="flex items-center gap-1 px-2 py-0.5 bg-green-600/90 text-white text-xs rounded-full font-medium">
                               <CheckCircle className="h-3 w-3" />
@@ -554,7 +556,7 @@ const ExamManager = ({ courses, showNotification }) => {
                             </span>
                           )}
                         </div>
-                        <div className="absolute top-2 right-2">
+                        <div className="absolute top-2 right-2 z-10">
                           <span className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded-full font-medium ${
                             status.camera ? 'bg-green-600/90 text-white' : 'bg-gray-700/80 text-gray-400'
                           }`}>
@@ -586,12 +588,12 @@ const ExamManager = ({ courses, showNotification }) => {
                             {status.screen ? '● Live' : 'Not Sharing'}
                           </span>
                         </div>
-                        <div className="relative aspect-video flex items-center justify-center">
+                        <div className="relative aspect-video overflow-hidden bg-gray-900">
+                          {/* Always rendered so browser can decode the stream */}
                           <video
                             ref={el => {
                               if (!el) return;
                               screenRefs.current[student._id] = el;
-                              // Attach any stream that arrived before this element mounted
                               const pending = pendingStreams.current[student._id];
                               if (pending?.screen && el.srcObject !== pending.screen) {
                                 el.srcObject = pending.screen;
@@ -599,10 +601,11 @@ const ExamManager = ({ courses, showNotification }) => {
                               }
                             }}
                             autoPlay playsInline muted
-                            style={{ display: status.screen ? 'block' : 'none', width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
+                            className="absolute inset-0 w-full h-full object-contain"
+                            style={{ opacity: status.screen ? 1 : 0 }}
                           />
                           {!status.screen && (
-                            <div className="flex flex-col items-center gap-1 text-gray-600">
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-gray-600">
                               <MonitorOff className="h-8 w-8" />
                               <span className="text-xs">No screen shared</span>
                             </div>
