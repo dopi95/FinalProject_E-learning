@@ -41,7 +41,7 @@ const ExamManager = ({ courses, showNotification }) => {
   const peerConnections = useRef({});
   const videoRefs = useRef({});
   const screenRefs = useRef({});
-  const streamCountRef = useRef({});
+  const pendingStreams = useRef({}); // { studentId: { camera: MediaStream, screen: MediaStream } }
   const [streamStatus, setStreamStatus] = useState({});
   const instructorIdRef = useRef(null);
 
@@ -103,32 +103,28 @@ const ExamManager = ({ courses, showNotification }) => {
       });
       peerConnections.current[fromSocketId] = pc;
 
-      // Track streams: first stream = camera, second stream = screen
-      const receivedStreams = [];
+      // Track streams by mid/id: first stream = camera, second = screen
+      const seenStreamIds = new Set();
 
       pc.ontrack = (e) => {
         const stream = e.streams[0];
-        if (!stream) return;
-        // Check if we already have this stream
-        if (receivedStreams.find(s => s.id === stream.id)) return;
-        receivedStreams.push(stream);
+        if (!stream || seenStreamIds.has(stream.id)) return;
+        seenStreamIds.add(stream.id);
 
-        const idx = receivedStreams.length; // 1 = camera, 2 = screen
-        if (idx === 1) {
-          // First stream = camera
+        const streamIndex = seenStreamIds.size; // 1 = camera, 2 = screen
+        if (streamIndex === 1) {
+          // Store and attach camera stream
+          if (!pendingStreams.current[studentId]) pendingStreams.current[studentId] = {};
+          pendingStreams.current[studentId].camera = stream;
           const el = videoRefs.current[studentId];
-          if (el) {
-            el.srcObject = stream;
-            el.play().catch(() => {});
-          }
+          if (el) { el.srcObject = stream; el.play().catch(() => {}); }
           setStreamStatus(prev => ({ ...prev, [studentId]: { ...prev[studentId], camera: true } }));
-        } else if (idx === 2) {
-          // Second stream = screen share
+        } else if (streamIndex === 2) {
+          // Store and attach screen stream
+          if (!pendingStreams.current[studentId]) pendingStreams.current[studentId] = {};
+          pendingStreams.current[studentId].screen = stream;
           const el = screenRefs.current[studentId];
-          if (el) {
-            el.srcObject = stream;
-            el.play().catch(() => {});
-          }
+          if (el) { el.srcObject = stream; el.play().catch(() => {}); }
           setStreamStatus(prev => ({ ...prev, [studentId]: { ...prev[studentId], screen: true } }));
         }
       };
@@ -166,11 +162,13 @@ const ExamManager = ({ courses, showNotification }) => {
     // Stream status updates (camera/screen on/off)
     socket.on('stream:status', ({ studentId, camera, screen }) => {
       setStreamStatus(prev => ({ ...prev, [studentId]: { camera, screen } }));
-      if (!camera && videoRefs.current[studentId]) {
-        videoRefs.current[studentId].srcObject = null;
+      if (!camera) {
+        if (videoRefs.current[studentId]) videoRefs.current[studentId].srcObject = null;
+        if (pendingStreams.current[studentId]) delete pendingStreams.current[studentId].camera;
       }
-      if (!screen && screenRefs.current[studentId]) {
-        screenRefs.current[studentId].srcObject = null;
+      if (!screen) {
+        if (screenRefs.current[studentId]) screenRefs.current[studentId].srcObject = null;
+        if (pendingStreams.current[studentId]) delete pendingStreams.current[studentId].screen;
       }
     });
 
@@ -178,11 +176,13 @@ const ExamManager = ({ courses, showNotification }) => {
       setStreamStatus(prev => ({ ...prev, [studentId]: { camera: false, screen: false } }));
       if (videoRefs.current[studentId]) videoRefs.current[studentId].srcObject = null;
       if (screenRefs.current[studentId]) screenRefs.current[studentId].srcObject = null;
+      if (pendingStreams.current[studentId]) delete pendingStreams.current[studentId];
     });
 
     return () => {
       Object.values(peerConnections.current).forEach(pc => pc.close());
       peerConnections.current = {};
+      pendingStreams.current = {};
       socket.disconnect();
       socketRef.current = null;
     };
@@ -289,7 +289,7 @@ const ExamManager = ({ courses, showNotification }) => {
 
   const openControlModal = async (exam) => {
     // Reset stream tracking
-    streamCountRef.current = {};
+    pendingStreams.current = {};
     Object.values(peerConnections.current).forEach(pc => pc.close());
     peerConnections.current = {};
     setControlModal(exam);
@@ -519,7 +519,16 @@ const ExamManager = ({ courses, showNotification }) => {
                       {/* Camera Feed */}
                       <div className="relative bg-gray-900 aspect-video flex items-center justify-center">
                         <video
-                          ref={el => { if (el) videoRefs.current[student._id] = el; }}
+                          ref={el => {
+                            if (!el) return;
+                            videoRefs.current[student._id] = el;
+                            // Attach any stream that arrived before this element mounted
+                            const pending = pendingStreams.current[student._id];
+                            if (pending?.camera && el.srcObject !== pending.camera) {
+                              el.srcObject = pending.camera;
+                              el.play().catch(() => {});
+                            }
+                          }}
                           autoPlay playsInline muted
                           style={{ display: status.camera ? 'block' : 'none', width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
                         />
@@ -579,7 +588,16 @@ const ExamManager = ({ courses, showNotification }) => {
                         </div>
                         <div className="relative aspect-video flex items-center justify-center">
                           <video
-                            ref={el => { if (el) screenRefs.current[student._id] = el; }}
+                            ref={el => {
+                              if (!el) return;
+                              screenRefs.current[student._id] = el;
+                              // Attach any stream that arrived before this element mounted
+                              const pending = pendingStreams.current[student._id];
+                              if (pending?.screen && el.srcObject !== pending.screen) {
+                                el.srcObject = pending.screen;
+                                el.play().catch(() => {});
+                              }
+                            }}
                             autoPlay playsInline muted
                             style={{ display: status.screen ? 'block' : 'none', width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
                           />

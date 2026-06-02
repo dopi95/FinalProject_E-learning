@@ -383,15 +383,29 @@ const StudentExams = ({ showNotification }) => {
       const wasScreen = localStorage.getItem('examScreenActive') === 'true';
       if (wasCamera) {
         navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-          .then(stream => { setCameraStream(stream); localStorage.setItem('examCameraActive', 'true'); })
+          .then(stream => {
+            cameraStreamRef.current = stream;
+            setCameraStream(stream);
+            localStorage.setItem('examCameraActive', 'true');
+            emitStreamStatus(true, !!screenStreamRef.current);
+            setTimeout(() => connectedInstructors.current.forEach(id => sendOffer(id)), 300);
+          })
           .catch(() => localStorage.removeItem('examCameraActive'));
       }
       if (wasScreen) {
         navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
           .then(stream => {
+            screenStreamRef.current = stream;
             setScreenStream(stream);
             localStorage.setItem('examScreenActive', 'true');
-            stream.getVideoTracks()[0].onended = () => { setScreenStream(null); localStorage.removeItem('examScreenActive'); };
+            emitStreamStatus(!!cameraStreamRef.current, true);
+            setTimeout(() => connectedInstructors.current.forEach(id => sendOffer(id)), 300);
+            stream.getVideoTracks()[0].onended = () => {
+              screenStreamRef.current = null;
+              setScreenStream(null);
+              localStorage.removeItem('examScreenActive');
+              emitStreamStatus(!!cameraStreamRef.current, false);
+            };
           })
           .catch(() => localStorage.removeItem('examScreenActive'));
       }
