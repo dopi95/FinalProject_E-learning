@@ -31,9 +31,9 @@ const About = () => {
   };
 
   const statsDisplay = [
-    { icon: Users, label: t('about.students'), value: loading ? '...' : `${stats.students.toLocaleString()}+` },
-    { icon: BookOpen, label: t('footer.courses'), value: loading ? '...' : `${stats.courses.toLocaleString()}+` },
-    { icon: Users, label: t('about.instructors'), value: loading ? '...' : `${stats.instructors.toLocaleString()}+` }
+    { icon: Users, label: t('about.students'), value: loading ? '...' : `${(stats.students || 0).toLocaleString()}+` },
+    { icon: BookOpen, label: t('footer.courses'), value: loading ? '...' : `${(stats.courses || 0).toLocaleString()}+` },
+    { icon: Users, label: t('about.instructors'), value: loading ? '...' : `${(stats.instructors || 0).toLocaleString()}+` }
   ];
 
   return (
